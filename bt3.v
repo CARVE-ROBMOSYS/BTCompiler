@@ -6,16 +6,15 @@
 Parameter SkillSet: Set.
 Parameter sk1 sk2 sk3: SkillSet.
 
-(* Definition of the BT type as a tree with arbitrary (but finite) branching,
-   in mutual induction style *)
+(* Definition of the BT type as a binary tree *)
 
 Inductive NodeKind: Set :=
   Sequence | Fallback | Parallel1 | Parallel2.
 
 Inductive btree: Set :=
-  | node: NodeKind -> btree -> btree -> btree
+  | Skill: SkillSet -> btree
+  | node: NodeKind -> btree -> btree -> btree.
 (*  | Decorator: DecKind -> btree -> btree *)
-  | Skill: SkillSet -> btree.
 
 (*
 btree_ind: forall P : btree -> Prop,

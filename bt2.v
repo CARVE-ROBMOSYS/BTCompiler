@@ -6,80 +6,60 @@
 Parameter SkillSet: Set.
 Parameter sk1 sk2 sk3: SkillSet.
 
-(* Definition of the BT type as a tree with arbitrary (but finite) branching,
-   in mutual induction style *)
+(* Definition of the BT type as a tree with arbitrary (but finite) nonzero
+   branching, in mutual induction style. Leaves are labeled by an element of
+   the set Skillset. *)
 
 Inductive btree: Set :=
-  | Sequence: btlist -> btree
-  | Fallback: btlist -> btree
-  | Parallel: nat -> btlist -> btree
-(*  | Decorator: DecKind -> btree -> btree *)
   | Skill: SkillSet -> btree
-with btlist: Set :=
-  | fnil: btlist
-  | fcons: btree -> btlist -> btlist.
+  | Sequence: btforest -> btree
+  | Fallback: btforest -> btree
+  | Parallel: nat -> btforest -> btree
+(*  | Decorator: DecKind -> btree -> btree *)
+with btforest: Set :=
+  | child: btree -> btforest              (* a forest has at least one tree *)
+  | add: btree -> btforest -> btforest.
 
 (* Instantiation of the correct mutual induction principles *)
 
 Scheme btree_mind := Induction for btree Sort Prop
-with btlist_mind := Induction for btlist Sort Prop.
-
-(*
-btree_mind: forall (P : btree -> Prop) (P0 : btlist -> Prop),
-  (forall b : btlist, P0 b -> P (Sequence b)) ->
-  (forall b : btlist, P0 b -> P (Fallback b)) ->
-  (forall (n : nat) (b : btlist), P0 b -> P (Parallel n b)) ->
-  (forall s : SkillSet, P (Skill s)) ->
-  P0 fnil ->
-  (forall b : btree, P b -> forall b0 : btlist, P0 b0 -> P0 (fcons b b0)) ->
-  forall b : btree, P b 
-
-btlist_mind: forall (P : btree -> Prop) (P0 : btlist -> Prop),
-  (forall b : btlist, P0 b -> P (Sequence b)) ->
-  (forall b : btlist, P0 b -> P (Fallback b)) ->
-  (forall (n : nat) (b : btlist), P0 b -> P (Parallel n b)) ->
-  (forall s : SkillSet, P (Skill s)) ->
-  P0 fnil ->
-  (forall b : btree, P b -> forall b0 : btlist, P0 b0 -> P0 (fcons b b0)) ->
-  forall b : btlist, P0 b
- *)
+with btforest_mind := Induction for btforest Sort Prop.
 
 
 (* Some simple examples of BTs *)
 Definition ex1 := (Skill sk1).          (* a node *)
 
-Definition ex2 :=                       (* sequence *)
-  (Sequence (fcons (Skill sk1)
-                   (fcons (Skill sk2)
-                          (fcons (Skill sk3) fnil)))).
+Definition ex2 :=                       (* a ternary sequence *)
+  (Sequence (add (Skill sk1)
+                 (add (Skill sk2)
+                      (child (Skill sk3))))).
 
-Definition ex3 :=                       (* fallback *)
-  (Fallback (fcons (Skill sk1)
-                   (fcons (Skill sk2) fnil))).
+Definition ex3 :=                       (* a binary fallback *)
+  (Fallback (add (Skill sk1)
+                 (child (Skill sk2)))).
 
-Definition ex4 :=                       (* parallel *)
-  (Parallel 1 (fcons (Skill sk1)
-                     (fcons (Skill sk2)
-                            (fcons (Skill sk3) fnil)))).
+Definition ex4 :=                       (* a ternary parallel *)
+  (Parallel 1 (add (Skill sk1)
+                   (add (Skill sk2)
+                        (child (Skill sk3))))).
 
-(* By convention, if the argument of a parallel node is greater than 
-   the length of the corresponding forest, the argument will be "truncated" 
-   at the said length. So for instance: *)
-Definition ex5 :=
-  (Parallel 3 (fcons (Skill sk1)
-                     (fcons (Skill sk2) fnil))).
-(* will be interpreted as Parallel 2 (...) *)
+(* With the above definition, the argument of a parallel node can be greater
+   than the number of children. This is arguably ill-formed, and will be 
+   detected at compile time *)
+
+Definition ex5 :=                       (* faulty parallel *)
+  (Parallel 3 (add (Skill sk1)
+                   (child (Skill sk2)))).
 
 Definition ex6 :=                  (* a BT similar to the one from scenario 1 *)
-  (Fallback (fcons (Skill sk1)
-                   (fcons (Sequence (fcons (Skill sk1)
-                                           (fcons (Skill sk2)
-                                                  (fcons (Skill sk3) fnil))))
-                          fnil))).
+  (Fallback (add (Sequence (add (Skill sk1)
+                                (add (Skill sk2)
+                                     (child (Skill sk3)))))
+                 (child (Skill sk1)))).
 
 (* We could also replace the Parallel constructor with a dependent constructor
    of the form
-   Parallel (k: nat) (l: btlist) (p: k <= (len l)) : btree
+   Parallel (k: nat) (l: btforest) (p: k <= (n_of_children l)): btree
    but such a solution seems overkill at the moment. *)
 
 (* Possible Decorator nodes (as per ALES draft):
@@ -90,10 +70,10 @@ Definition ex6 :=                  (* a BT similar to the one from scenario 1 *)
 
 (* Utility functions *)
 
-Fixpoint len (f: btlist) :=
+Fixpoint n_of_children (f: btforest) :=
   match f with
-  | fnil => 0
-  | fcons t tl => 1 + (len tl)
+  | child t => 1
+  | add t tl => 1 + (n_of_children tl)
   end.
 
 Fixpoint count_leaves (t: btree) :=
@@ -103,13 +83,50 @@ Fixpoint count_leaves (t: btree) :=
   | Fallback f => cl_forest f
   | Parallel n f => cl_forest f
   end
-with cl_forest (f: btlist) :=
+with cl_forest (f: btforest) :=
   match f with
-  | fnil => 0
-  | fcons t tl => count_leaves t + cl_forest tl
+  | child t => count_leaves t
+  | add t tl => count_leaves t + cl_forest tl
   end.
 
 Compute count_leaves ex6.
 
+(* The following function replaces inner nodes with a single child with the
+   child tree itself. We could prove later that this operation does not alter
+   the semantics of the BT. *)
+
+Fixpoint normalize (t: btree) :=
+  match t with
+  | Skill s => Skill s
+  | Sequence f => match f with
+                  | child t => t
+                  | _ => Sequence (normalize_forest f)
+                  end
+  | Fallback f => match f with
+                  | child t => t
+                  | _ => Fallback (normalize_forest f)
+                  end
+  | Parallel n f => match f with
+                    | child t => t
+                    | _ => Parallel n (normalize_forest f)
+                    end
+  end
+with normalize_forest (f: btforest) :=
+       match f with
+       | child t => child (normalize t)
+       | add t ts => add (normalize t) (normalize_forest ts)
+       end.
+
+(* let us test it on a "truncated" version of the BT for scenario 2: *)
+Definition ex7 :=
+  (Fallback (add (Sequence (add (Fallback (child (Skill sk1)))
+                                (add (Skill sk1)
+                                     (child (Skill sk2)))))
+                 (child (Skill sk1)))).
+
+Compute normalize ex7.
+
+
+    
 
 
