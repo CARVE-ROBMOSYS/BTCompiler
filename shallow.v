@@ -28,36 +28,59 @@ Fixpoint tick (t: btree) (input_f: skills_input) :=
                       | Fail => (tick t2 input_f)
                       | Succ => Succ
                       end
-                    | Parallel1 => Fail
-                    | Parallel2 => Fail
+                    | Parallel1 =>
+                      let a := tick t1 input_f in
+                      let b := tick t2 input_f in
+                      match a , b with
+                      | Succ , _ => Succ
+                      | _ , Succ => Succ
+                      | Fail , Fail => Fail
+                      | _ , _ => Runn
+                      end
+                    | Parallel2 =>
+                      let a := tick t1 input_f in
+                      let b := tick t2 input_f in
+                      match a , b with
+                      | Succ , Succ => Succ
+                      | Fail , _ => Fail
+                      | _ , Fail => Fail
+                      | _ , _ => Runn
+                      end
                     end
   end.
+
+(* Evaluation on the examples of bt3.v *)
+
+Compute (tick ex1).
+Compute (tick ex2).
+Compute (tick ex3).
+Compute (tick ex4).
+Compute (tick ex6).
+
+
+
 
 Definition return_same_value (a: btree) (b: btree): Prop :=
   forall i: skills_input, (tick a i) = (tick b i).
 
-Theorem sequence_associativity:
+Theorem all_nodes_are_associative:
+  forall k: NodeKind,
   forall c_1 c_2 c_3: btree,
-    let a := (node Sequence (node Sequence c_1 c_2) c_3) in
-    let b := (node Sequence c_1 (node Sequence c_2 c_3)) in
+    let a := (node k (node k c_1 c_2) c_3) in
+    let b := (node k c_1 (node k c_2 c_3)) in
     return_same_value a b.
 Proof.
   unfold return_same_value.
   intros.
-  simpl.
-  destruct (tick c_1); auto.
-Qed.  
-
-Theorem fallback_associativity:
-  forall c_1 c_2 c_3: btree,
-    let a := (node Fallback (node Fallback c_1 c_2) c_3) in
-    let b := (node Fallback c_1 (node Fallback c_2 c_3)) in
-    return_same_value a b.
-Proof.
-  unfold return_same_value.
-  intros.
-  simpl.
-  destruct (tick c_1); auto.
+  induction k.
+  - simpl.
+    destruct (tick c_1); auto.
+  - simpl.
+    destruct (tick c_1); auto.
+  - simpl.
+    destruct (tick c_1); destruct (tick c_2); destruct (tick c_3); auto.
+  - simpl.
+    destruct (tick c_1); destruct (tick c_2); destruct (tick c_3); auto.
 Qed.  
 
 
