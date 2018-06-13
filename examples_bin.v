@@ -5,15 +5,15 @@ Require Import bt.
 Inductive my_skills :=
   sk1 | sk2 | sk3 | sk4.
 
-Module bt_ex.
+Module ex_skills.
 
   Definition SkillSet := my_skills.
 
-End bt_ex.
+End ex_skills.
 
-Module my_bt := BT_binary bt_ex.
+Module my_binary_bt := BT_binary ex_skills.
 
-Import my_bt. (* short names available *)
+Import my_binary_bt. (* makes short names available *)
 
 Definition ex1 := (Skill sk1).          (* a node *)
 
@@ -28,11 +28,9 @@ Definition ex4 :=                       (* parallel *)
   (node Parallel1 (Skill sk1)
         (node Parallel1 (Skill sk2) (Skill sk3))).
 
-Definition ex6 :=                  (* a BT similar to the one from scenario 1 *)
+Definition sc1 :=                  (* a BT similar to the one from scenario 1 *)
   (node Fallback (Skill sk1)
         (node Sequence (Skill sk2)
               (node Sequence (Skill sk3) (Skill sk4)))).
 
-Compute count_leaves ex6.
-  
-
+Compute count_leaves sc1. 
