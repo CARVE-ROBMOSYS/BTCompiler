@@ -51,6 +51,6 @@ Definition sc1m :=
                                                (child (Skill sk3)))))
                       (child (Skill sk4)))).
 
-Compute normalize sc2t.
+Compute normalize sc1m.
 
 
