@@ -1,4 +1,4 @@
-Require Import bt.
+Require Import bt shallow.
 
 (* Some simple examples of BTs *)
 
@@ -11,7 +11,7 @@ Module ex_skills.
 
 End ex_skills.
 
-Module my_bt := BT_general ex_skills.
+Module my_bt := BT_gen_semantics ex_skills.
 
 Import my_bt. (* makes short names available *)
 
@@ -48,9 +48,24 @@ Compute count_leaves sc1.
 Definition sc1m :=
   (node Fallback (add (node Sequence (add (node Fallback (child (Skill sk1)))
                                           (add (Skill sk2)
-                                               (child (Skill sk3)))))
+                                               (child (node Sequence (child (Skill sk3)))))))
                       (child (Skill sk4)))).
 
 Compute normalize sc1m.
+
+(* execution examples *)
+
+Compute (tick ex4).
+(* current implementation will happily run on this ill-formed BT... *)
+Compute (tick ex5).
+
+Compute (tick sc1 (fun s: my_skills =>
+                     match s with
+                     | sk1 => Succ
+                     | sk2 => Succ
+                     | sk3 => Fail
+                     | sk4 => Succ
+                     end)).
+
 
 

@@ -46,6 +46,7 @@ Module BT_general (X: BT_SIG).
 
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
+  | TRUE: btree
   | node: NodeKind -> btforest -> btree
   (*  | dec: DecKind -> btree -> btree *)
   with btforest: Set :=
@@ -59,15 +60,16 @@ Module BT_general (X: BT_SIG).
 
   (* Utility functions *)
 
-  Fixpoint n_of_children (f: btforest) :=
+  Fixpoint len (f: btforest) :=
     match f with
     | child t => 1
-    | add t tl => 1 + (n_of_children tl)
+    | add t1 rest => S (len rest)
     end.
 
   Fixpoint count_leaves (t: btree) :=
     match t with
     | Skill s => 1
+    | TRUE => 1
     | node k f => cl_forest f
     end
   with cl_forest (f: btforest) :=
@@ -77,14 +79,33 @@ Module BT_general (X: BT_SIG).
     end.
 
   (* The following function replaces inner nodes with a single child with
-     the child tree itself. We will prove later that this operation does not
+     the child tree itself. We may prove later that this operation does not
      alter the semantics of the BT. *)
 
   Fixpoint normalize (t: btree) :=
     match t with
     | Skill s => Skill s
-    | node k f => match f with
-                  | child t => t
+    | TRUE => TRUE
+    | node k f => match k with
+(* original implementation:
+                  | Parallel 0 => TRUE
+                  | _ => match f with
+                         | child t => t
+                         | _ => node k (normalize_forest f)
+                         end
+                  end
+   this cannot be proved correct because of meaningless thresholds in
+   parallel nodes. So we leave parallel nodes alone: *)
+                  | Sequence =>
+                    match f with
+                    | child t => t
+                    | _ => node k (normalize_forest f)
+                    end
+                  | Fallback =>
+                    match f with
+                    | child t => t
+                    | _ => node k (normalize_forest f)
+                    end
                   | _ => node k (normalize_forest f)
                   end
     end
