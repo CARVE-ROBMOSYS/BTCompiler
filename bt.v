@@ -20,6 +20,7 @@ Module BT_binary (X: BT_SIG).
   
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
+  | TRUE: btree
   | node: NodeKind -> btree -> btree -> btree.
   (*  | dec: DecKind -> btree -> btree *)
 
@@ -28,6 +29,7 @@ Module BT_binary (X: BT_SIG).
   Fixpoint count_leaves (t: btree) :=
     match t with
     | Skill s => 1
+    | TRUE => 1
     | node k t1 t2 => (count_leaves t1) + (count_leaves t2)
     end.
 

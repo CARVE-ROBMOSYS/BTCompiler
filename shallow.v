@@ -21,6 +21,7 @@ Module BT_bin_semantics (X: BT_SIG).
   Fixpoint tick (t: btree) (input_f: skills_input) :=
     match t with
     | Skill s => input_f s
+    | TRUE => Succ
     | node k t1 t2 => match k with
                       | Sequence =>
                         match (tick t1 input_f) with
@@ -158,24 +159,112 @@ Module BT_gen_semantics (X: BT_SIG).
     | add t1 r1, add t2 r2 => return_same_value t1 t2
                               /\ all_return_same_value r1 r2
     end.
-  (* but: other definitions may be possible... *)
-  
+(*
+  Fixpoint all_return_same_value (f1 f2: btforest) :=
+    (len f1 = len f2) /\
+    match f1 with
+    | child t1 => match f2 with
+                  | child t2 => return_same_value t1 t2
+                  | _ => False
+                  end
+    | add t1 r1 => match f2 with
+                   | child t2 => False
+                   | add t2 r2 => return_same_value t1 t2
+                                  /\ all_return_same_value r1 r2
+                   end
+    end.
+*)
   Hint Unfold return_same_value all_return_same_value.
   
-  (* these lemmas may be proved automatically using Adam Chlipala's
-     crush tactic *)
-
-  Lemma l1: forall f: btforest,
+  Lemma norm_seq: forall f: btforest,
       all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input, tick_sequence f i = tick_sequence (normalize_forest f) i.
+      -> forall i: skills_input,
+        tick_sequence f i = tick_sequence (normalize_forest f) i.
   Proof.
-  Admitted.
+    apply (btforest_mind
+             (fun bt: btree => return_same_value bt (normalize bt)
+                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
+             (fun f: btforest => all_return_same_value f (normalize_forest f)
+                                 -> forall i: skills_input, tick_sequence f i = tick_sequence (normalize_forest f) i)).
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+    - simpl.
+      intros b Hb f Hf.
+      intros [H0 H1] i.
+      rewrite (Hb H0).
+      rewrite (Hf H1).
+      trivial.
+  Qed.
 
-  Lemma l2: forall f: btforest,
+  Lemma norm_fall: forall f: btforest,
       all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input, tick_fallback f i = tick_fallback (normalize_forest f) i.
+      -> forall i: skills_input,
+        tick_fallback f i = tick_fallback (normalize_forest f) i.
   Proof.
-  Admitted.
+    apply (btforest_mind
+             (fun bt: btree => return_same_value bt (normalize bt)
+                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
+             (fun f: btforest => all_return_same_value f (normalize_forest f)
+                                 -> forall i: skills_input, tick_fallback f i = tick_fallback (normalize_forest f) i)).
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+    - simpl.
+      intros b Hb f Hf.
+      intros [H0 H1] i.
+      rewrite (Hb H0).
+      rewrite (Hf H1).
+      trivial.
+  Qed.
+
+  Lemma normalize_preserves_length:
+    forall f: btforest, len (normalize_forest f) = len f.
+  Proof.
+    induction f.
+    - auto.
+    - simpl; f_equal; assumption.
+(*    apply (btforest_mind
+             (fun bt: btree => True)
+             (fun f: btforest => len (normalize_forest f) = len f)).
+    - auto.
+    - auto.
+    - auto.
+    - auto.
+    - intros b _ f H.
+      simpl; f_equal; assumption.*)
+  Qed.
+
+  Lemma norm_par: forall f: btforest,
+      all_return_same_value f (normalize_forest f)
+      -> forall n:nat, forall i: skills_input, tick_parallel n f i = tick_parallel n (normalize_forest f) i.
+  Proof.
+    apply (btforest_mind
+             (fun bt: btree => return_same_value bt (normalize bt)
+                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
+             (fun f: btforest => all_return_same_value f (normalize_forest f)
+                                 -> forall n: nat, forall i: skills_input, tick_parallel n f i = tick_parallel n (normalize_forest f) i)).
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+    - simpl; auto.
+      intros b Hb H0 n i.
+      rewrite (Hb H0 i).
+      auto.
+    - simpl.
+      intros b Hb f Hf.
+      intros [H0 H1] n i.
+      rewrite (Hb H0).
+      shelve.
+  Abort.
+                                          
+(* doesn't work; we need to reason about tick_all and prove, e.g.,
+  tick_all (normalize_forest f) = tick_all f
+  tick_all (normalize_forest f) = tick_all f
+  ...
+*)
 
   Theorem normalize_preserves_return_value:
     forall t: btree, return_same_value t (normalize t).
@@ -194,7 +283,7 @@ Module BT_gen_semantics (X: BT_SIG).
            simpl.
            assert (H1: tick b i = tick (normalize b) i) by (apply H).
            rewrite <- H1.
-           assert (H2: tick_sequence b0 i = tick_sequence (normalize_forest b0) i) by (apply l1; assumption).
+           assert (H2: tick_sequence b0 i = tick_sequence (normalize_forest b0) i) by (apply norm_seq; assumption).
            rewrite <- H2.
            trivial.
 (* fallback case *)
@@ -205,30 +294,28 @@ Module BT_gen_semantics (X: BT_SIG).
            simpl.
            assert (H1: tick b i = tick (normalize b) i) by (apply H).
            rewrite <- H1.
-           assert (H2: tick_fallback b0 i = tick_fallback (normalize_forest b0) i) by (apply l2; assumption).
+           assert (H2: tick_fallback b0 i = tick_fallback (normalize_forest b0) i) by (apply norm_fall; assumption).
            rewrite <- H2.
            trivial.
 (* parallel case *)
       + destruct b.
         -- simpl.
-           unfold return_same_value.
            intros H i.
            simpl; rewrite H; auto.
 (*           destruct n.
            ++ compute; auto.
            ++ simpl; rewrite H; auto.  *)
         -- simpl.
-           unfold return_same_value.
            intros [H H0] i.
            simpl.
-           (* what to do now? *)
+           (* same problem as above... *)
            give_up.
 (*           destruct n.
            ++ compute; auto.
            ++ shelve.  *)
     - destruct b; simpl; auto.
     - destruct b; simpl; auto.
-  Admitted.
+  Abort.
 
     
 End BT_gen_semantics.
