@@ -54,6 +54,20 @@ Module BT_bin_semantics (X: BT_SIG).
                         | _ , _ => Runn
                         end
                       end
+    | dec k t => match k with
+                 | Not =>
+                   match (tick t input_f) with
+                   | Runn => Runn
+                   | Fail => Succ
+                   | Succ => Fail
+                   end
+                 | isRunning =>
+                   match (tick t input_f) with
+                   | Runn => Succ
+                   | Fail => Fail
+                   | Succ => Fail
+                   end
+                 end
     end.
 
   Definition return_same_value (a: btree) (b: btree): Prop :=

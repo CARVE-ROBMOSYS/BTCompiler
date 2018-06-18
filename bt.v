@@ -16,13 +16,20 @@ Module BT_binary (X: BT_SIG).
   Inductive NodeKind: Set :=
     Sequence | Fallback | Parallel1 | Parallel2.
 
-  (* Inductive DecKind: Set := Not | isRunning | isEnabled | ... *)
+  Inductive DecKind: Set :=
+    Not | isRunning. (* | isEnabled. *)
+
+  (* Other decorators with memory, like the "max-N-tries" and the
+     "max-T-sec" decorators described in the book by Colledanchise
+     and Ogren, are best implemented as composite BTs which manage
+     the state via some skills implementing a suitable interface,
+     e.g. communication with a parameter server. *)
   
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
-  | node: NodeKind -> btree -> btree -> btree.
-  (*  | dec: DecKind -> btree -> btree *)
+  | node: NodeKind -> btree -> btree -> btree
+  | dec: DecKind -> btree -> btree.
 
   (* Utility functions *)
 
@@ -31,6 +38,7 @@ Module BT_binary (X: BT_SIG).
     | Skill s => 1
     | TRUE => 1
     | node k t1 t2 => (count_leaves t1) + (count_leaves t2)
+    | dec k t => (count_leaves t)
     end.
 
 End BT_binary.
