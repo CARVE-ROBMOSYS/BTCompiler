@@ -37,8 +37,8 @@ Module BT_binary (X: BT_SIG).
     match t with
     | Skill s => 1
     | TRUE => 1
-    | node k t1 t2 => (count_leaves t1) + (count_leaves t2)
-    | dec k t => (count_leaves t)
+    | node k t1 t2 => count_leaves t1 + count_leaves t2
+    | dec k t => count_leaves t
     end.
 
 End BT_binary.
@@ -52,13 +52,14 @@ Module BT_general (X: BT_SIG).
   | Fallback: NodeKind
   | Parallel: nat -> NodeKind.
 
-  (* Inductive DecKind: Set := Not | isRunning | isEnabled | ... *)
+  Inductive DecKind: Set :=
+    Not | isRunning. (* | isEnabled. *)
 
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
   | node: NodeKind -> btforest -> btree
-  (*  | dec: DecKind -> btree -> btree *)
+  | dec: DecKind -> btree -> btree
   with btforest: Set :=
   | child: btree -> btforest              (* a forest has at least one tree *)
   | add: btree -> btforest -> btforest.
@@ -81,6 +82,7 @@ Module BT_general (X: BT_SIG).
     | Skill s => 1
     | TRUE => 1
     | node k f => cl_forest f
+    | dec k t => count_leaves t
     end
   with cl_forest (f: btforest) :=
     match f with
@@ -118,6 +120,13 @@ Module BT_general (X: BT_SIG).
                     end
                   | _ => node k (normalize_forest f)
                   end
+    | dec k t => match k with
+                 | Not => match t with
+                          | dec Not t' => t'      (* Not is an involution *)
+                          | _ => dec Not (normalize t)
+                          end
+                 | _ => dec k (normalize t)
+                 end
     end
   with normalize_forest (f: btforest) :=
     match f with
