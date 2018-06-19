@@ -170,9 +170,92 @@ Module BT_bin_str_sem (X: BT_SIG).
 
 End BT_bin_str_sem.
 
-(* Version for BTs with arbitrary branching: TBW *)
+(* Version for BTs with arbitrary branching *)
+
+Module BT_gen_str_sem (X: BT_SIG).
+
+  Include BT_general X.
+
+  Inductive return_enum := Runn | Fail | Succ.
+
+  Definition skills_input := X.SkillSet -> return_enum.
+
+  Definition input_stream := Stream skills_input.
+
+  Fixpoint countSucc (l: list return_enum) :=
+    match l with
+    | nil => 0
+    | cons head tail => match head with
+                        | Succ => countSucc tail + 1
+                        | _ => countSucc tail
+                        end
+    end.
+
+  Fixpoint countFail (l: list return_enum) :=
+    match l with
+    | nil => 0
+    | cons head tail => match head with
+                        | Fail => countFail tail + 1
+                        | _ => countFail tail
+                        end
+    end.
+
+  (* single tick evaluation, discarding the input_stream *)
+  
+  Fixpoint tick (t: btree) (i: input_stream) :=
+    match t with
+    | Skill s => (hd i) s
+    | TRUE => Succ
+    | node k f => match k with
+                  | Sequence => tick_sequence f i
+                  | Fallback => tick_fallback f i
+                  | Parallel n =>
+                    let results := tick_all f i in
+                    if n <=? (countSucc results) then Succ
+                    else if (len f - n) <? (countFail results) then Fail
+                         else Runn
+                  end
+    | dec k t => match k with
+                 | Not =>
+                   match tick t i with
+                   | Runn => Runn
+                   | Fail => Succ
+                   | Succ => Fail
+                   end
+                 | isRunning =>
+                   match tick t i with
+                   | Runn => Succ
+                   | Fail => Fail
+                   | Succ => Fail
+                   end
+                 end
+    end
+  with tick_sequence (f: btforest) (i: input_stream) :=
+         match f with
+         | child t => tick t i
+         | add t1 rest => match tick t1 i with
+                          | Runn => Runn
+                          | Fail => Fail
+                          | Succ => tick_sequence rest (tl i)
+                          end
+         end
+  with tick_fallback (f: btforest) (i: input_stream) :=
+         match f with
+         | child t => tick t i
+         | add t1 rest => match tick t1 i with
+                          | Runn => Runn
+                          | Fail => tick_fallback rest (tl i)
+                          | Succ => Succ
+                          end
+         end
+  with tick_all (f: btforest) (i: input_stream) :=
+         match f with
+         | child t => cons (tick t i) nil
+         | add t1 rest => cons (tick t1 i) (tick_all rest i)
+         end.
 
 
+End BT_gen_str_sem.
 
 
 

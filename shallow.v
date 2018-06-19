@@ -207,9 +207,9 @@ Module BT_gen_semantics (X: BT_SIG).
       intros t H H0 i.
       rewrite (H H0 i); trivial.
     - simpl.
-      intros b Hb f Hf.
+      intros t Ht f Hf.
       intros [H0 H1] i.
-      rewrite (Hb H0); rewrite (Hf H1); trivial.
+      rewrite (Ht H0); rewrite (Hf H1); trivial.
   Qed.
 
   Lemma norm_fall: forall f: btforest,
@@ -230,9 +230,9 @@ Module BT_gen_semantics (X: BT_SIG).
       intros t H H0 i.
       rewrite (H H0 i); trivial.
     - simpl.
-      intros b Hb f Hf.
+      intros t Ht f Hf.
       intros [H0 H1] i.
-      rewrite (Hb H0); rewrite (Hf H1); trivial.
+      rewrite (Ht H0); rewrite (Hf H1); trivial.
   Qed.
 
   Lemma normalize_preserves_length:

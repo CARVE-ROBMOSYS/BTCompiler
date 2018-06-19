@@ -67,5 +67,73 @@ Compute (tick sc1 (fun s: my_skills =>
                      | sk4 => Succ
                      end)).
 
+(* Examples with stream semantics *)
+
+Require Import Streams stream.
+
+Module alt_sem := BT_gen_str_sem ex_skills.
+
+Import alt_sem.
+
+CoFixpoint all_ok: Stream skills_input :=
+  Cons (fun s: my_skills =>
+          match s with
+          | sk1 => Succ
+          | sk2 => Succ
+          | sk3 => Succ
+          | sk4 => Succ
+          end)
+       all_ok.
+
+Definition s1 :=
+  Cons (fun s: my_skills =>
+          match s with
+          | sk1 => Succ
+          | sk2 => Succ
+          | sk3 => Succ
+          | sk4 => Succ
+          end)
+       (Cons (fun s: my_skills =>
+                match s with
+                | sk1 => Succ
+                | sk2 => Succ
+                | sk3 => Fail
+                | sk4 => Succ
+                end)
+             (Cons (fun s: my_skills =>
+                      match s with
+                      | sk1 => Succ
+                      | sk2 => Runn
+                      | sk3 => Succ
+                      | sk4 => Succ
+                      end)
+                   (Cons (fun s: my_skills =>
+                            match s with
+                            | sk1 => Succ
+                            | sk2 => Succ
+                            | sk3 => Fail
+                            | sk4 => Succ
+                            end)
+                         (Cons (fun s: my_skills =>
+                                  match s with
+                                  | sk1 => Succ
+                                  | sk2 => Succ
+                                  | sk3 => Fail
+                                  | sk4 => Succ
+                                  end)
+                               (Cons (fun s: my_skills =>
+                                        match s with
+                                        | sk1 => Succ
+                                        | sk2 => Succ
+                                        | sk3 => Fail
+                                        | sk4 => Succ
+                                        end)
+                               all_ok))))).
+
+Compute tick (node Sequence (add (Skill sk1)
+                                 (add (Skill sk2) (child (Skill sk3)))))
+        s1.
+
+
 
 
