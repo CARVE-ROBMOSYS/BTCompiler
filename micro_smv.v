@@ -1,5 +1,5 @@
 (* deep embedding of a subset of the SMV specification language into Coq
-   Version without modules *)
+   Preliminary version, without modules *)
 
 Require Import List String.
 
@@ -45,7 +45,9 @@ Inductive varlist :=
 | LastV: identifier -> type_spec -> varlist
 | AddV: identifier -> type_spec -> varlist -> varlist.
 
-(*Inductive ivar_stat := *)
+Inductive ivarlist :=
+| LastI: identifier -> type_spec -> ivarlist
+| AddI: identifier -> type_spec -> ivarlist -> ivarlist.
 
 (* define declarations *)
 Inductive deflist :=
@@ -65,7 +67,7 @@ Inductive asslist :=
 (* general element of an SMV module *)
 Inductive smv_element :=
 | VAR: varlist -> smv_element
-(*| IVAR: ivar_stat -> smv_element*)
+| IVAR: ivarlist -> smv_element
 | DEFINE: deflist -> smv_element
 | ASSIGN: asslist -> smv_element.
 
