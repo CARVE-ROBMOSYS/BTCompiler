@@ -254,6 +254,78 @@ Module BT_gen_str_sem (X: BT_SIG).
          | add t1 rest => cons (tick t1 i) (tick_all rest i)
          end.
 
+  (* Single tick evaluation, preserving the input_stream *)
+
+  Fixpoint tick2 (t: btree) (i: input_stream): return_enum * input_stream :=
+    match t with
+    | Skill s => pair ((hd i) s) (tl i)
+    | TRUE => pair Succ i
+    | node k f => match k with
+                  | Sequence => tick2_sequence f i
+                  | Fallback => tick2_fallback f i
+                  | Parallel n =>
+                    let (results , str) := tick2_all f i in
+                    if n <=? (countSucc results) then pair Succ str
+                    else if (len f - n) <? (countFail results) then pair Fail str
+                         else pair Runn str
+                  end
+    | dec k t => match k with
+                 | Not =>
+                   let (res , str) := tick2 t i in
+                   match res with
+                   | Runn => pair Runn str
+                   | Fail => pair Succ str
+                   | Succ => pair Fail str
+                   end
+                 | isRunning =>
+                   let (res , str) := tick2 t i in
+                   match res with
+                   | Runn => pair Succ str
+                   | Fail => pair Fail str
+                   | Succ => pair Fail str
+                   end
+                 end
+    end
+  with tick2_sequence (f: btforest) (i: input_stream): return_enum * input_stream :=
+         match f with
+         | child t => tick2 t i
+         | add t1 rest => let (res , str) := tick2 t1 i in
+                          match res with
+                          | Runn => pair Runn str
+                          | Fail => pair Fail str
+                          | Succ => tick2_sequence rest str
+                          end
+         end
+  with tick2_fallback (f: btforest) (i: input_stream): return_enum * input_stream :=
+         match f with
+         | child t => tick2 t i
+         | add t1 rest => let (res , str) := tick2 t1 i in
+                          match res with
+                          | Runn => pair Runn str
+                          | Fail => tick2_fallback rest str
+                          | Succ => pair Succ str
+                          end
+         end
+  with tick2_all (f: btforest) (i: input_stream): list return_enum * input_stream :=
+         match f with
+         | child t => let (res , str) := tick2 t i in
+                      pair (cons res nil) str
+         | add t1 rest => let (res , str) := tick2 t1 i in
+                          (* keep the stream resulting from the first node *)
+                          pair (cons res (fst (tick2_all rest i))) str
+         end.
+
+  (* Evaluation of a specified number of ticks *)
+
+  Fixpoint reptick (t: btree) (n: nat) (i: input_stream): list return_enum :=
+    let (res , str) := tick2 t i in
+    match n with
+    | O => cons res nil
+    | S p => cons res (reptick t p str)
+    end.
+
+
+
 
 End BT_gen_str_sem.
 

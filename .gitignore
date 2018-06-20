@@ -1,6 +1,7 @@
 .*.aux
 *~
 *.a
+*.annot
 *.cma
 *.cmi
 *.cmo
@@ -29,3 +30,11 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+
+# ocamlbuild working directory
+_build/
+
+# ocamlbuild targets
+*.byte
+*.native
+

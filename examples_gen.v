@@ -11,6 +11,7 @@ Module ex_skills.
 
 End ex_skills.
 
+(*
 Module my_bt := BT_gen_semantics ex_skills.
 
 Import my_bt. (* makes short names available *)
@@ -66,7 +67,7 @@ Compute (tick sc1 (fun s: my_skills =>
                      | sk3 => Fail
                      | sk4 => Succ
                      end)).
-
+*)
 (* Examples with stream semantics *)
 
 Require Import Streams stream.
@@ -88,15 +89,15 @@ CoFixpoint all_ok: Stream skills_input :=
 Definition s1 :=
   Cons (fun s: my_skills =>
           match s with
-          | sk1 => Succ
-          | sk2 => Succ
-          | sk3 => Succ
+          | sk1 => Runn
+          | sk2 => Fail
+          | sk3 => Fail
           | sk4 => Succ
           end)
        (Cons (fun s: my_skills =>
                 match s with
                 | sk1 => Succ
-                | sk2 => Succ
+                | sk2 => Fail
                 | sk3 => Fail
                 | sk4 => Succ
                 end)
@@ -104,7 +105,7 @@ Definition s1 :=
                       match s with
                       | sk1 => Succ
                       | sk2 => Runn
-                      | sk3 => Succ
+                      | sk3 => Fail
                       | sk4 => Succ
                       end)
                    (Cons (fun s: my_skills =>
@@ -118,21 +119,21 @@ Definition s1 :=
                                   match s with
                                   | sk1 => Succ
                                   | sk2 => Succ
-                                  | sk3 => Fail
+                                  | sk3 => Runn
                                   | sk4 => Succ
                                   end)
                                (Cons (fun s: my_skills =>
                                         match s with
                                         | sk1 => Succ
                                         | sk2 => Succ
-                                        | sk3 => Fail
+                                        | sk3 => Succ
                                         | sk4 => Succ
                                         end)
                                all_ok))))).
 
-Compute tick (node Sequence (add (Skill sk1)
-                                 (add (Skill sk2) (child (Skill sk3)))))
-        s1.
+Compute reptick (node Sequence (add (Skill sk1)
+                                    (add (Skill sk2) (child (Skill sk3)))))
+        3 s1.
 
 
 
