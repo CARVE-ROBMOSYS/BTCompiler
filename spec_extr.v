@@ -6,6 +6,12 @@ Open Scope string_scope.
 
 Definition newline := String "010" EmptyString.
 
+Fixpoint translate_qualid (q: qualid) :=
+  match q with
+  | Id i => i
+  | Mod m q' => m ++ "." ++ translate_qualid q'
+  end.
+
 Fixpoint translate_sexp (e: sexp) : string :=
   match e with
 (* base cases *)
@@ -14,7 +20,7 @@ Fixpoint translate_sexp (e: sexp) : string :=
                  | FALSE => "FALSE"
                  end
   | SConst sc => sc
-  | Ident i => i
+  | Qual q => translate_qualid q
 (* inductive cases *)
   | Paren e' => "(" ++ translate_sexp e' ++ ")"
   | Not e' => "! " ++ translate_sexp e'
@@ -44,10 +50,28 @@ Definition translate_nexp (e: nexp) :=
   | Basic e' => "next(" ++ translate_sexp e' ++ ")"
   end.
 
-Definition translate_type_spec (t: type_spec) :=
+Definition translate_simp_type_spec (t: simp_type_spec) :=
   match t with
   | TBool => "boolean"
   | TEnum values => "{ " ++ concat ", " values ++ " }"
+  end.
+
+Fixpoint translate_param_list (pl: param_list) :=
+  match pl with
+  | LastP e => translate_nexp e
+  | AddP e pl' => translate_nexp e ++ ", " ++ translate_param_list pl'
+  end.
+
+Fixpoint translate_mod_type_spec (m: mod_type_spec) :=
+  match m with
+  | TMod i => i
+  | TModPar i pl => i ++ "(" ++ translate_param_list pl ++ ")"
+  end.
+
+Definition translate_type_spec (t: type_spec) :=
+  match t with
+  | TSimp sts => translate_simp_type_spec sts
+  | TComp mts => translate_mod_type_spec mts
   end.
 
 Fixpoint translate_varlist (vl: varlist) :=
@@ -59,8 +83,8 @@ Fixpoint translate_varlist (vl: varlist) :=
 
 Fixpoint translate_ivarlist (il: ivarlist) :=
   match il with
-  | LastI id ty => id ++ " : " ++ translate_type_spec ty ++ ";" ++ newline
-  | AddI id ty rest => id ++ " : " ++ translate_type_spec ty ++ ";" ++ newline
+  | LastI id ty => id ++ " : " ++ translate_simp_type_spec ty ++ ";" ++ newline
+  | AddI id ty rest => id ++ " : " ++ translate_simp_type_spec ty ++ ";" ++ newline
                        ++ translate_ivarlist rest
   end.
 
@@ -73,9 +97,9 @@ Fixpoint translate_deflist (dl: deflist) :=
 
 Definition translate_assign_cons (c: assign_cons) :=
   match c with
-  | invar id e => id ++ " := " ++ translate_sexp e ++ ";" ++ newline
-  | init id e => "init(" ++ id ++ ") := " ++ translate_sexp e ++ ";" ++ newline
-  | next id ne => "next(" ++ id ++ ") := " ++ translate_nexp ne ++ ";" ++ newline
+  | invar q e => translate_qualid q ++ " := " ++ translate_sexp e ++ ";" ++ newline
+  | init q e => "init(" ++ translate_qualid q ++ ") := " ++ translate_sexp e ++ ";" ++ newline
+  | next q ne => "next(" ++ translate_qualid q ++ ") := " ++ translate_nexp ne ++ ";" ++ newline
   end.
 
 Fixpoint translate_asslist (al: asslist) :=
@@ -92,47 +116,76 @@ Definition translate_smv_element (e: smv_element) :=
   | ASSIGN al => "ASSIGN" ++ newline ++ translate_asslist al
   end.
 
-Fixpoint translate (m: smv_module) :=
-  match m with
+Fixpoint translate_body (b: list smv_element) :=
+  match b with
   | nil => ""
-  | cons e rest => translate_smv_element e ++ translate rest
+  | cons e rest => translate_smv_element e ++ translate_body rest
   end.
 
-(* examples *)
+Definition translate (m: smv_module) :=
+  "MODULE " ++ (name m) ++ "(" ++ concat ", " (params m) ++ ")" ++ newline
+  ++ translate_body (body m) ++ newline.
 
-Definition skill :=
-  (IVAR (LastI "input" (TEnum ("runn"::"fail"::"succ"::nil))))
-  ::
-  (VAR (LastV "output" (TEnum ("none"::"running"::"failed"::"succeeded"::nil))))
-  ::
-  (ASSIGN (AddA (init "output" (SConst "none"))
-                (LastA (next "output" (Simple (Case
-                                                 (AddCexp (Equal (Ident "input") (SConst "runn"))
-                                                          (SConst "running")
-                                                          (AddCexp (Equal (Ident "input") (SConst "fail"))
-                                                                   (SConst "failed")
-                                                                   (Cexp (Equal (Ident "input") (SConst "succ"))
-                                                                         (SConst "succeeded"))))))))))
-  ::nil.
+Fixpoint translate_spec (f: smv_spec) :=
+  match f with
+  | nil => ""
+  | cons m rest => translate m ++ translate_spec rest
+  end.
 
-Compute translate skill.
+Definition boilerSkill: smv_module :=
+  Build_smv_module
+    "bt_skill"
+    nil
+    ((IVAR (LastI "input" (TEnum ("runn"::"fail"::"succ"::nil))))
+    ::
+    (VAR (LastV "output" (TSimp (TEnum ("none"::"running"::"failed"::"succeeded"::nil)))))
+    ::
+    (ASSIGN (AddA (init (Id "output") (SConst "none"))
+                  (LastA (next (Id "output")
+                               (Simple (Case
+                                          (AddCexp (Equal (Qual (Id "input")) (SConst "runn"))
+                                                   (SConst "running")
+                                                   (AddCexp (Equal (Qual (Id "input")) (SConst "fail"))
+                                                            (SConst "failed")
+                                                            (Cexp (Equal (Qual (Id "input")) (SConst "succ"))
+                                                                  (SConst "succeeded"))))))))))
+    ::nil).
 
+Compute translate boilerSkill.
 
+(*
+"MODULE bt_skill()
+IVAR
+input : { runn, fail, succ };
+VAR
+output : { none, running, failed, succeeded };
+ASSIGN
+init(output) := none;
+next(output) := case
+input = runn : running;
+input = fail : failed;
+input = succ : succeeded;
+esac;
+
+"
+     : string 
+*)
 
 Definition prova1 :=
-  (VAR (AddV "state" (TEnum ("ready"::"busy"::nil)) (LastV "request" TBool)))
-    ::
-    (ASSIGN
-       (AddA (init "state" (SConst "ready"))
-             (LastA (next "state"
-                          (Simple (Case
-                                     (AddCexp (And (Equal (Ident "state") (SConst "ready"))
-                                                   (Equal (Ident "request") (BConst TRUE)))
-                                              (SConst "busy")
-                                              (Cexp (BConst TRUE)
-                                                    (SConst "ready"))))))))) :: nil.
+  (VAR (AddV "state" (TSimp (TEnum ("ready"::"busy"::nil))) (LastV "request" (TSimp TBool))))
+  ::
+  (ASSIGN
+     (AddA (init (Id "state") (SConst "ready"))
+           (LastA (next (Id "state")
+                        (Simple (Case
+                                   (AddCexp (And (Equal (Qual (Id "state")) (SConst "ready"))
+                                                 (Equal (Qual (Id "request")) (BConst TRUE)))
+                                            (SConst "busy")
+                                            (Cexp (BConst TRUE)
+                                                  (SConst "ready")))))))))
+  ::nil.
 
-Compute translate prova1.
+Compute translate_body prova1.
 
 
 
