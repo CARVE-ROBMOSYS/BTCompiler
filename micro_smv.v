@@ -6,7 +6,7 @@ Require Import List String.
 Definition symbolic_constant := string.
 Definition identifier := string.
 (* integer constants will be treated as symbols (i.e., strings) *)
-Inductive bool_constant := FALSE | TRUE.
+Inductive bool_constant := smvF | smvT.
 
 Inductive qualid :=
 | Id: identifier -> qualid
@@ -18,7 +18,7 @@ Inductive sexp :=
 | SConst: symbolic_constant -> sexp
 | Qual: qualid -> sexp
 | Paren: sexp -> sexp
-| Not: sexp -> sexp
+| Neg: sexp -> sexp
 | And: sexp -> sexp -> sexp
 | Equal: sexp -> sexp -> sexp
 | Less: sexp -> sexp -> sexp
