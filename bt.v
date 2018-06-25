@@ -3,10 +3,13 @@
    Both are parameterized modules over the signature BT_SIG, which defines
    (for now) only a set specifying the basic skills available. *)
 
+Require Import String.
+
 Module Type BT_SIG.
   
   Parameter SkillSet: Set.
-
+  Parameter SkillName: SkillSet -> string.
+  
 End BT_SIG.
 
 (* First implementation: trees with binary branching only *)
@@ -28,17 +31,17 @@ Module BT_binary (X: BT_SIG).
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
-  | node: NodeKind -> btree -> btree -> btree
-  | dec: DecKind -> btree -> btree.
+  | node: NodeKind -> string -> btree -> btree -> btree
+  | dec: DecKind -> string -> btree -> btree.
 
   (* Utility functions *)
 
   Fixpoint count_leaves (t: btree) :=
     match t with
-    | Skill s => 1
+    | Skill _ => 1
     | TRUE => 1
-    | node k t1 t2 => count_leaves t1 + count_leaves t2
-    | dec k t => count_leaves t
+    | node _ _ t1 t2 => count_leaves t1 + count_leaves t2
+    | dec _ _ t => count_leaves t
     end.
 
 End BT_binary.
@@ -58,8 +61,8 @@ Module BT_general (X: BT_SIG).
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
-  | node: NodeKind -> btforest -> btree
-  | dec: DecKind -> btree -> btree
+  | node: NodeKind -> string -> btforest -> btree
+  | dec: DecKind -> string -> btree -> btree
   with btforest: Set :=
   | child: btree -> btforest              (* a forest has at least one tree *)
   | add: btree -> btforest -> btforest.
@@ -79,10 +82,10 @@ Module BT_general (X: BT_SIG).
 
   Fixpoint count_leaves (t: btree) :=
     match t with
-    | Skill s => 1
+    | Skill _ => 1
     | TRUE => 1
-    | node k f => cl_forest f
-    | dec k t => count_leaves t
+    | node _ _ f => cl_forest f
+    | dec _ _ t => count_leaves t
     end
   with cl_forest (f: btforest) :=
     match f with
@@ -98,35 +101,35 @@ Module BT_general (X: BT_SIG).
     match t with
     | Skill s => Skill s
     | TRUE => TRUE
-    | node k f => match k with
+    | node k n f => match k with
 (* original implementation:
-                  | Parallel 0 => TRUE
-                  | _ => match f with
-                         | child t => t
-                         | _ => node k (normalize_forest f)
-                         end
-                  end
+                    | Parallel 0 => TRUE
+                    | _ => match f with
+                           | child t => t
+                           | _ => node k n (normalize_forest f)
+                           end
+                    end
    this cannot be proved correct because of meaningless thresholds in
    parallel nodes. So we leave parallel nodes alone: *)
-                  | Sequence =>
-                    match f with
-                    | child t => t
-                    | _ => node k (normalize_forest f)
+                    | Sequence =>
+                      match f with
+                      | child t => t
+                      | _ => node k n (normalize_forest f)
+                      end
+                    | Fallback =>
+                      match f with
+                      | child t => t
+                      | _ => node k n (normalize_forest f)
+                      end
+                    | _ => node k n (normalize_forest f)
                     end
-                  | Fallback =>
-                    match f with
-                    | child t => t
-                    | _ => node k (normalize_forest f)
-                    end
-                  | _ => node k (normalize_forest f)
-                  end
-    | dec k t => match k with
-                 | Not => match t with
-                          | dec Not t' => t'      (* Not is an involution *)
-                          | _ => dec Not (normalize t)
-                          end
-                 | _ => dec k (normalize t)
-                 end
+    | dec k n t => match k with
+                   | Not => match t with
+                            | dec Not _ t' => t'      (* Not is an involution *)
+                            | _ => dec Not n (normalize t)
+                            end
+                   | _ => dec k n (normalize t)
+                   end
     end
   with normalize_forest (f: btforest) :=
     match f with
@@ -137,10 +140,3 @@ Module BT_general (X: BT_SIG).
 
 End BT_general.
 
-  
-
-
-
-
-  
-  

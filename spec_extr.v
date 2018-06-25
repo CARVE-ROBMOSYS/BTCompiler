@@ -16,14 +16,14 @@ Fixpoint translate_sexp (e: sexp) : string :=
   match e with
 (* base cases *)
   | BConst bc => match bc with
-                 | TRUE => "TRUE"
-                 | FALSE => "FALSE"
+                 | smvT => "TRUE"
+                 | smvF => "FALSE"
                  end
   | SConst sc => sc
   | Qual q => translate_qualid q
 (* inductive cases *)
   | Paren e' => "(" ++ translate_sexp e' ++ ")"
-  | Not e' => "! " ++ translate_sexp e'
+  | Neg e' => "! " ++ translate_sexp e'
   | And e' e'' => translate_sexp e' ++ " & " ++ translate_sexp e''
   | Equal e' e'' => translate_sexp e' ++ " = " ++ translate_sexp e''
   | Less e' e'' => translate_sexp e' ++ " < " ++ translate_sexp e''
@@ -132,44 +132,7 @@ Fixpoint translate_spec (f: smv_spec) :=
   | cons m rest => translate m ++ translate_spec rest
   end.
 
-Definition boilerSkill: smv_module :=
-  Build_smv_module
-    "bt_skill"
-    nil
-    ((IVAR (LastI "input" (TEnum ("runn"::"fail"::"succ"::nil))))
-    ::
-    (VAR (LastV "output" (TSimp (TEnum ("none"::"running"::"failed"::"succeeded"::nil)))))
-    ::
-    (ASSIGN (AddA (init (Id "output") (SConst "none"))
-                  (LastA (next (Id "output")
-                               (Simple (Case
-                                          (AddCexp (Equal (Qual (Id "input")) (SConst "runn"))
-                                                   (SConst "running")
-                                                   (AddCexp (Equal (Qual (Id "input")) (SConst "fail"))
-                                                            (SConst "failed")
-                                                            (Cexp (Equal (Qual (Id "input")) (SConst "succ"))
-                                                                  (SConst "succeeded"))))))))))
-    ::nil).
-
-Compute translate boilerSkill.
-
-(*
-"MODULE bt_skill()
-IVAR
-input : { runn, fail, succ };
-VAR
-output : { none, running, failed, succeeded };
-ASSIGN
-init(output) := none;
-next(output) := case
-input = runn : running;
-input = fail : failed;
-input = succ : succeeded;
-esac;
-
-"
-     : string 
-*)
+(* experiments 
 
 Definition prova1 :=
   (VAR (AddV "state" (TSimp (TEnum ("ready"::"busy"::nil))) (LastV "request" (TSimp TBool))))
@@ -179,21 +142,21 @@ Definition prova1 :=
            (LastA (next (Id "state")
                         (Simple (Case
                                    (AddCexp (And (Equal (Qual (Id "state")) (SConst "ready"))
-                                                 (Equal (Qual (Id "request")) (BConst TRUE)))
+                                                 (Equal (Qual (Id "request")) (BConst smvT)))
                                             (SConst "busy")
-                                            (Cexp (BConst TRUE)
+                                            (Cexp (BConst smvT)
                                                   (SConst "ready")))))))))
   ::nil.
 
 Compute translate_body prova1.
+*)
 
 
-
-(* program extraction *)
+(* program extraction
 
 Require Import Extraction.
 Require ExtrOcamlBasic ExtrOcamlString.
-
+*)
 (*
 Extract Inductive nat => "int" ["0" "succ"]
                                "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
