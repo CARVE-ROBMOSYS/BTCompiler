@@ -108,7 +108,131 @@ Module BT_bin_spec (X: BT_SIG).
                                                  (Qual (Mod "left_bt" (Id "output"))))))))
        ::nil).
 
-(*  Definition boilerP1 := *)
+  Definition boiler_par1 :=
+    Build_smv_module
+      "bt_parallel1"
+      ("left_bt"::"right_bt"::nil)
+      ((VAR (AddV "enable" (TSimp TBool)
+                  (LastV "left_bt_stored_output" bt_output_type)))
+       ::
+       (ASSIGN
+          (AddA (invar (Mod "left_bt" (Id "enable"))
+                       (Qual (Id "enable")))
+                (AddA (invar (Mod "right_bt" (Id "enable"))
+                             (Qual (Id "is_left_bt_active")))
+                      (AddA (init (Id "left_bt_stored_output")
+                                  (Qual (Id "none")))
+                            (LastA (next (Id "left_bt_stored_output")
+                                         (Simple
+                                            (Case
+                                               (AddCexp (Qual (Id "is_left_bt_active"))
+                                                        (Qual (Mod "left_bt" (Id "output")))
+                                                        (Cexp (BConst smvT)
+                                                              (Qual (Id "left_bt_stored_output"))))))))))))
+       ::
+       (DEFINE
+          (AddD "is_left_bt_active"
+                (Neg (Equal (Qual (Mod "left_bt" (Id "output")))
+                            (SConst "none")))
+                (AddD "is_right_bt_active"
+                      (Neg (Equal (Qual (Mod "right_bt" (Id "output")))
+                                  (SConst "none")))
+                      (AddD "true_output_count"
+                            (Count (AddSexp
+                                      (Equal (Qual (Id "left_bt_stored_output"))
+                                             (SConst "succeeded"))
+                                      (Sexp
+                                         (Equal (Qual (Mod "right_bt" (Id "output")))
+                                                (SConst "succeeded")))))
+                            (AddD "running_output_count"
+                                  (Count (AddSexp
+                                            (Equal (Qual (Id "left_bt_stored_output"))
+                                                   (SConst "running"))
+                                            (Sexp
+                                               (Equal (Qual (Mod "right_bt" (Id "output")))
+                                                      (SConst "running")))))
+                                  (LastD "output"
+                                         (Case
+                                            (AddCexp
+                                               (And (Qual (Id "is_right_bt_active"))
+                                                    (Less (SConst "0")
+                                                          (Qual (Id "true_output_count"))))
+                                               (SConst "succeeded")
+                                               (AddCexp
+                                                  (And (Qual (Id "is_right_bt_active"))
+                                                       (Less (Sum (Qual (Id "true_output_count"))
+                                                                  (Qual (Id "running_output_count")))
+                                                             (SConst "1")))
+                                                  (SConst "failed")
+                                                  (AddCexp (Qual (Id "is_right_bt_active"))
+                                                           (SConst "running")
+                                                           (Cexp
+                                                              (BConst smvT)
+                                                              (SConst "none"))))))))))))
+       ::nil).
+
+  Definition boiler_par2 :=
+    Build_smv_module
+      "bt_parallel2"
+      ("left_bt"::"right_bt"::nil)
+      ((VAR (AddV "enable" (TSimp TBool)
+                  (LastV "left_bt_stored_output" bt_output_type)))
+       ::
+       (ASSIGN
+          (AddA (invar (Mod "left_bt" (Id "enable"))
+                       (Qual (Id "enable")))
+                (AddA (invar (Mod "right_bt" (Id "enable"))
+                             (Qual (Id "is_left_bt_active")))
+                      (AddA (init (Id "left_bt_stored_output")
+                                  (Qual (Id "none")))
+                            (LastA (next (Id "left_bt_stored_output")
+                                         (Simple
+                                            (Case
+                                               (AddCexp (Qual (Id "is_left_bt_active"))
+                                                        (Qual (Mod "left_bt" (Id "output")))
+                                                        (Cexp (BConst smvT)
+                                                              (Qual (Id "left_bt_stored_output"))))))))))))
+       ::
+       (DEFINE
+          (AddD "is_left_bt_active"
+                (Neg (Equal (Qual (Mod "left_bt" (Id "output")))
+                            (SConst "none")))
+                (AddD "is_right_bt_active"
+                      (Neg (Equal (Qual (Mod "right_bt" (Id "output")))
+                                  (SConst "none")))
+                      (AddD "true_output_count"
+                            (Count (AddSexp
+                                      (Equal (Qual (Id "left_bt_stored_output"))
+                                             (SConst "succeeded"))
+                                      (Sexp
+                                         (Equal (Qual (Mod "right_bt" (Id "output")))
+                                                (SConst "succeeded")))))
+                            (AddD "running_output_count"
+                                  (Count (AddSexp
+                                            (Equal (Qual (Id "left_bt_stored_output"))
+                                                   (SConst "running"))
+                                            (Sexp
+                                               (Equal (Qual (Mod "right_bt" (Id "output")))
+                                                      (SConst "running")))))
+                                  (LastD "output"
+                                         (Case
+                                            (AddCexp
+                                               (And (Qual (Id "is_right_bt_active"))
+                                                    (Less (SConst "1")
+                                                          (Qual (Id "true_output_count"))))
+                                               (SConst "succeeded")
+                                               (AddCexp
+                                                  (And (Qual (Id "is_right_bt_active"))
+                                                       (Less (Sum (Qual (Id "true_output_count"))
+                                                                  (Qual (Id "running_output_count")))
+                                                             (SConst "2")))
+                                                  (SConst "failed")
+                                                  (AddCexp (Qual (Id "is_right_bt_active"))
+                                                           (SConst "running")
+                                                           (Cexp
+                                                              (BConst smvT)
+                                                              (SConst "none"))))))))))))
+       ::nil).
 
   Definition boiler_not :=
     Build_smv_module
@@ -205,55 +329,12 @@ Module BT_bin_spec (X: BT_SIG).
 
   Definition make_spec (t: btree) :=
     boiler_tick_generator :: boiler_skill :: boiler_TRUE ::
-    boiler_sequence :: boiler_fallback :: (* par1 par2 *)
+    boiler_sequence :: boiler_fallback :: boiler_par1 :: boiler_par2 ::
     boiler_not :: boiler_isRunning :: (make_main t) :: nil.
   
 End BT_bin_spec.
 
-(* experiments *)
 
-Inductive my_skills :=
-  sk1 | sk2 | sk3 | sk4.
-Definition my_names (x: my_skills) :=
-  match x with
-  | sk1 => "goto_kitchen"
-  | sk2 => "find_bottle"
-  | sk3 => "fetch_bottle"
-  | sk4 => "ask_help"
-  end.
 
-Module ex_skills.
-
-  Definition SkillSet := my_skills.
-  Definition SkillName := my_names.
-
-End ex_skills.
-
-Module my_bt := BT_bin_spec ex_skills.
-
-Import my_bt.
-
-Definition ex1 := (Skill sk1).
-
-Definition ex2 :=
-  (node Sequence "prova" (Skill sk1)
-        (node Sequence "prova2" (Skill sk2) (Skill sk3))).
-
-Definition ex3 :=
-  (node Fallback "fallback" (Skill sk3) (Skill sk4)).
-
-Definition ex4 :=
-  (node Sequence "myseq" (Skill sk1)
-        (dec Not "nego" (node Parallel1 "para" (Skill sk2) (Skill sk3)))).
-
-Definition sc1 :=
-  (node Fallback "do_with_help"
-        (node Sequence "go_and_fetch_bottle" (Skill sk1)
-              (node Sequence "find_and_fetch_bottle" (Skill sk2) (Skill sk3)))
-        (Skill sk4)).
-
-Compute translate (make_main sc1).
-
-Compute map translate (make_spec sc1).
 
 
