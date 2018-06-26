@@ -1,7 +1,8 @@
 
 (* This module contains two implementations for the BT data type.
-   Both are parameterized modules over the signature BT_SIG, which defines
-   (for now) only a set specifying the basic skills available. *)
+   Both are parameterized over the signature BT_SIG, which defines
+   a set whose members are the basic skills available and a function
+   mapping each skill to its name (a string). *)
 
 Require Import String.
 

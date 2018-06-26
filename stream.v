@@ -27,7 +27,7 @@ Module BT_bin_str_sem (X: BT_SIG).
     match t with
     | Skill s => (hd i) s
     | TRUE => Succ
-    | node k t1 t2 => match k with
+    | node k _ t1 t2 => match k with
                       | Sequence =>
                         match tick t1 i with
                         | Runn => Runn
@@ -59,7 +59,7 @@ Module BT_bin_str_sem (X: BT_SIG).
                         | _ , _ => Runn
                         end
                       end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    match tick t i with
                    | Runn => Runn
@@ -86,7 +86,7 @@ Module BT_bin_str_sem (X: BT_SIG).
     match t with
     | Skill s => pair ((hd i) s) (tl i)
     | TRUE => pair Succ i
-    | node k t1 t2 => match k with
+    | node k _ t1 t2 => match k with
                       | Sequence =>
                         let (res , str) := tick2 t1 i in
                         match res with
@@ -120,7 +120,7 @@ Module BT_bin_str_sem (X: BT_SIG).
                         | _ , _ => pair Runn s1
                         end
                       end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    let (res , str) := tick2 t i in
                    match res with
@@ -206,7 +206,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match t with
     | Skill s => (hd i) s
     | TRUE => Succ
-    | node k f => match k with
+    | node k _ f => match k with
                   | Sequence => tick_sequence f i
                   | Fallback => tick_fallback f i
                   | Parallel n =>
@@ -215,7 +215,7 @@ Module BT_gen_str_sem (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then Fail
                          else Runn
                   end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    match tick t i with
                    | Runn => Runn
@@ -260,7 +260,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match t with
     | Skill s => pair ((hd i) s) (tl i)
     | TRUE => pair Succ i
-    | node k f => match k with
+    | node k _ f => match k with
                   | Sequence => tick2_sequence f i
                   | Fallback => tick2_fallback f i
                   | Parallel n =>
@@ -269,7 +269,7 @@ Module BT_gen_str_sem (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then pair Fail str
                          else pair Runn str
                   end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    let (res , str) := tick2 t i in
                    match res with
@@ -328,6 +328,4 @@ Module BT_gen_str_sem (X: BT_SIG).
 
 
 End BT_gen_str_sem.
-
-
 
