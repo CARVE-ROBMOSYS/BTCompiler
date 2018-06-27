@@ -131,39 +131,3 @@ Fixpoint translate_spec (f: smv_spec) :=
   | nil => ""
   | cons m rest => translate m ++ translate_spec rest
   end.
-
-(* experiments 
-
-Definition prova1 :=
-  (VAR (AddV "state" (TSimp (TEnum ("ready"::"busy"::nil))) (LastV "request" (TSimp TBool))))
-  ::
-  (ASSIGN
-     (AddA (init (Id "state") (SConst "ready"))
-           (LastA (next (Id "state")
-                        (Simple (Case
-                                   (AddCexp (And (Equal (Qual (Id "state")) (SConst "ready"))
-                                                 (Equal (Qual (Id "request")) (BConst smvT)))
-                                            (SConst "busy")
-                                            (Cexp (BConst smvT)
-                                                  (SConst "ready")))))))))
-  ::nil.
-
-Compute translate_body prova1.
-*)
-
-
-(* program extraction
-
-Require Import Extraction.
-Require ExtrOcamlBasic ExtrOcamlString.
-*)
-(*
-Extract Inductive nat => "int" ["0" "succ"]
-                               "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
-Extract Constant plus => "( + )".
-Extract Constant mult => "( * )".
-Extract Constant beq_nat => "( = )".
-*)
-
-(* Extraction "spec_extr" translate. *)
-
