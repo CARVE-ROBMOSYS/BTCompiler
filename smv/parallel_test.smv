@@ -1,0 +1,36 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    -- A single tick of the parallel composition of two skills.
+    a : bt_skill;
+    b : bt_skill;
+    p : bt_parallel(2, a, b);
+    t : bt_single_tick_generator(p);
+
+    -- `a` is enabled on the first time sample.
+    LTLSPEC a.enable
+    -- `a` is never enabled again after the first time sample.
+    LTLSPEC X G ! a.enable
+    -- `b` is always enabled on the second time step, irrespectively of `a` output.
+    LTLSPEC X b.enable
+    -- `b` is never enabled again too.
+    LTLSPEC X X G ! b.enable
+    /--
+      "The two children shall not be both in `running` mode in the same tick."
+      This property is false for parallel and true for sequence composition.
+
+      Skill `a` and `b` get enabled in the same tick any may both return
+      `running` in the same tick.
+
+    LTLSPEC G (a.output = bt_output_running -> X b.output != bt_output_running)
+    --/
+    -- There exist a trace such that both children are running.
+    SPEC EF (a.output = bt_output_running & EX b.output = bt_output_running)

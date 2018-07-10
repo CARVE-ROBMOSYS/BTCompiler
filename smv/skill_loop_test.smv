@@ -1,0 +1,23 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    /-- Repeated ticking of a skill node.  --/
+    s : bt_skill;
+    t : bt_tick_generator(s);
+
+    -- The BT root is enabled infinitely often.
+    LTLSPEC G F s.enable
+    -- The skill outputs iff the node gets enabled.
+    LTLSPEC G (s.enable <-> X s.output != bt_output_none)
+    -- Each output value can occur infinitely often.
+    SPEC AG EF s.output = bt_output_true
+    SPEC AG EF s.output = bt_output_false
+    SPEC AG EF s.output = bt_output_running

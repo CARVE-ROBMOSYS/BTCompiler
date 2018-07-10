@@ -1,0 +1,311 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+/--
+  Requirements:
+  - A tick event is generated externally to the BT and injected in the BT root
+    node. The tick event triggers a visit of the tree.
+  - At each time instant, each node can be in one of the following states:
+    - Not visited: The node is currently not taken into account by the visit.
+    - Visited and enabled: The node is being visited and the node normal
+      behavior is enabled.
+    - Visited and disabled: The node is being visited but the node behavior is
+      disabled.
+  - All leaves are visited exactly once by a tick.
+  - It never happens that two leaves are visited at the same time.
+  - Leaves are visited from left to right by a tick.
+
+  Rationale:
+  With respect to the classic BT definition, the proposed extension aims to
+  provide to the skill the ability to know when a tick event is not propagated
+  to a skill. From the application perspective, the BT not ticking a skill
+  corresponds to the action embodied by the skill not being executed. Therefore,
+  the skill can leverage this information e.g. to reset its internal state. A
+  parallel can be drawn with the object oriented programming paradigm, where
+  constructors, used to acquire resources for the object, is paired with
+  destructors, used to release the acquired resources.
+
+  To accomodate the above extension, the BT node output is extended to 5
+  symbols:
+  - 'none': The node is not currently producing any output.
+  - 'disabled': The node has been visited and disabled.
+  - 'running', 'false', and 'true' are the classic BT outputs.
+
+  Requirements:
+  - Once the BT root is visited and enabled, its output never becomes
+    `disabled`.
+
+  Rationale:
+  The output symbol 'disabled' is introduced to represent internal BT states
+  that are visited and disabled. Tough, the disable shall not propagate up to
+  the root.
+
+  Definition:
+  A BT node is said to \emph{output} when its \code{output} becomes either
+  \emph{running}, \emph{false}, or \emph{true} 
+--/
+
+/-- BT constructors --/
+/--
+  Generates tick events for the BT. The argument `top_level_bt` is the BT root
+  node.
+
+  The module triggers a first `tick` event. Subsequent `tick` events are
+  triggered each time the BT root node outputs.
+--/
+MODULE bt_tick_generator(top_level_bt)
+  ASSIGN
+    init(top_level_bt.visit) := bt_visit_enable;
+    next(top_level_bt.visit) :=
+      case
+        top_level_bt.output = bt_output_none : bt_visit_no;
+        TRUE : bt_visit_enable;
+      esac;
+
+/--
+  Tick generator that unlike the `bt_tick_generator` generates only one tick
+  event and then stays silent forever.  This is usefult to study interesting
+  properties about a single tick event.
+--/
+MODULE bt_single_tick_generator(top_level_bt)
+  ASSIGN
+    init(top_level_bt.visit) := bt_visit_enable;
+    next(top_level_bt.visit) := bt_visit_no;
+
+/--
+  Abstraction of a skill node:
+  The `input` abstracts the response from the skill implementation. The node
+  output is one of the classical 'running', 'true', or 'false', plus the 'none'
+  that encodes that the skill is currently inactive.
+--/
+MODULE bt_skill
+  IVAR
+    input : { bt_input_running,
+              bt_input_false,
+              bt_input_true };
+  VAR
+    output : { bt_output_none,
+               bt_output_disable,
+               bt_output_running,
+               bt_output_false,
+               bt_output_true };
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+  ASSIGN
+    init(output) := bt_output_none;
+    next(output) :=
+      case
+        visit = bt_visit_no : bt_output_none;
+        visit = bt_visit_disable : bt_output_disable;
+        /-- else: visit = bt_visit_enable --/
+        input = bt_input_running : bt_output_running;
+        input = bt_input_false : bt_output_false;
+        input = bt_input_true : bt_output_true;
+      esac;
+
+/--
+  Binary fallback.
+  The `left_bt` and `right_bt` parameters are the left and right child,
+  respectively.
+
+  Note: Implementation leverages an internal local state to store the ouput of
+  the left child until the right one completes.
+--/
+MODULE bt_fallback(left_bt, right_bt)
+  VAR
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    cached_left_bt_output : { bt_output_none,
+                              bt_output_disable,
+                              bt_output_running,
+                              bt_output_false,
+                              bt_output_true };
+  ASSIGN
+    left_bt.visit := visit;
+    right_bt.visit :=
+      case
+        left_bt.output = bt_output_none : bt_visit_no;
+        left_bt.output = bt_output_false : bt_visit_enable;
+        TRUE : bt_visit_disable;
+      esac;
+    init(cached_left_bt_output) := left_bt.output;
+    next(cached_left_bt_output) :=
+      case
+        left_bt.output = bt_output_none : cached_left_bt_output;
+        TRUE : left_bt.output;
+      esac;
+  DEFINE
+    output :=
+      case
+        right_bt.output = bt_output_none : bt_output_none;
+        right_bt.output = bt_output_disable : cached_left_bt_output;
+        TRUE : right_bt.output;
+      esac;
+
+/--
+  Binary sequence.
+  The `left_bt` and `right_bt` parameters are the left and right child,
+  respectively.
+
+  Note: The implementation is almost the same of the fallback: They differ for
+  only one line (in the definition of `right_bt.visit`, actually one can be
+  obtained by the other by swapping a single `true` with a `false`).
+--/
+MODULE bt_sequence(left_bt, right_bt)
+  VAR
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    cached_left_bt_output : { bt_output_none,
+                              bt_output_disable,
+                              bt_output_running,
+                              bt_output_false,
+                              bt_output_true };
+  ASSIGN
+    left_bt.visit := visit;
+    right_bt.visit :=
+      case
+        left_bt.output = bt_output_none : bt_visit_no;
+        left_bt.output = bt_output_true : bt_visit_enable;
+        TRUE : bt_visit_disable;
+      esac;
+    init(cached_left_bt_output) := left_bt.output;
+    next(cached_left_bt_output) :=
+      case
+        left_bt.output = bt_output_none : cached_left_bt_output;
+        TRUE : left_bt.output;
+      esac;
+  DEFINE
+    output :=
+      case
+        right_bt.output = bt_output_none : bt_output_none;
+        right_bt.output = bt_output_disable : cached_left_bt_output;
+        TRUE : right_bt.output;
+      esac;
+
+/--
+  Binary parallel constructor.
+  The `left_bt` and `right_bt` parameters represent the left and right child,
+  respectively.
+  Due to the limitations of the SMV language, it is not possible to express a
+  MODULE to represent parallel constructor with arbitrary arity.
+--/
+MODULE bt_parallel(success_threshold, left_bt, right_bt)
+  VAR
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    cached_left_bt_output : { bt_output_none,
+                              bt_output_disable,
+                              bt_output_running,
+                              bt_output_false,
+                              bt_output_true };
+  ASSIGN
+    left_bt.visit := visit;
+    right_bt.visit :=
+      case
+        left_bt.output = bt_output_none : bt_visit_no;
+        left_bt.output = bt_output_disable : bt_visit_disable;
+        TRUE : bt_visit_enable;
+      esac;
+    init(cached_left_bt_output) := bt_output_none;
+    next(cached_left_bt_output) :=
+      case
+        left_bt.output = bt_output_none : cached_left_bt_output;
+        TRUE : left_bt.output;
+      esac;
+  DEFINE
+    true_output_count :=
+      count(cached_left_bt_output = bt_output_true,
+            right_bt.output = bt_output_true);
+    running_output_count :=
+      count(cached_left_bt_output = bt_output_running,
+            right_bt.output = bt_output_running);
+    output :=
+      case
+        right_bt.output = bt_output_none : bt_output_none;
+        right_bt.output = bt_output_disable : cached_left_bt_output;
+        true_output_count >= success_threshold : bt_output_true;
+        success_threshold > true_output_count + running_output_count : bt_output_false;
+        TRUE : bt_output_running;
+      esac;
+
+/--
+TODO: The following definitions have to be adapted to the extended BT
+formulation
+--/
+
+/--
+  Unary constructor that returns `true` as long as the child `child_bt` is
+  `running` and then switches to `false` as soon as the child becomes either
+  `true` or `false`.
+--/
+MODULE bt_is_running(child_bt)
+  VAR
+    enable : boolean;
+  ASSIGN
+    child_bt.enable := enable;
+  DEFINE
+    output :=
+      case
+        child_bt.output in { bt_output_false, bt_output_true } : bt_output_false;
+        child_bt.output = bt_output_running : bt_output_true;
+        TRUE : bt_output_none;
+      esac;
+
+/--
+  Unary negation operator. Running as long as the child `child_bt` is running.
+  Then it swaps `true` with `false`.
+--/
+MODULE bt_not(child_bt)
+  VAR
+    enable : boolean;
+  ASSIGN
+    child_bt.enable := enable;
+  DEFINE
+    output :=
+      case
+        child_bt.output = bt_output_false : bt_output_true;
+        child_bt.output = bt_output_true : bt_output_false;
+        TRUE : child_bt.output;
+      esac;
+
+MODULE bt_placeholder
+  VAR
+    enable : boolean;
+  DEFINE
+    output := bt_output_true;
+
+/--
+  Unary operator that ticks its child `child_bt` while it is `running`. Then it
+  caches the child return value and returns it to the parent without further
+  ticking the child.
+--/
+MODULE bt_do_once(child_bt, reset_bt)
+  VAR
+    succeded : boolean;
+  ASSIGN
+    init(succeded) := FALSE;
+    next(succeded) :=
+      case
+        reset_bt.enable : FALSE;
+        child_bt.output = bt_output_true : TRUE;
+        TRUE : succeded;
+      esac;
+  DEFINE
+    output :=
+      case
+        succeed : bt_output_true;
+        TRUE : child_bt.output;
+      esac;
+
+-- MODULE bt_req_resp(send_req_bt, recv_resp_bt)
+--   VAR
+--     reset_is_req_sent : bt_placeholder;
+--     do_send_req_once : bt_do_once(send_req_bt, reset_is_req_sent);

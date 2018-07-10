@@ -1,0 +1,26 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    -- Repeated tick of the parallel composition of two skills.
+    a : bt_skill;
+    b : bt_skill;
+    s : bt_parallel(2, a, b);
+    t : bt_tick_generator(s);
+
+    -- The sequence is enabled infinitely often everywhere.
+    SPEC AG AF s.enable
+    /--
+      "The two children shall not be both in `running` mode in the same tick."
+      This property is false for parallel composition.
+    LTLSPEC G (a.output = bt_output_running -> X b.output != bt_output_running)
+    --/
+    -- The children can be both in `running` mode in the same tick, infinitely often.
+    SPEC AG EF (a.output = bt_output_running & EX b.output = bt_output_running)

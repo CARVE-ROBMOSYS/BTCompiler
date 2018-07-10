@@ -1,0 +1,23 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    a : bt_skill;
+    b : bt_skill;
+    r : bt_sequence(a, b);
+    r_tick : bt_tick_generator(r);
+
+    LTLSPEC
+      G ((a.output = bt_output_true
+         & (X G a.output != bt_output_true)
+         & (X b.output != bt_output_true))
+         -> (G r.output != bt_output_true))
+
+

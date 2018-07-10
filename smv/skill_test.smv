@@ -1,0 +1,23 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    /-- A single tick of a skill node. --/
+    /--
+      For all BTs, results proved against the first tick are also representative
+      of other ticks as long as the BT does not have a state.
+    --/
+    s : bt_skill;
+    t : bt_single_tick_generator(s);
+
+    -- The a single tick event is issued at time 0.
+    LTLSPEC s.enable & X G ! s.enable
+    -- The skill outputs on the second time sample.
+    LTLSPEC s.enable & X s.output != bt_output_none

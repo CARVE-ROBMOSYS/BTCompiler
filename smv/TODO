@@ -1,0 +1,191 @@
+- Improve contract analysis exposition in uc1: Explicitly mark what are the
+  assumptions and the guarantees of each sub-system.
+- The following formula is used to express that once the BT enables a task,
+  eventually the task completes with success:
+
+    G ( skill.enable -> F task_completed_successfully )
+
+  This formula encodes what would be considered a peculiar behavior for a skill:
+  In the BT common practice, once a skill task A is enabled by a tick to the
+  skill leaf, it might take some time to complete. Before A completes, the BT
+  might decide to stop ticking A and to switch to task B.
+  %
+  The above formula entails that the first task A will eventually complete with
+  success, even if the BT switches to task B and never runs A again.
+  %
+  This skill semantics is implementable but it is not idiomatic: Skill tasks are
+  meant to be continued as long as the skill leaf is ticked by the BT.
+  Conversely, if the BT stops ticking leaf A, then task A shall stop too.
+
+  First attempt: The designer might be tempted to replace the formula with the
+  following:
+
+    G F ( skill.enable -> task_completed_successfully )
+
+  But this not what he meant: Indeed the following formula is a tautology
+  (always true):
+
+    (G F !skill.enable) -> G F (skill.enable -> task_completed_successfully)
+
+  In words: It is enough for the skill to be disabled infinitely often, the
+  formula is also true. The antecedent `G F !skill.enable` is actually valid
+  when checked against a BT. This because the BT enables only one skill leaf
+  at a time: When a skill is enabled, all other skill leaves are not enabled.
+
+  Second attempt: To address the issue of vacuity with implication in the first
+  attempted formula, the designer might come up with the following:
+
+    G F ( skill.enable & task_completed_successfully )
+
+  This formula might actually work for some BT and some environment. Though, it
+  suffers from a subtle issue that goes under the name of \emph{receptiveness}.
+  Long story: A state machine syntax explicitly distinguishes between inputs
+  and outputs. The distinction is not so obvious when to describe a component
+  contract, instead of a state machine an \emph{equation} is used, e.g. an LTL
+  formula. To generalize the concept of input/output to behavior described by
+  equations, the notion of \emph{controlled} and \emph{uncontrolled} variables
+  is introduced.
+
+
+- Refine current formalization of the environment used for the UC.
+  All of the tasks to be performed on the environment are modelled with the
+  following structure made of an assumption with two LTL formulae:
+
+    G ( task_completed_successfully -> G task_completed_successfully )
+    G ( skill.enable -> F task_completed_successfully )
+
+  This assumption is too restrictive, unrealistic. Specifically, it suffers from
+  two issues:
+  - The first formula expresses that the successful completion of the task is a
+    monotonic property, i.e. as soon as it turns true, it remains so forever.
+    This is often unrealistic, e.g. the robot might successfully reach the
+    kitchen, but due to the reactive nature of BT, the "pour drink" action might
+    be preempted by an higher priority task, e.g.: The robot is assisting at a
+    party. The robot was preparing a dink, but someone just rang the door bell,
+    and the robot shall go to open the door. In order to open the door, the
+    robot needs to exit from the kitchen.
+  - The second formula describes that if the skill leaf is ever enabled, then
+    the task will eventually succeed. This is in general plainly wrong.
+    Consider again the previous use-case where the robot was pouring a drink
+    (the `pour_drink` skill gets enabled) but then the door bell rings, so the
+    robot stops pouring and leaves the kitchen. The above formula allows the
+    pour drink action to complete with success even if the robot is not actually
+    pouring anymore.
+  %
+  To overcome this limitation and appropriately model the required contract, we
+  shall pair the use of LTL with custom state machines that ease the
+  specification of state persistence strategies other than the basic "from now
+  on, forever". Specifically we shall define a state machine to model the
+  environment:
+
+    MODULE environment
+      IVAR
+        non_det_choice : boolean;
+      VAR
+        room : { env_room_other, env_room_kitchen, env_room_entrance };
+      ASSIGN
+        -- No init value for `room` is specified to model that when the "pour
+        -- drink" action is requested, the robot can be anywhere.
+        next(room) :=
+          case
+            skill_goto_kitchen.enable & non_det_choice : env_room_kitchen;
+            skill_goto_entrance.enable & non_det_choice : env_room_entrance;
+            TRUE : // TODO TO BE COMPLETED
+          esac;
+
+  The use of a non-deterministic choice is to model the aleatory duration of the
+  transition to the other room. This was previously expressed by the use of the
+  `finally` (F) LTL operator. One property likely of interest is that within the
+  same tick, the BT does not enable both `goto kitchen` and the `goto entrance`
+  with the understanding that they are distinct rooms and the robot is not
+  ubiquitous.
+
+    TODO: EXTEND UC BT
+
+    ?
+      ->
+        is_door_bell_ringing
+        goto_entrance
+        open_entrance_door
+      UC BT
+
+  The purpose for such state-machines is to mock the function of the
+  environment, i.e. they include some level of arbitrariness and they are not
+  for code-generation. Though, they can be leveraged for the code-generation of
+  run-time monitors.
+
+  Other constraints can still be expressed as LTL, e.g. the following expressed
+  the environment constraint that a free hand is required to open the entrance
+  door:
+
+    G (open_door -> (is_robot_in_entrance & are_robot_hands_free))
+    G ((env.glass.is_fetched & env.bottle.is_fetched) -> ! are_robot_hands_free)
+
+  The above constraints describe that in order for the robot to open the door,
+  it shall have at least one hand free, therefore if the door bell rings when
+  the robot is pouring the drink, then it shall lay one of the two objects
+  before opening the door. The formal verification can then verify that the BT
+  never tries to open the door with both hands occupied:
+
+    G !(skill_open_entrance_door.enable & !are_robot_hands_free)
+
+  Another required assumption is that the door bell cannot ring forever in order
+  for the robot to successfully pour the drink:
+
+   (F G ! is_door_bell_ringing) -> F env.is_drink_poured
+
+- Refine the proposed environment sub-system by exposing the fetch object and
+  defining the `mutual exclusion` analysis as a contract on the component.
+- Contract analysis has been introduced in domains where the industry is
+  layered: Top-level companies called Original Equipment Manufacturer (OEM) do
+  design products top-down, refining them in sub-systems, whose implementation
+  is delegated to sub-contractors and other suppliers, and eventually the OEM
+  integrates all these third-party systems in the final product. For example,
+  contract analysis is widespread in automotive industry, specifically AUTOSAR.
+  %
+  Contract analysis value for such markets is that it provides a formal ground
+  to describe and reason about system integration, which strictly reflects
+  company integration. Vertical markets, i.e. where a single company designs and
+  implements all sub-components, typically does not not need this level of
+  formalism about integration. Market for robot production, although in its
+  infancy, is a good candidate for the same structure, e.g. because the
+  technologies required to build and control a robot span across many more
+  domains than other markets.
+  %
+  The value of contract analysis approach is that it forces the designer to make
+  explicit all his assumptions about the environment and to reason about them. This
+  doesn't mean that the designer shall invest too much effort in defining all
+  sorts of details. Contract analysis allows indeed the designer to choose which
+  abstraction level to adopt and different parts of the system can be refined at
+  distinct abstraction levels based on the specific verification needs.
+  %
+  The use of contracts enables the designer to start from an abstract level and
+  refine as required. E.g.: about the assumption that ``Once the bottle has been
+  grasped, it does not slip from robots hand'', expressed by the LTL formula:
+
+    G ( env.bottle.is_fetched -> G env.bottle.is_fetched )
+
+  could be further refined by capturing the relation between the bottle weight
+  and material and the grip capability of the robotic hand, e.g. a glass bottle
+  might be easier to grasp than a plastic one. From the theoretical point of
+  view, this process of refinement can proceed indefinitely, therefore the
+  methodology shall provide some guidelines to enable the designer to weight the
+  design alternatives, i.e. to understand when to stop the refinement process.
+  For example, the robot might not even have a sensor or image processing
+  capable to predict its capability to grasp a bottle in sight.
+  %
+  If available, though, the robot can leverage this capability, e.g. to decide
+  to use a two-handed grasp instead of a single handed grasp action. This logic
+  cannot be fully hidden by the component because e.g. in CARVE use-case, a
+  two-handed grasp of the bottle prevents the robot from holding the glass at
+  the same time: To carry out the "pour drink" action the robot shall instead
+  leverage an available surface to hold the glass while it holds the bottle with
+  both hands.
+  The BT shall then be aware of two-handed vs one-handed grasp choice. If this
+  choice is available, it might be of interest to the formal verification to
+  model this logic to analyze all its implications.
+- Include the IIT refinement of the `goto_kitchen` skill as a BT in this
+  use-case. It can be defined as the implementation of a subsystem, with its own
+  contract and then we shall verify that 1. The implementation satisfies the
+  contract and 2. The BT assumptions about the leaf behavior as compatible with
+  the contract provided. (See Issue #44)

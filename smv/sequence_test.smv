@@ -1,0 +1,25 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    -- A single tick of the sequential composition of two skills.
+    a : bt_skill;
+    b : bt_skill;
+    s : bt_sequence(a, b);
+    t : bt_single_tick_generator(s);
+
+    -- `a` is enabled exactly once, on the first time sample.
+    LTLSPEC a.enable & X G !a.enable
+    -- `b` is enabled at most once.
+    LTLSPEC G (b.enable -> X G ! b.enable)
+    -- `b` if enabled, is enabled right after `a` is enabled.
+    LTLSPEC G (X b.enable) -> a.enable
+    -- The two children shall not be both in running mode in the same tick.
+    LTLSPEC G (a.output = bt_output_running -> X b.output != bt_output_running)

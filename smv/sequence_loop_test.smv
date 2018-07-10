@@ -1,0 +1,31 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_classic.smv"
+
+MODULE main
+  VAR
+    -- Repeated tick of the sequential composition of two skills.
+    a : bt_skill;
+    b : bt_skill;
+    s : bt_sequence(a, b);
+    t : bt_tick_generator(s);
+
+    -- The two skills are never enabled at the same time.
+    INVARSPEC !(a.enable & b.enable)
+    -- The sequence is enabled infinitely often everywhere.
+    SPEC AG AF s.enable
+    -- The skill `a` is enabled in all ticks (same time step of `s`).
+    LTLSPEC G (s.enable <-> a.enable)
+    -- If enabled, `b` always follows `a` (on the next time sample).
+    LTLSPEC G (X b.enable) -> a.enable
+    -- Exists ticks when `b` is not enabled.
+    SPEC EF (s.enable & EX b.enable)
+    -- `b` can output infinitely often.
+    SPEC AG EF b.output != bt_output_none
+    -- The two children shall not be both in `running` mode in the same tick.
+    LTLSPEC G (a.output = bt_output_running -> X b.output != bt_output_running)

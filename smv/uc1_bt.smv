@@ -1,0 +1,20 @@
+-- // CONFIDENTIAL -- UTRC Proprietary.
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+skill_goto_kitchen : bt_skill;
+skill_find_bottle : bt_skill;
+skill_fetch_bottle : bt_skill;
+skill_find_glass : bt_skill;
+skill_fetch_glass : bt_skill;
+skill_pour_drink : bt_skill;
+skill_ask_for_help : bt_skill;
+--
+do_bottle : bt_sequence(skill_find_bottle, skill_fetch_bottle);
+do_glass : bt_sequence(skill_find_glass, skill_fetch_glass);
+do_pour_drink : bt_sequence(do_bottle_and_glass, skill_pour_drink);
+do_pour_drink_in_kitchen : bt_sequence(skill_goto_kitchen, do_pour_drink);
+bt_root : bt_fallback(do_pour_drink_in_kitchen, skill_ask_for_help);
