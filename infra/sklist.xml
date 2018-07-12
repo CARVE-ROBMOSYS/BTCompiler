@@ -5,4 +5,10 @@
   <Action ID="Go_to_kitchen" />
   <Action ID="Find_bottle" />
   <Action ID="Fetch_bottle" />
+  <Condition ID="Room_known" />
+  <Action ID="Follow_human" />
+  <Action ID="Go_to_room" />
+  <Action ID="Find_glass" />
+  <Action ID="Fetch_glass" />
+  <Action ID="Pour_drink" />
 </SkillList>
