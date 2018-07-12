@@ -22,7 +22,7 @@ Module BT_bin_semantics (X: BT_SIG).
     match t with
     | Skill s => input_f s
     | TRUE => Succ
-    | node k t1 t2 => match k with
+    | node k _ t1 t2 => match k with
                       | Sequence =>
                         match (tick t1 input_f) with
                         | Runn => Runn
@@ -54,7 +54,7 @@ Module BT_bin_semantics (X: BT_SIG).
                         | _ , _ => Runn
                         end
                       end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    match (tick t input_f) with
                    | Runn => Runn
@@ -75,9 +75,10 @@ Module BT_bin_semantics (X: BT_SIG).
 
   Theorem all_nodes_are_associative:
     forall k: NodeKind,
+    forall s s' s'': String.string,
     forall c_1 c_2 c_3: btree,
-      let a := (node k (node k c_1 c_2) c_3) in
-      let b := (node k c_1 (node k c_2 c_3)) in
+      let a := (node k s (node k s' c_1 c_2) c_3) in
+      let b := (node k s c_1 (node k s'' c_2 c_3)) in
       return_same_value a b.
   Proof.
     unfold return_same_value.
@@ -127,7 +128,7 @@ Module BT_gen_semantics (X: BT_SIG).
     match t with
     | Skill s => input_f s
     | TRUE => Succ
-    | node k f => match k with
+    | node k _ f => match k with
                   | Sequence => tick_sequence f input_f
                   | Fallback => tick_fallback f input_f
                   | Parallel n =>
@@ -136,7 +137,7 @@ Module BT_gen_semantics (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then Fail
                          else Runn
                   end
-    | dec k t => match k with
+    | dec k _ t => match k with
                  | Not =>
                    match tick t input_f with
                    | Runn => Runn
@@ -267,9 +268,9 @@ Module BT_gen_semantics (X: BT_SIG).
   Qed.
 
   Lemma normalize_preserves_node:
-    forall (k: NodeKind) (f: btforest),
+    forall (k: NodeKind) (s: String.string) (f: btforest),
       all_return_same_value f (normalize_forest f) ->
-      return_same_value (node k f) (normalize (node k f)).
+      return_same_value (node k s f) (normalize (node k s f)).
   Proof.
     induction k.
     (* sequence case *)      
@@ -306,13 +307,13 @@ Module BT_gen_semantics (X: BT_SIG).
   Qed.
 
   Lemma normalize_preserves_decs:
-    forall (d: DecKind) (t: btree),
+    forall (d: DecKind) (s: String.string) (t: btree),
       return_same_value t (normalize t) ->
-      return_same_value (dec d t) (normalize (dec d t)).
+      return_same_value (dec d s t) (normalize (dec d s t)).
   Proof.
     induction d.
     (* not case *)
-    + intros t H i.
+    + intros s t H i.
       simpl.
       destruct t.
       -- simpl; auto.
@@ -325,7 +326,7 @@ Module BT_gen_semantics (X: BT_SIG).
          ++ rewrite (H i).
             simpl; trivial.
     (* isrunning case*)
-    + intros t H i.
+    + intros s t H i.
       simpl; rewrite H; trivial.
   Qed.
 

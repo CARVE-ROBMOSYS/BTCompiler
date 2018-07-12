@@ -1,13 +1,23 @@
 Require Import bt shallow.
+Require Import String.
+Open Scope string_scope.
 
 (* Some simple examples of BTs *)
 
 Inductive my_skills :=
   sk1 | sk2 | sk3 | sk4.
+Definition my_names (x: my_skills) :=
+  match x with
+  | sk1 => "goto_kitchen"
+  | sk2 => "find_bottle"
+  | sk3 => "fetch_bottle"
+  | sk4 => "ask_help"
+  end.
 
 Module ex_skills.
 
   Definition SkillSet := my_skills.
+  Definition SkillName := my_names.
 
 End ex_skills.
 
@@ -15,33 +25,15 @@ Module my_bin_bt_with_sem := BT_bin_semantics ex_skills.
 
 Import my_bin_bt_with_sem.
 
-Definition ex1 := (Skill sk1).          (* a node *)
-
-Definition ex2 :=                       (* sequence *)
-  (node Sequence (Skill sk1)
-        (node Sequence (Skill sk2) (Skill sk3))).
-
-Definition ex3 :=                       (* fallback *)
-  (node Fallback (Skill sk3) (Skill sk4)).
-
-Definition ex4 :=                       (* parallel *)
-  (node Parallel1 (Skill sk1)
-        (node Parallel1 (Skill sk2) (Skill sk3))).
-
-Definition ex5 :=                       (* not *)
-  (node Sequence (Skill sk1)
-        (dec Not (node Parallel1 (Skill sk2) (Skill sk3)))).
-
-Definition sc1 :=                  (* a BT similar to the one from scenario 1 *)
-  (node Fallback (Skill sk1)
-        (node Sequence (Skill sk2)
-              (node Sequence (Skill sk3) (Skill sk4)))).
+Definition sc1 :=
+  (node Fallback "do_with_help"
+        (node Sequence "go_and_fetch" (Skill sk1)
+              (node Sequence "find_and_fetch" (Skill sk2) (Skill sk3)))
+        (Skill sk4)).
 
 Compute count_leaves sc1. 
 
 (* execution examples *)
-
-Compute (tick ex4).
 
 Compute (tick sc1 (fun s: my_skills =>
                      match s with
@@ -51,7 +43,7 @@ Compute (tick sc1 (fun s: my_skills =>
                      | sk4 => Succ
                      end)).
 
-Compute (tick ex5 (fun s: my_skills =>
+Compute (tick sc1 (fun s: my_skills =>
                      match s with
                      | sk1 => Succ
                      | sk2 => Succ
