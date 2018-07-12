@@ -10,8 +10,8 @@ Module BT_bin_spec (X: BT_SIG).
     match t with
     | Skill s => X.SkillName s
     | TRUE => "BTSucc"
-    | node _ n _ _ => n
-    | dec _ n _ => n
+    | Node _ n _ _ => n
+    | Dec _ n _ => n
     end.
 
   Definition bt_input_type :=
@@ -294,21 +294,21 @@ Module BT_bin_spec (X: BT_SIG).
   Definition decname (d: DecKind) :=
     match d with
     | Not => "bt_not"
-    | isRunning => "bt_is_running"
+    | IsRunning => "bt_is_running"
     end.
 
   Fixpoint make_vars (t: btree): varlist :=
     match t with
     | Skill s => LastV (X.SkillName s) (TComp (TMod "bt_skill"))
     | TRUE => LastV "t" (TComp (TMod "bt_TRUE"))
-    | node k name t1 t2 =>
+    | Node k name t1 t2 =>
       let x := varlist_app (make_vars t1) (make_vars t2) in
       AddV name
            (TComp (TModPar (nodename k)
                            (AddP (Simple (Qual (Id (RootName t1))))
                                  (LastP (Simple (Qual (Id (RootName t2))))))))
            x
-    | dec d name t =>
+    | Dec d name t =>
       let x := make_vars t in
       AddV name
            (TComp (TModPar (decname d)
@@ -331,7 +331,7 @@ Module BT_bin_spec (X: BT_SIG).
     boiler_tick_generator :: boiler_skill :: boiler_TRUE ::
     boiler_sequence :: boiler_fallback :: boiler_par1 :: boiler_par2 ::
     boiler_not :: boiler_isRunning :: (make_main t) :: nil.
-  
+
 End BT_bin_spec.
 
 

@@ -21,7 +21,7 @@ Module BT_binary (X: BT_SIG).
     Sequence | Fallback | Parallel1 | Parallel2.
 
   Inductive DecKind: Set :=
-    Not | isRunning. (* | isEnabled. *)
+    Not | IsRunning. (* | IsEnabled. *)
 
   (* Other decorators with memory, like the "max-N-tries" and the
      "max-T-sec" decorators described in the book by Colledanchise
@@ -32,17 +32,17 @@ Module BT_binary (X: BT_SIG).
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
-  | node: NodeKind -> string -> btree -> btree -> btree
-  | dec: DecKind -> string -> btree -> btree.
+  | Node: NodeKind -> string -> btree -> btree -> btree
+  | Dec: DecKind -> string -> btree -> btree.
 
   (* Utility functions *)
 
-  Fixpoint count_leaves (t: btree) :=
+  Fixpoint count_skills (t: btree) :=
     match t with
     | Skill _ => 1
-    | TRUE => 1
-    | node _ _ t1 t2 => count_leaves t1 + count_leaves t2
-    | dec _ _ t => count_leaves t
+    | TRUE => 0
+    | Node _ _ t1 t2 => count_skills t1 + count_skills t2
+    | Dec _ _ t => count_skills t
     end.
 
 End BT_binary.
@@ -57,13 +57,13 @@ Module BT_general (X: BT_SIG).
   | Parallel: nat -> NodeKind.
 
   Inductive DecKind: Set :=
-    Not | isRunning. (* | isEnabled. *)
+    Not | IsRunning. (* | IsEnabled. *)
 
   Inductive btree: Set :=
   | Skill: X.SkillSet -> btree
   | TRUE: btree
-  | node: NodeKind -> string -> btforest -> btree
-  | dec: DecKind -> string -> btree -> btree
+  | Node: NodeKind -> string -> btforest -> btree
+  | Dec: DecKind -> string -> btree -> btree
   with btforest: Set :=
   | child: btree -> btforest              (* a forest has at least one tree *)
   | add: btree -> btforest -> btforest.
@@ -81,17 +81,17 @@ Module BT_general (X: BT_SIG).
     | add t1 rest => S (len rest)
     end.
 
-  Fixpoint count_leaves (t: btree) :=
+  Fixpoint count_skills (t: btree) :=
     match t with
     | Skill _ => 1
-    | TRUE => 1
-    | node _ _ f => cl_forest f
-    | dec _ _ t => count_leaves t
+    | TRUE => 0
+    | Node _ _ f => cs_forest f
+    | Dec _ _ t => count_skills t
     end
-  with cl_forest (f: btforest) :=
+  with cs_forest (f: btforest) :=
     match f with
-    | child t => count_leaves t
-    | add t tl => count_leaves t + cl_forest tl
+    | child t => count_skills t
+    | add t tl => count_skills t + cs_forest tl
     end.
 
   (* The following function replaces inner nodes with a single child with
@@ -102,12 +102,12 @@ Module BT_general (X: BT_SIG).
     match t with
     | Skill s => Skill s
     | TRUE => TRUE
-    | node k n f => match k with
+    | Node k n f => match k with
 (* original implementation:
                     | Parallel 0 => TRUE
                     | _ => match f with
                            | child t => t
-                           | _ => node k n (normalize_forest f)
+                           | _ => Node k n (normalize_forest f)
                            end
                     end
    this cannot be proved correct because of meaningless thresholds in
@@ -115,21 +115,21 @@ Module BT_general (X: BT_SIG).
                     | Sequence =>
                       match f with
                       | child t => t
-                      | _ => node k n (normalize_forest f)
+                      | _ => Node k n (normalize_forest f)
                       end
                     | Fallback =>
                       match f with
                       | child t => t
-                      | _ => node k n (normalize_forest f)
+                      | _ => Node k n (normalize_forest f)
                       end
-                    | _ => node k n (normalize_forest f)
+                    | _ => Node k n (normalize_forest f)
                     end
-    | dec k n t => match k with
+    | Dec k n t => match k with
                    | Not => match t with
-                            | dec Not _ t' => t'      (* Not is an involution *)
-                            | _ => dec Not n (normalize t)
+                            | Dec Not _ t' => t'      (* Not is an involution *)
+                            | _ => Dec Not n (normalize t)
                             end
-                   | _ => dec k n (normalize t)
+                   | _ => Dec k n (normalize t)
                    end
     end
   with normalize_forest (f: btforest) :=

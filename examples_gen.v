@@ -1,56 +1,68 @@
 Require Import bt shallow.
+Require Import String.
+Open Scope string_scope.
 
 (* Some simple examples of BTs *)
 
 Inductive my_skills :=
   sk1 | sk2 | sk3 | sk4.
+Definition my_names (x: my_skills) :=
+  match x with
+  | sk1 => "goto_kitchen"
+  | sk2 => "find_bottle"
+  | sk3 => "fetch_bottle"
+  | sk4 => "ask_help"
+  end.
 
 Module ex_skills.
 
   Definition SkillSet := my_skills.
+  Definition SkillName := my_names.
 
 End ex_skills.
 
-(*
 Module my_bt := BT_gen_semantics ex_skills.
 
-Import my_bt. (* makes short names available *)
+Import my_bt.
 
-Definition ex1 := (Skill sk1).          (* a node *)
+Definition ex1 := (Skill sk1).          (* a skill *)
 
 Definition ex2 :=                       (* a ternary sequence *)
-  (node Sequence (add (Skill sk1)
-                      (add (Skill sk2)
-                           (child (Skill sk3))))).
+  (Node Sequence "seq3" (add (Skill sk1)
+                             (add (Skill sk2)
+                                  (child (Skill sk3))))).
 
 Definition ex3 :=                       (* a binary fallback *)
-  (node Fallback (add (Skill sk1)
-                 (child (Skill sk2)))).
+  (Node Fallback "bf" (add (Skill sk1)
+                           (child (Skill sk2)))).
 
 Definition ex4 :=                       (* a ternary parallel *)
-  (node (Parallel 1) (add (Skill sk1)
-                          (add (Skill sk2)
-                               (child (Skill sk3))))).
+  (Node (Parallel 1) "par" (add (Skill sk1)
+                                (add (Skill sk2)
+                                     (child (Skill sk3))))).
 
 Definition ex5 :=                       (* ill-formed parallel *)
-  (node (Parallel 3) (add (Skill sk1)
-                          (child (Skill sk2)))).
+  (Node (Parallel 3) "nopar" (add (Skill sk1)
+                                  (child (Skill sk2)))).
 
 Definition sc1 :=                  (* a BT similar to the one from scenario 1 *)
-  (node Fallback (add (node Sequence (add (Skill sk1)
-                                          (add (Skill sk2)
-                                               (child (Skill sk3)))))
-                      (child (Skill sk4)))).
+  (Node Fallback "do_with_help"
+        (add (Node Sequence "go_find_fetch" (add (Skill sk1)
+                                                 (add (Skill sk2)
+                                                      (child (Skill sk3)))))
+             (child (Skill sk4)))).
 
-Compute count_leaves sc1.
+Compute count_skills sc1.
 
 (* mangled version of sc1, to test normalization *)
 
 Definition sc1m :=
-  (node Fallback (add (node Sequence (add (node Fallback (child (Skill sk1)))
-                                          (add (Skill sk2)
-                                               (child (node Sequence (child (Skill sk3)))))))
-                      (child (Skill sk4)))).
+  (Node Fallback "do_with_help"
+        (add (Node Sequence "go_find_fetch"
+                   (add (Node Fallback "useless" (child (Skill sk1)))
+                        (add (Skill sk2)
+                             (child (Node Sequence "useless2" (child (Skill sk3)))))))
+             (child (Skill sk4)))).
 
 Compute normalize sc1m.
 
@@ -67,7 +79,7 @@ Compute (tick sc1 (fun s: my_skills =>
                      | sk3 => Fail
                      | sk4 => Succ
                      end)).
-*)
+
 (* Examples with stream semantics *)
 
 Require Import Streams stream.
@@ -131,10 +143,8 @@ Definition s1 :=
                                         end)
                                all_ok))))).
 
-Compute reptick (node Sequence (add (Skill sk1)
-                                    (add (Skill sk2) (child (Skill sk3)))))
+Compute reptick (Node Sequence "prova" (add (Skill sk1)
+                                            (add (Skill sk2)
+                                                 (child (Skill sk3)))))
         3 s1.
-
-
-
 

@@ -27,7 +27,7 @@ Module BT_bin_str_sem (X: BT_SIG).
     match t with
     | Skill s => (hd i) s
     | TRUE => Succ
-    | node k _ t1 t2 => match k with
+    | Node k _ t1 t2 => match k with
                       | Sequence =>
                         match tick t1 i with
                         | Runn => Runn
@@ -59,14 +59,14 @@ Module BT_bin_str_sem (X: BT_SIG).
                         | _ , _ => Runn
                         end
                       end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    match tick t i with
                    | Runn => Runn
                    | Fail => Succ
                    | Succ => Fail
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    match tick t i with
                    | Runn => Succ
                    | Fail => Fail
@@ -86,7 +86,7 @@ Module BT_bin_str_sem (X: BT_SIG).
     match t with
     | Skill s => pair ((hd i) s) (tl i)
     | TRUE => pair Succ i
-    | node k _ t1 t2 => match k with
+    | Node k _ t1 t2 => match k with
                       | Sequence =>
                         let (res , str) := tick2 t1 i in
                         match res with
@@ -120,7 +120,7 @@ Module BT_bin_str_sem (X: BT_SIG).
                         | _ , _ => pair Runn s1
                         end
                       end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    let (res , str) := tick2 t i in
                    match res with
@@ -128,7 +128,7 @@ Module BT_bin_str_sem (X: BT_SIG).
                    | Fail => pair Succ str
                    | Succ => pair Fail str
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    let (res , str) := tick2 t i in
                    match res with
                    | Runn => pair Succ str
@@ -160,10 +160,10 @@ Module BT_bin_str_sem (X: BT_SIG).
   (* Notice that with this implementation it is no longer true that all
      nodes are associative! For instance a Sequence node with 3 children
      *must* be coded as 
-     node Sequence t1 (node Sequence t2 t3)
+     Node Sequence t1 (Node Sequence t2 t3)
      
      If we use instead the tree
-     node Sequence (node Sequence t1 t2) t3
+     Node Sequence (Node Sequence t1 t2) t3
      the branch t3 will be evaluated at the same "instant of time" as t2,
      which is not the intended semantics.
    *)
@@ -206,7 +206,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match t with
     | Skill s => (hd i) s
     | TRUE => Succ
-    | node k _ f => match k with
+    | Node k _ f => match k with
                   | Sequence => tick_sequence f i
                   | Fallback => tick_fallback f i
                   | Parallel n =>
@@ -215,14 +215,14 @@ Module BT_gen_str_sem (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then Fail
                          else Runn
                   end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    match tick t i with
                    | Runn => Runn
                    | Fail => Succ
                    | Succ => Fail
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    match tick t i with
                    | Runn => Succ
                    | Fail => Fail
@@ -260,7 +260,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match t with
     | Skill s => pair ((hd i) s) (tl i)
     | TRUE => pair Succ i
-    | node k _ f => match k with
+    | Node k _ f => match k with
                   | Sequence => tick2_sequence f i
                   | Fallback => tick2_fallback f i
                   | Parallel n =>
@@ -269,7 +269,7 @@ Module BT_gen_str_sem (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then pair Fail str
                          else pair Runn str
                   end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    let (res , str) := tick2 t i in
                    match res with
@@ -277,7 +277,7 @@ Module BT_gen_str_sem (X: BT_SIG).
                    | Fail => pair Succ str
                    | Succ => pair Fail str
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    let (res , str) := tick2 t i in
                    match res with
                    | Runn => pair Succ str

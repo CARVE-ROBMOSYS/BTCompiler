@@ -22,7 +22,7 @@ Module BT_bin_semantics (X: BT_SIG).
     match t with
     | Skill s => input_f s
     | TRUE => Succ
-    | node k _ t1 t2 => match k with
+    | Node k _ t1 t2 => match k with
                       | Sequence =>
                         match (tick t1 input_f) with
                         | Runn => Runn
@@ -54,14 +54,14 @@ Module BT_bin_semantics (X: BT_SIG).
                         | _ , _ => Runn
                         end
                       end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    match (tick t input_f) with
                    | Runn => Runn
                    | Fail => Succ
                    | Succ => Fail
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    match (tick t input_f) with
                    | Runn => Succ
                    | Fail => Fail
@@ -77,8 +77,8 @@ Module BT_bin_semantics (X: BT_SIG).
     forall k: NodeKind,
     forall s s' s'': String.string,
     forall c_1 c_2 c_3: btree,
-      let a := (node k s (node k s' c_1 c_2) c_3) in
-      let b := (node k s c_1 (node k s'' c_2 c_3)) in
+      let a := (Node k s (Node k s' c_1 c_2) c_3) in
+      let b := (Node k s c_1 (Node k s'' c_2 c_3)) in
       return_same_value a b.
   Proof.
     unfold return_same_value.
@@ -128,7 +128,7 @@ Module BT_gen_semantics (X: BT_SIG).
     match t with
     | Skill s => input_f s
     | TRUE => Succ
-    | node k _ f => match k with
+    | Node k _ f => match k with
                   | Sequence => tick_sequence f input_f
                   | Fallback => tick_fallback f input_f
                   | Parallel n =>
@@ -137,14 +137,14 @@ Module BT_gen_semantics (X: BT_SIG).
                     else if (len f - n) <? (countFail results) then Fail
                          else Runn
                   end
-    | dec k _ t => match k with
+    | Dec k _ t => match k with
                  | Not =>
                    match tick t input_f with
                    | Runn => Runn
                    | Fail => Succ
                    | Succ => Fail
                    end
-                 | isRunning =>
+                 | IsRunning =>
                    match (tick t input_f) with
                    | Runn => Succ
                    | Fail => Fail
@@ -270,7 +270,7 @@ Module BT_gen_semantics (X: BT_SIG).
   Lemma normalize_preserves_node:
     forall (k: NodeKind) (s: String.string) (f: btforest),
       all_return_same_value f (normalize_forest f) ->
-      return_same_value (node k s f) (normalize (node k s f)).
+      return_same_value (Node k s f) (normalize (Node k s f)).
   Proof.
     induction k.
     (* sequence case *)      
@@ -309,7 +309,7 @@ Module BT_gen_semantics (X: BT_SIG).
   Lemma normalize_preserves_decs:
     forall (d: DecKind) (s: String.string) (t: btree),
       return_same_value t (normalize t) ->
-      return_same_value (dec d s t) (normalize (dec d s t)).
+      return_same_value (Dec d s t) (normalize (Dec d s t)).
   Proof.
     induction d.
     (* not case *)

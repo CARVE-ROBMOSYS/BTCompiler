@@ -26,12 +26,12 @@ Module my_bin_bt_with_sem := BT_bin_semantics ex_skills.
 Import my_bin_bt_with_sem.
 
 Definition sc1 :=
-  (node Fallback "do_with_help"
-        (node Sequence "go_and_fetch" (Skill sk1)
-              (node Sequence "find_and_fetch" (Skill sk2) (Skill sk3)))
+  (Node Fallback "do_with_help"
+        (Node Sequence "go_and_fetch" (Skill sk1)
+              (Node Sequence "find_and_fetch" (Skill sk2) (Skill sk3)))
         (Skill sk4)).
 
-Compute count_leaves sc1. 
+Compute count_skills sc1. 
 
 (* execution examples *)
 
@@ -124,15 +124,15 @@ Definition s1 :=
                                         end)
                                all_ok))))).
 
-Compute reptick (node Fallback (Skill sk2) (Skill sk3))
+Compute reptick (Node Fallback "prova" (Skill sk2) (Skill sk3))
         3 s1.
 
-Compute tick2 (node Sequence (Skill sk1)
-                    (node Sequence (Skill sk2) (Skill sk3)))
+Compute tick2 (Node Sequence "s1" (Skill sk1)
+                    (Node Sequence "s2" (Skill sk2) (Skill sk3)))
         s1.
 
-Compute reptick (node Sequence (Skill sk1)
-                      (node Sequence (Skill sk2) (Skill sk3)))
+Compute reptick (Node Sequence "s1" (Skill sk1)
+                      (Node Sequence "s2" (Skill sk2) (Skill sk3)))
         3 s1.
 
 
