@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SkillList>
+  <Action ID="Ask_for_help" />
+  <Action ID="Go_to_kitchen" />
+  <Action ID="Find_bottle" />
+  <Action ID="Fetch_bottle" />
+</SkillList>
