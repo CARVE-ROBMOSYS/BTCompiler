@@ -65,8 +65,8 @@ Module BT_general (X: BT_SIG).
   | Node: NodeKind -> string -> btforest -> btree
   | Dec: DecKind -> string -> btree -> btree
   with btforest: Set :=
-  | child: btree -> btforest              (* a forest has at least one tree *)
-  | add: btree -> btforest -> btforest.
+  | Child: btree -> btforest              (* a forest has at least one tree *)
+  | Add: btree -> btforest -> btforest.
 
   (* Instantiation of the correct mutual induction principles *)
 
@@ -77,8 +77,8 @@ Module BT_general (X: BT_SIG).
 
   Fixpoint len (f: btforest) :=
     match f with
-    | child t => 1
-    | add t1 rest => S (len rest)
+    | Child t => 1
+    | Add t1 rest => S (len rest)
     end.
 
   Fixpoint count_skills (t: btree) :=
@@ -90,8 +90,8 @@ Module BT_general (X: BT_SIG).
     end
   with cs_forest (f: btforest) :=
     match f with
-    | child t => count_skills t
-    | add t tl => count_skills t + cs_forest tl
+    | Child t => count_skills t
+    | Add t tl => count_skills t + cs_forest tl
     end.
 
   (* The following function replaces inner nodes with a single child with
@@ -106,7 +106,7 @@ Module BT_general (X: BT_SIG).
 (* original implementation:
                     | Parallel 0 => TRUE
                     | _ => match f with
-                           | child t => t
+                           | Child t => t
                            | _ => Node k n (normalize_forest f)
                            end
                     end
@@ -114,12 +114,12 @@ Module BT_general (X: BT_SIG).
    parallel nodes. So we leave parallel nodes alone: *)
                     | Sequence =>
                       match f with
-                      | child t => t
+                      | Child t => t
                       | _ => Node k n (normalize_forest f)
                       end
                     | Fallback =>
                       match f with
-                      | child t => t
+                      | Child t => t
                       | _ => Node k n (normalize_forest f)
                       end
                     | _ => Node k n (normalize_forest f)
@@ -134,8 +134,8 @@ Module BT_general (X: BT_SIG).
     end
   with normalize_forest (f: btforest) :=
     match f with
-    | child t => child (normalize t)
-    | add t ts => add (normalize t) (normalize_forest ts)
+    | Child t => Child (normalize t)
+    | Add t ts => Add (normalize t) (normalize_forest ts)
     end.
 
 

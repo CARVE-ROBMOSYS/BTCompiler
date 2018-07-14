@@ -232,8 +232,8 @@ Module BT_gen_str_sem (X: BT_SIG).
     end
   with tick_sequence (f: btforest) (i: input_stream) :=
          match f with
-         | child t => tick t i
-         | add t1 rest => match tick t1 i with
+         | Child t => tick t i
+         | Add t1 rest => match tick t1 i with
                           | Runn => Runn
                           | Fail => Fail
                           | Succ => tick_sequence rest (tl i)
@@ -241,8 +241,8 @@ Module BT_gen_str_sem (X: BT_SIG).
          end
   with tick_fallback (f: btforest) (i: input_stream) :=
          match f with
-         | child t => tick t i
-         | add t1 rest => match tick t1 i with
+         | Child t => tick t i
+         | Add t1 rest => match tick t1 i with
                           | Runn => Runn
                           | Fail => tick_fallback rest (tl i)
                           | Succ => Succ
@@ -250,8 +250,8 @@ Module BT_gen_str_sem (X: BT_SIG).
          end
   with tick_all (f: btforest) (i: input_stream) :=
          match f with
-         | child t => cons (tick t i) nil
-         | add t1 rest => cons (tick t1 i) (tick_all rest i)
+         | Child t => cons (tick t i) nil
+         | Add t1 rest => cons (tick t1 i) (tick_all rest i)
          end.
 
   (* Single tick evaluation, preserving the input_stream *)
@@ -288,8 +288,8 @@ Module BT_gen_str_sem (X: BT_SIG).
     end
   with tick2_sequence (f: btforest) (i: input_stream): return_enum * input_stream :=
          match f with
-         | child t => tick2 t i
-         | add t1 rest => let (res , str) := tick2 t1 i in
+         | Child t => tick2 t i
+         | Add t1 rest => let (res , str) := tick2 t1 i in
                           match res with
                           | Runn => pair Runn str
                           | Fail => pair Fail str
@@ -298,8 +298,8 @@ Module BT_gen_str_sem (X: BT_SIG).
          end
   with tick2_fallback (f: btforest) (i: input_stream): return_enum * input_stream :=
          match f with
-         | child t => tick2 t i
-         | add t1 rest => let (res , str) := tick2 t1 i in
+         | Child t => tick2 t i
+         | Add t1 rest => let (res , str) := tick2 t1 i in
                           match res with
                           | Runn => pair Runn str
                           | Fail => tick2_fallback rest str
@@ -308,9 +308,9 @@ Module BT_gen_str_sem (X: BT_SIG).
          end
   with tick2_all (f: btforest) (i: input_stream): list return_enum * input_stream :=
          match f with
-         | child t => let (res , str) := tick2 t i in
+         | Child t => let (res , str) := tick2 t i in
                       pair (cons res nil) str
-         | add t1 rest => let (res , str) := tick2 t1 i in
+         | Add t1 rest => let (res , str) := tick2 t1 i in
                           (* keep the stream resulting from the first node *)
                           pair (cons res (fst (tick2_all rest i))) str
          end.
@@ -324,8 +324,14 @@ Module BT_gen_str_sem (X: BT_SIG).
     | S p => cons res (reptick t p str)
     end.
 
-
-
-
 End BT_gen_str_sem.
 
+(* Program extraction for the behavior tree interpreter *)
+
+Require Import Extraction.
+Require ExtrOcamlBasic ExtrOcamlString.
+Extract Inductive nat => "int" ["0" "succ"]
+                               "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
+Extract Constant plus => "( + )".
+
+Extraction "infra/btssem.ml" BT_gen_str_sem.

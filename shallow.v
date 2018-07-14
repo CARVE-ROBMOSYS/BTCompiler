@@ -154,8 +154,8 @@ Module BT_gen_semantics (X: BT_SIG).
     end
   with tick_sequence (f: btforest) (input_f: skills_input) :=
          match f with
-         | child t => tick t input_f
-         | add t1 rest => match (tick t1 input_f) with
+         | Child t => tick t input_f
+         | Add t1 rest => match (tick t1 input_f) with
                           | Runn => Runn
                           | Fail => Fail
                           | Succ => tick_sequence rest input_f
@@ -163,8 +163,8 @@ Module BT_gen_semantics (X: BT_SIG).
          end
   with tick_fallback (f: btforest) (input_f: skills_input) :=
          match f with
-         | child t => tick t input_f
-         | add t1 rest => match (tick t1 input_f) with
+         | Child t => tick t input_f
+         | Add t1 rest => match (tick t1 input_f) with
                           | Runn => Runn
                           | Fail => tick_fallback rest input_f
                           | Succ => Succ
@@ -172,8 +172,8 @@ Module BT_gen_semantics (X: BT_SIG).
          end
   with tick_all (f: btforest) (input_f: skills_input) :=
          match f with
-         | child t => cons (tick t input_f) nil
-         | add t1 rest => cons (tick t1 input_f) (tick_all rest input_f)
+         | Child t => cons (tick t input_f) nil
+         | Add t1 rest => cons (tick t1 input_f) (tick_all rest input_f)
          end.
 
   Definition return_same_value (t1 t2: btree) :=
@@ -181,10 +181,10 @@ Module BT_gen_semantics (X: BT_SIG).
 
   Fixpoint all_return_same_value (f1 f2: btforest) :=
     match f1, f2 with
-    | child t1, child t2 => return_same_value t1 t2
-    | child t1, add t2 r2 => False
-    | add t1 r1, child t2 => False
-    | add t1 r1, add t2 r2 => return_same_value t1 t2
+    | Child t1, Child t2 => return_same_value t1 t2
+    | Child t1, Add t2 r2 => False
+    | Add t1 r1, Child t2 => False
+    | Add t1 r1, Add t2 r2 => return_same_value t1 t2
                               /\ all_return_same_value r1 r2
     end.
 
@@ -346,8 +346,13 @@ Module BT_gen_semantics (X: BT_SIG).
     
 End BT_gen_semantics.
 
-  
+(* Program extraction for the behavior tree interpreter *)
 
+Require Import Extraction.
+Require ExtrOcamlBasic ExtrOcamlString.
+Extract Inductive nat => "int" ["0" "succ"]
+                               "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
+Extract Constant plus => "( + )".
 
-
+Extraction "infra/btsem.ml" BT_gen_semantics.
 

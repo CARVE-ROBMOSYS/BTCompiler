@@ -28,29 +28,29 @@ Import my_bt.
 Definition ex1 := (Skill sk1).          (* a skill *)
 
 Definition ex2 :=                       (* a ternary sequence *)
-  (Node Sequence "seq3" (add (Skill sk1)
-                             (add (Skill sk2)
-                                  (child (Skill sk3))))).
+  (Node Sequence "seq3" (Add (Skill sk1)
+                             (Add (Skill sk2)
+                                  (Child (Skill sk3))))).
 
 Definition ex3 :=                       (* a binary fallback *)
-  (Node Fallback "bf" (add (Skill sk1)
-                           (child (Skill sk2)))).
+  (Node Fallback "bf" (Add (Skill sk1)
+                           (Child (Skill sk2)))).
 
 Definition ex4 :=                       (* a ternary parallel *)
-  (Node (Parallel 1) "par" (add (Skill sk1)
-                                (add (Skill sk2)
-                                     (child (Skill sk3))))).
+  (Node (Parallel 1) "par" (Add (Skill sk1)
+                                (Add (Skill sk2)
+                                     (Child (Skill sk3))))).
 
 Definition ex5 :=                       (* ill-formed parallel *)
-  (Node (Parallel 3) "nopar" (add (Skill sk1)
-                                  (child (Skill sk2)))).
+  (Node (Parallel 3) "nopar" (Add (Skill sk1)
+                                  (Child (Skill sk2)))).
 
 Definition sc1 :=                  (* a BT similar to the one from scenario 1 *)
   (Node Fallback "do_with_help"
-        (add (Node Sequence "go_find_fetch" (add (Skill sk1)
-                                                 (add (Skill sk2)
-                                                      (child (Skill sk3)))))
-             (child (Skill sk4)))).
+        (Add (Node Sequence "go_find_fetch" (Add (Skill sk1)
+                                                 (Add (Skill sk2)
+                                                      (Child (Skill sk3)))))
+             (Child (Skill sk4)))).
 
 Compute count_skills sc1.
 
@@ -58,11 +58,11 @@ Compute count_skills sc1.
 
 Definition sc1m :=
   (Node Fallback "do_with_help"
-        (add (Node Sequence "go_find_fetch"
-                   (add (Node Fallback "useless" (child (Skill sk1)))
-                        (add (Skill sk2)
-                             (child (Node Sequence "useless2" (child (Skill sk3)))))))
-             (child (Skill sk4)))).
+        (Add (Node Sequence "go_find_fetch"
+                   (Add (Node Fallback "useless" (Child (Skill sk1)))
+                        (Add (Skill sk2)
+                             (Child (Node Sequence "useless2" (Child (Skill sk3)))))))
+             (Child (Skill sk4)))).
 
 Compute normalize sc1m.
 
@@ -143,8 +143,8 @@ Definition s1 :=
                                         end)
                                all_ok))))).
 
-Compute reptick (Node Sequence "prova" (add (Skill sk1)
-                                            (add (Skill sk2)
-                                                 (child (Skill sk3)))))
+Compute reptick (Node Sequence "prova" (Add (Skill sk1)
+                                            (Add (Skill sk2)
+                                                 (Child (Skill sk3)))))
         3 s1.
 
