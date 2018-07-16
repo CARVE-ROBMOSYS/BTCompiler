@@ -1,0 +1,15 @@
+<root main_tree_to_execute = "MainTree" >
+
+  <BehaviorTree ID="MainTree">
+    <Fallback name = "root">
+      <Sequence name="find_and_fetch">
+        <Action ID="Go_to_kitchen" />
+        <Action ID="Find_bottle" />
+        <Action ID="Fetch_bottle" />
+      </Sequence>
+      <Action ID="Ask_for_help" />
+    </Fallback>
+  </BehaviorTree>
+
+</root>
+
