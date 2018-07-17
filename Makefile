@@ -1,7 +1,8 @@
 .PHONY: all byte checkpkg clean native
 
 # coq compilation
-CQC = coqc
+CQC = coqc $(CQC_FLAGS)
+CQC_FLAGS = -I .
 
 # OCaml compilation
 OCB = ocamlbuild $(OCB_FLAGS)
@@ -18,11 +19,12 @@ checkpkg:
 	ocamlfind query xmlm
 
 certmod:
-	coqc bt.v shallow.v
+	$(CQC) bt.v
+	$(CQC) shallow.v
 
 skillreader: checkpkg certmod
 	cd infra
-	$(OCB) skillreader.native
+	$(OCB) readskill.native
 
 interp: checkpkg certmod
 	cd infra
