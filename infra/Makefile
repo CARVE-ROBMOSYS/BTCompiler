@@ -8,11 +8,11 @@ CFLAGS = -I .
 
 .PHONY: all clean checkpkg readskill interp
 
+all: readskill interp
+
 # check that needed OCaml packages can be found
 checkpkg:
 	ocamlfind query xmlm
-
-all: readskill interp
 
 readskill: checkpkg
 	$(OCB) 'readskill.native'
