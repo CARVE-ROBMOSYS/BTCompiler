@@ -2,6 +2,8 @@ open Btsem
 
 module Btree = BT_gen_semantics(Skills)
 
+exception Parsing of string
+             
 (* Helper functions for translating between camlstrings and coqstrings
    Taken from https://github.com/AbsInt/CompCert/blob/master/lib/Camlcoq.ml *)
   
@@ -42,12 +44,17 @@ let extract_name t =
   let name = List.find (fun attr -> (snd (fst attr)) = "name") attr_list in
   snd name
 
+let extract attr_name tag =
+  let attr_list = snd tag in
+  let name = List.find (fun attr -> (snd (fst attr)) = attr_name) attr_list in
+  snd name
+  
 (* This function is called by input_bt to manage opening/closing tags *)
 let f1 t childs =
   let rec forest_of_list = function
       [] -> assert false
     | [h] -> Btree.Child h
-    | h::t -> Btree.Add (h, forest_of_list t)
+    | h :: t -> Btree.Add (h, forest_of_list t)
   in
   let n = extract_node t in
   if (n = "Action") || (n = "Condition") then
@@ -59,13 +66,23 @@ let f1 t childs =
        | "Fallback" -> Btree.Node (Btree.Fallback,
                                    (coqstring_of_camlstring (extract_name t)),
                                    (forest_of_list childs))
-       (* Parallel nodes, Decorators still to be added... *)
-       | _ -> invalid_arg ("Unkown node: " ^ n)
+       | "Parallel" -> begin
+           try
+             let tres = extract "threshold" t in
+             let n = (int_of_string tres) in
+             Btree.Node (Btree.Parallel n,
+                         (coqstring_of_camlstring (extract_name t)),
+                         (forest_of_list childs))
+           with
+             Not_found -> raise (Parsing "vergonga!")
+         end
+       (* Decorators still to be added... *)
+       | _ -> raise (Parsing ("unkown node: " ^ n))
 
 (* This function is called by input_bt to manage data tags
    since our XML files never have data fields, we just throw an exception *)
 let f2 s =
-  invalid_arg "unexpected data in input XML file"
+  raise (Parsing "unexpected data in input XML file")
 
 let input_bt i =
   Xmlm.input_tree ~el:f1 ~data:f2 i
@@ -93,13 +110,13 @@ let input_bt i =
        | _ -> assert false
      in
      aux i (tag :: []) [[]]
-  | _ -> invalid_arg "unexpected tag"
+  | _ -> raise (Parsing "unexpected tag")
  *)
 
 let load_bt filename =
   let input_ch = open_in filename in
   let i = Xmlm.make_input ~strip:true (`Channel input_ch) in
-  let _ = Xmlm.input i in                    (* discard the dtd *)
+  let _ = Xmlm.input i in               (* discard the dtd *)
   let root_tag = Xmlm.input i in
   match root_tag with
     `El_start t1 ->
@@ -111,10 +128,10 @@ let load_bt filename =
           let bt = input_bt i in
           close_in input_ch;  (* only one BT per file! *)
           bt
-        else invalid_arg "cannot find BehaviorTree node"
-      | _ -> invalid_arg "cannot find BehaviorTree node"
-    else invalid_arg "first node is not root"
-  | _ -> invalid_arg "cannot find root node"
+        else raise (Parsing "cannot find BehaviorTree node")
+      | _ -> raise (Parsing "cannot find BehaviorTree node")
+    else raise (Parsing "first node is not root")
+  | _ -> raise (Parsing "first node is not root")
 
 
 let main () =
@@ -129,10 +146,12 @@ let main () =
       (* ... other things to do ... *)
       exit 0
     with
-      (* raised by open_in *)
-      (* raised by load_bt *)
-      Invalid_argument s -> print_endline s; exit 1
+      Sys_error s -> Printf.eprintf "System error: %s\n" s; exit 2
+    | Xmlm.Error (pos, err) -> Printf.eprintf "XML parsing error at line %d: %s\n"
+                                              (fst pos)
+                                              (Xmlm.error_message err); exit 1
+    | Parsing s -> Printf.eprintf "Error: %s\n" s; exit 1
+    | Invalid_argument s -> Printf.eprintf "Error: %s\n" s; exit 1
 ;;
-
 
 main();;

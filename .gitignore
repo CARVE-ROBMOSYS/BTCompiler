@@ -14,11 +14,11 @@
 *.mli.d
 *.mllib.d
 *.mlpack.d
-*.native
 *.o
 *.v.d
 *.vio
 *.vo
+.merlin
 .coq-native/
 .csdp.cache
 .lia.cache
@@ -37,4 +37,3 @@ _build/
 # ocamlbuild targets
 *.byte
 *.native
-
