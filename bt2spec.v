@@ -274,16 +274,7 @@ Module BT_bin_spec (X: BT_SIG).
                                                           (SConst "failed")))))))
        ::nil).
 
-  
-(*  Definition generate_name (k: NodeKind) (t1: btree) (t2: btree) :=
-    match k with
-    | Sequence => "seq" ++ (RootName t1) ++ (RootName t2)
-    | Fallback => "fb" ++ (RootName t1) ++ (RootName t2)
-    | Parallel1 => "par1" ++ (RootName t1) ++ (RootName t2)
-    | Parallel2 => "par2" ++ (RootName t1) ++ (RootName t2)
-    end.
-  *)
-  Definition nodename (k: NodeKind) :=
+  Definition nodename (k: nodeKind) :=
     match k with
     | Sequence => "bt_sequence"
     | Fallback => "bt_fallback"
@@ -291,7 +282,7 @@ Module BT_bin_spec (X: BT_SIG).
     | Parallel2 => "bt_parallel2"
     end.
   
-  Definition decname (d: DecKind) :=
+  Definition decname (d: decKind) :=
     match d with
     | Not => "bt_not"
     | IsRunning => "bt_is_running"

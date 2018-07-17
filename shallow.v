@@ -74,7 +74,7 @@ Module BT_bin_semantics (X: BT_SIG).
     forall i: skills_input, (tick a i) = (tick b i).
 
   Theorem all_nodes_are_associative:
-    forall k: NodeKind,
+    forall k: nodeKind,
     forall s s' s'': String.string,
     forall c_1 c_2 c_3: btree,
       let a := (Node k s (Node k s' c_1 c_2) c_3) in
@@ -268,7 +268,7 @@ Module BT_gen_semantics (X: BT_SIG).
   Qed.
 
   Lemma normalize_preserves_node:
-    forall (k: NodeKind) (s: String.string) (f: btforest),
+    forall (k: nodeKind) (s: String.string) (f: btforest),
       all_return_same_value f (normalize_forest f) ->
       return_same_value (Node k s f) (normalize (Node k s f)).
   Proof.
@@ -307,7 +307,7 @@ Module BT_gen_semantics (X: BT_SIG).
   Qed.
 
   Lemma normalize_preserves_decs:
-    forall (d: DecKind) (s: String.string) (t: btree),
+    forall (d: decKind) (s: String.string) (t: btree),
       return_same_value t (normalize t) ->
       return_same_value (Dec d s t) (normalize (Dec d s t)).
   Proof.

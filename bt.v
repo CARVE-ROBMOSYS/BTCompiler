@@ -17,10 +17,10 @@ End BT_SIG.
 
 Module BT_binary (X: BT_SIG).
   
-  Inductive NodeKind: Set :=
+  Inductive nodeKind: Set :=
     Sequence | Fallback | Parallel1 | Parallel2.
 
-  Inductive DecKind: Set :=
+  Inductive decKind: Set :=
     Not | IsRunning. (* | IsEnabled. *)
 
   (* Other decorators with memory, like the "max-N-tries" and the
@@ -32,8 +32,8 @@ Module BT_binary (X: BT_SIG).
   Inductive btree: Set :=
   | Skill: X.skillSet -> btree
   | TRUE: btree
-  | Node: NodeKind -> string -> btree -> btree -> btree
-  | Dec: DecKind -> string -> btree -> btree.
+  | Node: nodeKind -> string -> btree -> btree -> btree
+  | Dec: decKind -> string -> btree -> btree.
 
   (* Utility functions *)
 
@@ -51,19 +51,19 @@ End BT_binary.
 
 Module BT_general (X: BT_SIG).
 
-  Inductive NodeKind: Set :=
-  | Sequence: NodeKind
-  | Fallback: NodeKind
-  | Parallel: nat -> NodeKind.
+  Inductive nodeKind: Set :=
+  | Sequence: nodeKind
+  | Fallback: nodeKind
+  | Parallel: nat -> nodeKind.
 
-  Inductive DecKind: Set :=
+  Inductive decKind: Set :=
     Not | IsRunning. (* | IsEnabled. *)
 
   Inductive btree: Set :=
   | Skill: X.skillSet -> btree
   | TRUE: btree
-  | Node: NodeKind -> string -> btforest -> btree
-  | Dec: DecKind -> string -> btree -> btree
+  | Node: nodeKind -> string -> btforest -> btree
+  | Dec: decKind -> string -> btree -> btree
   with btforest: Set :=
   | Child: btree -> btforest              (* a forest has at least one tree *)
   | Add: btree -> btforest -> btforest.
