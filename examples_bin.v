@@ -16,8 +16,8 @@ Definition my_names (x: my_skills) :=
 
 Module ex_skills.
 
-  Definition SkillSet := my_skills.
-  Definition SkillName := my_names.
+  Definition skillSet := my_skills.
+  Definition skillName := my_names.
 
 End ex_skills.
 

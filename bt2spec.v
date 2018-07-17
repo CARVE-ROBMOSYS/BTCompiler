@@ -8,7 +8,7 @@ Module BT_bin_spec (X: BT_SIG).
 
   Definition RootName (t: btree) :=
     match t with
-    | Skill s => X.SkillName s
+    | Skill s => X.skillName s
     | TRUE => "BTSucc"
     | Node _ n _ _ => n
     | Dec _ n _ => n
@@ -299,7 +299,7 @@ Module BT_bin_spec (X: BT_SIG).
 
   Fixpoint make_vars (t: btree): varlist :=
     match t with
-    | Skill s => LastV (X.SkillName s) (TComp (TMod "bt_skill"))
+    | Skill s => LastV (X.skillName s) (TComp (TMod "bt_skill"))
     | TRUE => LastV "t" (TComp (TMod "bt_TRUE"))
     | Node k name t1 t2 =>
       let x := varlist_app (make_vars t1) (make_vars t2) in

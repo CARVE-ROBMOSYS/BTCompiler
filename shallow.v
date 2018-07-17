@@ -14,7 +14,7 @@ Module BT_bin_semantics (X: BT_SIG).
 
   Inductive return_enum := Runn | Fail | Succ.
 
-  Definition skills_input := X.SkillSet -> return_enum.
+  Definition skills_input := X.skillSet -> return_enum.
   (* A term of this type encapsulates a returns value for each skill
      at the instant of time in which the tick is executed. *)
 
@@ -104,7 +104,7 @@ Module BT_gen_semantics (X: BT_SIG).
 
   Inductive return_enum := Runn | Fail | Succ.
 
-  Definition skills_input := X.SkillSet -> return_enum.
+  Definition skills_input := X.skillSet -> return_enum.
 
   Fixpoint countSucc (l: list return_enum) :=
     match l with

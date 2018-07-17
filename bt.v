@@ -8,8 +8,8 @@ Require Import String.
 
 Module Type BT_SIG.
   
-  Parameter SkillSet: Set.
-  Parameter SkillName: SkillSet -> string.
+  Parameter skillSet: Set.
+  Parameter skillName: skillSet -> string.
   
 End BT_SIG.
 
@@ -30,7 +30,7 @@ Module BT_binary (X: BT_SIG).
      e.g. communication with a parameter server. *)
   
   Inductive btree: Set :=
-  | Skill: X.SkillSet -> btree
+  | Skill: X.skillSet -> btree
   | TRUE: btree
   | Node: NodeKind -> string -> btree -> btree -> btree
   | Dec: DecKind -> string -> btree -> btree.
@@ -60,7 +60,7 @@ Module BT_general (X: BT_SIG).
     Not | IsRunning. (* | IsEnabled. *)
 
   Inductive btree: Set :=
-  | Skill: X.SkillSet -> btree
+  | Skill: X.skillSet -> btree
   | TRUE: btree
   | Node: NodeKind -> string -> btforest -> btree
   | Dec: DecKind -> string -> btree -> btree

@@ -14,7 +14,7 @@ Module BT_bin_str_sem (X: BT_SIG).
 
   Inductive return_enum := Runn | Fail | Succ.
 
-  Definition skills_input := X.SkillSet -> return_enum.
+  Definition skills_input := X.skillSet -> return_enum.
   (* A term of this type encapsulates a returns value for each skill
      at the instant of time in which the tick is executed. *)
 
@@ -178,7 +178,7 @@ Module BT_gen_str_sem (X: BT_SIG).
 
   Inductive return_enum := Runn | Fail | Succ.
 
-  Definition skills_input := X.SkillSet -> return_enum.
+  Definition skills_input := X.skillSet -> return_enum.
 
   Definition input_stream := Stream skills_input.
 

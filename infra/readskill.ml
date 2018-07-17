@@ -63,8 +63,8 @@ let make_skills_module l =
   let idlist = make_id_list 1 l in
   let nameslist = make_names_list idlist l in
   let trfunc = make_transl_func idlist l in
-  "type coq_SkillSet =\n  " ^ (String.concat " | " idlist) ^ "\n\n"
-  ^ "let coq_SkillName = function\n  " ^ (String.concat "\n  " nameslist) ^ "\n\n"
+  "type skillSet =\n  " ^ (String.concat " | " idlist) ^ "\n\n"
+  ^ "let skillName = function\n  " ^ (String.concat "\n  " nameslist) ^ "\n\n"
   ^ "let skill_id s =\n  match s with\n  " ^ (String.concat "\n  " trfunc) ^ "\n"
 ;;
 
