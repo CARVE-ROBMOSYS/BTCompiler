@@ -1,0 +1,2 @@
+post-all::
+        cd subdir && $(MAKE)
