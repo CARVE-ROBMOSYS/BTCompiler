@@ -19,6 +19,7 @@
 *.vio
 *.vo
 .merlin
+.coqdeps.d
 .coq-native/
 .csdp.cache
 .lia.cache

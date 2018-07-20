@@ -1,7 +1,15 @@
-(* build this file with:
-   ocamlfind ocamlc -package xmlm -linkpkg readskill.ml -o rs
-   ocamlbuild -use-ocamlfind 'readskill.native'
- *)
+(* This program reads a list of "basic skills" from an input XML file
+   and writes the corresponding definitions needed for the BT interpreter
+   in the OCaml module "skills.ml". 
+
+TODO:
+- document format of source XML file
+- accept more than one input file? (concatenating the resulting lists)
+- currently the parser ignores every attribute of a skill; should we emit 
+  a warning if one is found?
+- also ignores every tag after SkillList: other warning?
+
+*)
 
 exception Parsing of string
 
@@ -55,6 +63,8 @@ let make_skills_module l =
     | h :: t -> ("| " ^ (List.hd idlist) ^ " -> " ^ coqstrrep_of_string h)
                 :: make_names_list (List.tl idlist) t
   in
+  (* notice that the Parsing exception is not available in the Skills module
+     we are generating, so we resort to Invalid_argument *)
   let rec make_transl_func idlist = function
       [] -> "| _ -> invalid_arg (\"unknown skill: \" ^ s)" :: []
     | h :: t -> ("| \"" ^ h ^ "\" -> " ^ (List.hd idlist))
@@ -110,7 +120,3 @@ let main () =
 ;;
 
 main();;
-
-(* TODO:
-   - accept more than one input file? (concatenating the resulting lists)
- *)
