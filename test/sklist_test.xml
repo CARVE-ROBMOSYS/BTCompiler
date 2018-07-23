@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SkillList>
+  <Action ID="Action1SecondSuccess" />
+  <Action ID="Action1SecondFailure" />
+  <Condition ID="ConditonTrue" /> 
+  <Condition ID="ConditonFalse />
+</SkillList>
