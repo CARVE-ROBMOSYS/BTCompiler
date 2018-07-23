@@ -134,6 +134,7 @@ let load_bt filename =
   | _ -> raise (Parsing "first node is not root")
 
 
+(*
 let main () =
   let argc = Array.length Sys.argv in
   if argc = 1 then print_endline "No file specified"
@@ -153,5 +154,24 @@ let main () =
     | Parsing s -> Printf.eprintf "Error: %s\n" s; exit 1
     | Invalid_argument s -> Printf.eprintf "Error: %s\n" s; exit 1
 ;;
+ *)
 
-main();;
+(* C function mapping (a string identifying) a skill to its return value *)
+
+external exec: string -> Btree.return_enum = "exec"
+
+(* This is the equivalent term of type skills_input *)
+
+let convert s =
+  exec (camlstring_of_coqstring (Skills.skillName s))
+
+let tick1 bt =
+  Btree.tick bt convert
+
+let _ = Callback.register "readbt" load_bt
+let _ = Callback.register "tick" tick1
+
+(*
+compile this file with:
+ocamlfind ocamlopt -package xmlm -linkpkg -output-obj -o modcaml.o unix.cmxa btsem.cmx skills.cmx int.ml
+ *)

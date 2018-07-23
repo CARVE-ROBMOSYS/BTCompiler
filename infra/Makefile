@@ -18,7 +18,8 @@ readskill: checkpkg
 	$(OCB) 'readskill.native'
 
 interp: checkpkg
-	$(OCB) 'interpreter.native'
+	$(OCB) 'interpreter.native.o'
+	ln _build/interpreter.native.o ../test/modcaml.o
 
 clean:
 	$(OCB) -clean
