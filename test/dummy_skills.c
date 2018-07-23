@@ -45,21 +45,31 @@ int ExecuteSkill(const char *name){
 
     if (strcmp(name,"Action1SecondSuccess"))
     {
-        return DoDummySkill(SUCCESS, 1000);
-    }
+        int return_status = DoDummySkill(SUCCESS, 1000);
+        printf ("I am returning %d \n", return_status);
+
+        return return_status;    }
     else if (strcmp(name, "Action1SecondFailure")) {
 
-        return DoDummySkill(SUCCESS, 1000);
+        int return_status = DoDummySkill(FAILURE, 1000);
+        printf ("I am returning %d \n", return_status);
+
+        return return_status;
 
     }
     else if (strcmp(name, "ConditionTrue")) {
 
-        return DoDummySkill(SUCCESS, 0);
+        int return_status = DoDummySkill(SUCCESS, 0);
+        printf ("I am returning %d \n", return_status);
 
+        return return_status;
     }
     else if (strcmp(name, "ConditionFalse")) {
 
-        return DoDummySkill(FAILURE, 0);
+        int return_status = DoDummySkill(FAILURE, 0);
+        printf ("I am returning %d \n", return_status);
+
+        return return_status;
     }
     else
     {
