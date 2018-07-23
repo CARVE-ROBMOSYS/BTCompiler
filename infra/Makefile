@@ -16,6 +16,7 @@ checkpkg:
 
 readskill: checkpkg
 	$(OCB) 'readskill.native'
+	ln _build/readskill.native ../test/rs
 
 interp: checkpkg
 	$(OCB) 'interpreter.native.o'
