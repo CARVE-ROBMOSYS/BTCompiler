@@ -1,5 +1,6 @@
 #include "dummy_skills.h"
-
+#include <string.h>
+#include <stdio.h>
 
 #if defined(POSIX)
 #include <unistd.h>
@@ -14,7 +15,7 @@ usleep((useconds_t)MSec * 1000);
 #elif defined(_WIN32)
 Sleep((DWORD)MSec);
 #else
-#error non-supported platform
+//#error non-supported platform
 #endif
 }
 
@@ -42,21 +43,21 @@ int ExecuteSkill(const char *name){
     //        printf ("Halting the skill: %s \n", name);
     //    }
 
-    if (name == "Action1SecondSuccess")
+    if (strcmp(name,"Action1SecondSuccess"))
     {
         DoDummySkill(SUCCESS, 1000);
     }
-    else if (name == "Action1SecondFailure") {
+    else if (strcmp(name, "Action1SecondFailure")) {
 
         DoDummySkill(SUCCESS, 1000);
 
     }
-    else if (name == "ConditionTrue") {
+    else if (strcmp(name, "ConditionTrue")) {
 
         DoDummySkill(SUCCESS, 0);
 
     }
-    else if (name == "ConditionFalse") {
+    else if (strcmp(name, "ConditionFalse")) {
 
         DoDummySkill(FAILURE, 0);
     }
