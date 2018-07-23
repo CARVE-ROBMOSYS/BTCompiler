@@ -1,0 +1,17 @@
+<root>
+
+  <BehaviorTree ID="bt0008">
+    <Sequence name="seq0008">
+      <Fallback name="fb0008a">
+        <Action ID="ConditionFalse" />
+        <Action ID="ConditionTrue" />
+      </Fallback>
+      <Fallback name="fb0008b">
+        <Action ID="Action1SecondSuccess" />
+        <Action ID="Action1SecondFailure" />
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+
+</root>
+

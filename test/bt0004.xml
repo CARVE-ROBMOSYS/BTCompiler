@@ -1,0 +1,11 @@
+<root>
+
+  <BehaviorTree ID="bt0004">
+    <Fallback name="fb0004">
+      <Action ID="ConditionFalse" />
+      <Action ID="Action1SecondSuccess" />
+    </Fallback>
+  </BehaviorTree>
+
+</root>
+
