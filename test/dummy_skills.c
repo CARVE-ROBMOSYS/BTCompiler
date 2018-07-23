@@ -45,21 +45,21 @@ int ExecuteSkill(const char *name){
 
     if (strcmp(name,"Action1SecondSuccess"))
     {
-        DoDummySkill(SUCCESS, 1000);
+        return DoDummySkill(SUCCESS, 1000);
     }
     else if (strcmp(name, "Action1SecondFailure")) {
 
-        DoDummySkill(SUCCESS, 1000);
+        return DoDummySkill(SUCCESS, 1000);
 
     }
     else if (strcmp(name, "ConditionTrue")) {
 
-        DoDummySkill(SUCCESS, 0);
+        return DoDummySkill(SUCCESS, 0);
 
     }
     else if (strcmp(name, "ConditionFalse")) {
 
-        DoDummySkill(FAILURE, 0);
+        return DoDummySkill(FAILURE, 0);
     }
     else
     {
@@ -69,7 +69,7 @@ int ExecuteSkill(const char *name){
 
 
     // Runn, Fail, Success, Error
-    return 2;
+
 }
 
 
