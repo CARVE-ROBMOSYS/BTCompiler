@@ -1,12 +1,11 @@
-#ifndef ACTION_TEST_NODE_H
-#define ACTION_TEST_NODE_H
+#ifndef DUMMY_SKILLS_H
+#define DUMMY_SKILLS_H
 
 enum Status {RUNNING, FAILURE, SUCCESS, ERROR};
 
 
-int Tick(const char *name);
-int Tick(const char *name);
+int ExecuteSkill(const char *name);
 
 
 
-#endif // ACTION_TEST_NODE_H
+#endif // DUMMY_SKILLS_H

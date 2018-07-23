@@ -42,21 +42,21 @@ int ExecuteSkill(const char *name){
     //        printf ("Halting the skill: %s \n", name);
     //    }
 
-    if (name == "Action1")
+    if (name == "Action1SecondSuccess")
     {
-        DoDummySkill(SUCCESS, 1);
+        DoDummySkill(SUCCESS, 1000);
     }
-    else if (name == "Action2") {
+    else if (name == "Action1SecondFailure") {
 
-        DoDummySkill(SUCCESS, 2);
+        DoDummySkill(SUCCESS, 1000);
 
     }
-    else if (name == "Condition1") {
+    else if (name == "ConditionTrue") {
 
         DoDummySkill(SUCCESS, 0);
 
     }
-    else if (name == "Condition2") {
+    else if (name == "ConditionFalse") {
 
         DoDummySkill(FAILURE, 0);
     }
