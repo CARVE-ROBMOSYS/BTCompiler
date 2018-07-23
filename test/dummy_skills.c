@@ -43,13 +43,14 @@ int ExecuteSkill(const char *name){
     //        printf ("Halting the skill: %s \n", name);
     //    }
 
-    if (strcmp(name,"Action1SecondSuccess"))
+    if (strcmp(name,"Action1SecondSuccess") == 0)
     {
         int return_status = DoDummySkill(SUCCESS, 1000);
         printf ("I am returning %d \n", return_status);
 
-        return return_status;    }
-    else if (strcmp(name, "Action1SecondFailure")) {
+        return return_status;
+    }
+    else if (strcmp(name, "Action1SecondFailure") == 0) {
 
         int return_status = DoDummySkill(FAILURE, 1000);
         printf ("I am returning %d \n", return_status);
@@ -57,14 +58,14 @@ int ExecuteSkill(const char *name){
         return return_status;
 
     }
-    else if (strcmp(name, "ConditionTrue")) {
+    else if (strcmp(name, "ConditionTrue") == 0) {
 
         int return_status = DoDummySkill(SUCCESS, 0);
         printf ("I am returning %d \n", return_status);
 
         return return_status;
     }
-    else if (strcmp(name, "ConditionFalse")) {
+    else if (strcmp(name, "ConditionFalse") == 0) {
 
         int return_status = DoDummySkill(FAILURE, 0);
         printf ("I am returning %d \n", return_status);
