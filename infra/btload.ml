@@ -1,5 +1,5 @@
-(* This module contains the helper functions common to readskill,
-   the BT interpreter and the BT specification extractor. *)
+(* This module contains the helper functions common to the BT interpreter
+   and the BT specification extractor. *)
 
 open Btsem
 

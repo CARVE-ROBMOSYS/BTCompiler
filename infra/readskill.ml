@@ -10,7 +10,23 @@ TODO:
 - also ignores every tag after SkillList: another warning?
 *)
 
-open Btload
+exception Parsing of string
+
+(* Extracts the name of an XML tag. Notice that our input files never
+   use the XML namespace mechanism *)
+let extract_node tag = (snd (fst tag))
+
+(* Extracts an attribute (by name) from an XML tag *)
+let extract attr_name tag =
+  let attr_list = snd tag in
+  try
+    let name = List.find (fun attr -> (snd (fst attr)) = attr_name) attr_list in
+    snd name
+  with
+    Not_found ->
+    raise (Parsing
+             ("missing attribute " ^ attr_name ^
+                " in node " ^ (extract_node tag)))
 
 (* Helper function to format a list of strings for displaying *)
 let string_of_slist l =
@@ -34,7 +50,6 @@ let rec read_skill_list acc i =
     end
   | `El_end -> List.rev acc
   | _ -> raise (Parsing "ill-formed input file")
-
 
 (* Translates a camlstring to the syntactic representation of a coqstring
    (= immutable list of characters) *)
@@ -68,7 +83,6 @@ let make_skills_module l =
   "type skillSet =\n  " ^ (String.concat " | " idlist) ^ "\n\n"
   ^ "let skillName = function\n  " ^ (String.concat "\n  " nameslist) ^ "\n\n"
   ^ "let skill_id s =\n  match s with\n  " ^ (String.concat "\n  " trfunc) ^ "\n"
-
 
 let read_skills filename =
   let input_ch = open_in filename in
