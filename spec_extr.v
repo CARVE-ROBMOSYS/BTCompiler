@@ -53,7 +53,7 @@ Definition translate_nexp (e: nexp) :=
 Definition translate_simp_type_spec (t: simp_type_spec) :=
   match t with
   | TBool => "boolean"
-  | TEnum values => "{ " ++ concat ", " values ++ " }"
+  | TEnum values => "{ " ++ (concat ", " values) ++ " }"
   end.
 
 Fixpoint translate_param_list (pl: param_list) :=
@@ -123,7 +123,7 @@ Fixpoint translate_body (b: list smv_element) :=
   end.
 
 Definition translate (m: smv_module) :=
-  "MODULE " ++ (name m) ++ "(" ++ concat ", " (params m) ++ ")" ++ newline
+  "MODULE " ++ (name m) ++ "(" ++ (concat ", " (params m)) ++ ")" ++ newline
   ++ translate_body (body m) ++ newline.
 
 Fixpoint translate_spec (f: smv_spec) :=

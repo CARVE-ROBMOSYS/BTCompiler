@@ -5,15 +5,12 @@ Trees developed in the context of the CARVE project.
 
 ## Build instructions
 
-For building from source you will need:
-* `coq`
-* `ocaml` with `findlib`, `ocamlbuild` and the [Xmlm library](http://erratique.ch/software/xmlm) (`opam install xmlm`)
+To build from source you will need:
+* the [Coq](https://coq.inria.fr/) compiler (version >= 8.7 will work out of the box; previous versions will complain about a missing `Extraction` library, in which case you need to comment all lines `Require Import Extraction` in the source files)
+* a working [ocaml](https://ocaml.org/) system with `findlib`, `ocamlbuild` and the [Xmlm library](http://erratique.ch/software/xmlm) (`opam install xmlm`)
 * your favorite C compiler.
 
-To build the interpreter you will need an XML file (say `sklist.xml`)
-containing a list of all the skills that will be allowed as leaves in your
-Behavior Trees (identified by a string). Such strings must be unique. Once you
-have created such file (say in the root directory), type:
+Before building the interpreter you need to write an XML file (as in [this example](https://github.com/CARVE-ROBMOSYS/BTCompiler/blob/master/infra/sklist.xml)) containing a list of all the skills that will be allowed as leaves in your Behavior Trees (identified by a string). Such strings must be unique. Once you have created such file (say in the root directory), type:
 ```
 make
 cd infra
