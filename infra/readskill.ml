@@ -14,26 +14,33 @@ TODO:
 exception Parsing of string
 
 (* we never use XML namespaces *)
-let generate_tagname name = ("", name)
-let extract_name tagname = snd tagname
+(*let generate_tagname name = ("", name)*)
+let extract_node tag = (snd (fst tag))
 
-(* returns the first attribute of a tag *)
-let get_attr alist = snd (List.hd alist)
+let extract attr_name tag =
+  let attr_list = snd tag in
+  try
+    let name = List.find (fun attr -> (snd (fst attr)) = attr_name) attr_list in
+    snd name
+  with
+    Not_found ->
+    raise (Parsing
+             ("missing attribute " ^ attr_name ^ " in node " ^ (extract_node tag)))
 
 (* helper function to format a list of strings for displaying *)
 let string_of_slist l =
   "[" ^ String.concat "; " l ^ "]"
 
-(* reads a sequence of "Action" or "Condition" nodes 
-   (no children or data is allowed) *)
+(* reads a sequence of "Action" or "Condition" nodes until first closing tag
+   (no children or data is allowed; attributes other than "ID" are ignored) *)
 let rec read_skill_list acc i =
   match Xmlm.input i with
     `El_start t ->
-    let n = extract_name (fst t) in
+    let n = extract_node t in
     begin
       match n with
         "Action" | "Condition" ->
-        let id = get_attr (snd t) in
+        let id = extract "ID" t in
         if Xmlm.input i = (`El_end) then
           read_skill_list (id :: acc) i
         else
@@ -42,7 +49,7 @@ let rec read_skill_list acc i =
     end
   | `El_end -> List.rev acc
   | _ -> raise (Parsing "ill-formed input file")
-;;
+
 
 (* translates a camlstring to the syntactic representation of a coqstring
    (= immutable list of characters) *)
@@ -76,7 +83,7 @@ let make_skills_module l =
   "type skillSet =\n  " ^ (String.concat " | " idlist) ^ "\n\n"
   ^ "let skillName = function\n  " ^ (String.concat "\n  " nameslist) ^ "\n\n"
   ^ "let skill_id s =\n  match s with\n  " ^ (String.concat "\n  " trfunc) ^ "\n"
-;;
+
 
 let read_skills filename =
   let input_ch = open_in filename in
@@ -84,7 +91,7 @@ let read_skills filename =
   let _ = Xmlm.input i in               (* discard the dtd *)
   let first_tag = Xmlm.input i in
   match first_tag with
-    `El_start t -> let n = extract_name (fst t) in
+    `El_start t -> let n = extract_node t in
                    if n = "SkillList" then
                      read_skill_list [] i
                    else
@@ -111,12 +118,16 @@ let main () =
         exit 0
       end
     with
-      Sys_error s -> Printf.eprintf "System error: %s\n" s; exit 2
+      Sys_error s -> Printf.eprintf "System error: %s\n" s;
+                     exit 2
     | Xmlm.Error (pos, err) -> Printf.eprintf "XML parsing error at line %d: %s\n"
                                               (fst pos)
-                                              (Xmlm.error_message err); exit 1
-    | Parsing s -> Printf.eprintf "Error: %s\n" s; exit 1
-    | Invalid_argument s -> Printf.eprintf "Error: %s\n" s; exit 1
+                                              (Xmlm.error_message err);
+                               exit 1
+    | Parsing s -> Printf.eprintf "BT parsing error: %s\n" s;
+                   exit 1
+    | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
+                            exit 1
 ;;
 
 main();;

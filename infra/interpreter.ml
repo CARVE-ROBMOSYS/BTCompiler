@@ -31,8 +31,7 @@ let coqstring_of_camlstring s =
 
 (* Infrastructure for reading a BT from an XML file *)
 
-let extract_node tag =
-  (snd (fst tag))
+let extract_node tag = (snd (fst tag))
 
 let extract attr_name tag =
   let attr_list = snd tag in
@@ -127,13 +126,16 @@ let load_bt filename =
       else raise (Parsing "first node is not root")
     | _ -> raise (Parsing "first node is not root")
   with
-    Sys_error s -> Printf.eprintf "System error: %s\n" s; exit 2
+    Sys_error s -> Printf.eprintf "System error: %s\n" s;
+                   exit 2
   | Xmlm.Error (pos, err) -> Printf.eprintf "XML parsing error at line %d: %s\n"
                                             (fst pos)
                                             (Xmlm.error_message err);
                              exit 1
   | Parsing s -> Printf.eprintf "BT parsing error: %s\n" s;
                  exit 1
+(* Invalid_argument is raised (among other places...) when you pass to
+   Skills.skill_id a string which does not correspond to any skill *)
   | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
                           exit 1
 
@@ -143,11 +145,11 @@ external exec: string -> Btree.return_enum = "exec"
 
 (* This is the equivalent term of type skills_input *)
 
-let convert s =
+let input_f s =
   exec (camlstring_of_coqstring (Skills.skillName s))
 
 let tick1 bt =
-  Btree.tick bt convert
+  Btree.tick bt input_f
 
 let _ = Callback.register "readbt" load_bt
 let _ = Callback.register "tick" tick1
