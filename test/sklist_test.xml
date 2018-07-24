@@ -4,5 +4,5 @@
   <Action ID="Action1SecondSuccess" />
   <Action ID="Action1SecondFailure" />
   <Condition ID="ConditionTrue" /> 
-  <Condition ID="ConditionFalse />
+  <Condition ID="ConditionFalse" />
 </SkillList>
