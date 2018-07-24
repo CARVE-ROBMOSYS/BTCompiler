@@ -186,7 +186,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match l with
     | nil => 0
     | cons head tail => match head with
-                        | Succ => countSucc tail + 1
+                        | Succ => S (countSucc tail)
                         | _ => countSucc tail
                         end
     end.
@@ -195,7 +195,7 @@ Module BT_gen_str_sem (X: BT_SIG).
     match l with
     | nil => 0
     | cons head tail => match head with
-                        | Fail => countFail tail + 1
+                        | Fail => S (countFail tail)
                         | _ => countFail tail
                         end
     end.

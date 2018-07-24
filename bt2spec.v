@@ -325,7 +325,12 @@ Module BT_bin_spec (X: BT_SIG).
 
 End BT_bin_spec.
 
+(* Program extraction for the BT specification builder *)
 
+Require Import Extraction.
+Require ExtrOcamlBasic ExtrOcamlString.
+Extract Inductive nat => "int" ["0" "succ"]
+                               "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
+Extract Constant plus => "( + )".
 
-
-
+Extraction "infra/btspec.ml" BT_bin_spec translate_spec.

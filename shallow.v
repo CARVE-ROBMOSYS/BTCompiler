@@ -23,51 +23,51 @@ Module BT_bin_semantics (X: BT_SIG).
     | Skill s => input_f s
     | TRUE => Succ
     | Node k _ t1 t2 => match k with
-                      | Sequence =>
-                        match (tick t1 input_f) with
-                        | Runn => Runn
-                        | Fail => Fail
-                        | Succ => (tick t2 input_f)
+                        | Sequence =>
+                          match (tick t1 input_f) with
+                          | Runn => Runn
+                          | Fail => Fail
+                          | Succ => (tick t2 input_f)
+                          end
+                        | Fallback =>
+                          match (tick t1 input_f) with
+                          | Runn => Runn
+                          | Fail => (tick t2 input_f)
+                          | Succ => Succ
+                          end
+                        | Parallel1 =>
+                          let a := tick t1 input_f in
+                          let b := tick t2 input_f in
+                          match a , b with
+                          | Succ , _ => Succ
+                          | _ , Succ => Succ
+                          | Fail , Fail => Fail
+                          | _ , _ => Runn
+                          end
+                        | Parallel2 =>
+                          let a := tick t1 input_f in
+                          let b := tick t2 input_f in
+                          match a , b with
+                          | Succ , Succ => Succ
+                          | Fail , _ => Fail
+                          | _ , Fail => Fail
+                          | _ , _ => Runn
+                          end
                         end
-                      | Fallback =>
-                        match (tick t1 input_f) with
-                        | Runn => Runn
-                        | Fail => (tick t2 input_f)
-                        | Succ => Succ
-                        end
-                      | Parallel1 =>
-                        let a := tick t1 input_f in
-                        let b := tick t2 input_f in
-                        match a , b with
-                        | Succ , _ => Succ
-                        | _ , Succ => Succ
-                        | Fail , Fail => Fail
-                        | _ , _ => Runn
-                        end
-                      | Parallel2 =>
-                        let a := tick t1 input_f in
-                        let b := tick t2 input_f in
-                        match a , b with
-                        | Succ , Succ => Succ
-                        | Fail , _ => Fail
-                        | _ , Fail => Fail
-                        | _ , _ => Runn
-                        end
-                      end
     | Dec k _ t => match k with
-                 | Not =>
-                   match (tick t input_f) with
-                   | Runn => Runn
-                   | Fail => Succ
-                   | Succ => Fail
+                   | Not =>
+                     match (tick t input_f) with
+                     | Runn => Runn
+                     | Fail => Succ
+                     | Succ => Fail
+                     end
+                   | IsRunning =>
+                     match (tick t input_f) with
+                     | Runn => Succ
+                     | Fail => Fail
+                     | Succ => Fail
+                     end
                    end
-                 | IsRunning =>
-                   match (tick t input_f) with
-                   | Runn => Succ
-                   | Fail => Fail
-                   | Succ => Fail
-                   end
-                 end
     end.
 
   Definition return_same_value (a: btree) (b: btree): Prop :=
@@ -110,7 +110,7 @@ Module BT_gen_semantics (X: BT_SIG).
     match l with
     | nil => 0
     | cons head tail => match head with
-                        | Succ => countSucc tail + 1
+                        | Succ => S (countSucc tail)
                         | _ => countSucc tail
                         end
     end.
@@ -119,7 +119,7 @@ Module BT_gen_semantics (X: BT_SIG).
     match l with
     | nil => 0
     | cons head tail => match head with
-                        | Fail => countFail tail + 1
+                        | Fail => S (countFail tail)
                         | _ => countFail tail
                         end
     end.
@@ -129,33 +129,33 @@ Module BT_gen_semantics (X: BT_SIG).
     | Skill s => input_f s
     | TRUE => Succ
     | Node k _ f => match k with
-                  | Sequence => tick_sequence f input_f
-                  | Fallback => tick_fallback f input_f
-                  | Parallel n =>
-                    let results := tick_all f input_f in
-                    if n <=? (countSucc results) then Succ
-                    else if (len f - n) <? (countFail results) then Fail
-                         else Runn
-                  end
+                    | Sequence => tick_sequence f input_f
+                    | Fallback => tick_fallback f input_f
+                    | Parallel n =>
+                      let results := tick_all f input_f in
+                      if n <=? (countSucc results) then Succ
+                      else if (len f - n) <? (countFail results) then Fail
+                           else Runn
+                    end
     | Dec k _ t => match k with
-                 | Not =>
-                   match tick t input_f with
-                   | Runn => Runn
-                   | Fail => Succ
-                   | Succ => Fail
+                   | Not =>
+                     match tick t input_f with
+                     | Runn => Runn
+                     | Fail => Succ
+                     | Succ => Fail
+                     end
+                   | IsRunning =>
+                     match tick t input_f with
+                     | Runn => Succ
+                     | Fail => Fail
+                     | Succ => Fail
+                     end
                    end
-                 | IsRunning =>
-                   match (tick t input_f) with
-                   | Runn => Succ
-                   | Fail => Fail
-                   | Succ => Fail
-                   end
-                 end
     end
   with tick_sequence (f: btforest) (input_f: skills_input) :=
          match f with
          | Child t => tick t input_f
-         | Add t1 rest => match (tick t1 input_f) with
+         | Add t1 rest => match tick t1 input_f with
                           | Runn => Runn
                           | Fail => Fail
                           | Succ => tick_sequence rest input_f
@@ -164,7 +164,7 @@ Module BT_gen_semantics (X: BT_SIG).
   with tick_fallback (f: btforest) (input_f: skills_input) :=
          match f with
          | Child t => tick t input_f
-         | Add t1 rest => match (tick t1 input_f) with
+         | Add t1 rest => match tick t1 input_f with
                           | Runn => Runn
                           | Fail => tick_fallback rest input_f
                           | Succ => Succ

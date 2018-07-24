@@ -5,33 +5,18 @@
 TODO:
 - document format of source XML file
 - accept more than one input file? (concatenating the resulting lists)
-- currently the parser ignores every attribute of a skill; should we emit 
-  a warning if one is found?
-- also ignores every tag after SkillList: other warning?
-
+- currently the parser ignores every unused attribute of a skill; 
+  should we emit a warning if one is found?
+- also ignores every tag after SkillList: another warning?
 *)
 
-exception Parsing of string
+open Btload
 
-(* we never use XML namespaces *)
-(*let generate_tagname name = ("", name)*)
-let extract_node tag = (snd (fst tag))
-
-let extract attr_name tag =
-  let attr_list = snd tag in
-  try
-    let name = List.find (fun attr -> (snd (fst attr)) = attr_name) attr_list in
-    snd name
-  with
-    Not_found ->
-    raise (Parsing
-             ("missing attribute " ^ attr_name ^ " in node " ^ (extract_node tag)))
-
-(* helper function to format a list of strings for displaying *)
+(* Helper function to format a list of strings for displaying *)
 let string_of_slist l =
   "[" ^ String.concat "; " l ^ "]"
 
-(* reads a sequence of "Action" or "Condition" nodes until first closing tag
+(* Reads a sequence of "Action" or "Condition" nodes until first closing tag
    (no children or data is allowed; attributes other than "ID" are ignored) *)
 let rec read_skill_list acc i =
   match Xmlm.input i with
@@ -51,7 +36,7 @@ let rec read_skill_list acc i =
   | _ -> raise (Parsing "ill-formed input file")
 
 
-(* translates a camlstring to the syntactic representation of a coqstring
+(* Translates a camlstring to the syntactic representation of a coqstring
    (= immutable list of characters) *)
 let coqstrrep_of_string s =
   let rec aux result pos =
@@ -124,7 +109,7 @@ let main () =
                                               (fst pos)
                                               (Xmlm.error_message err);
                                exit 1
-    | Parsing s -> Printf.eprintf "BT parsing error: %s\n" s;
+    | Parsing s -> Printf.eprintf "Error: %s\n" s;
                    exit 1
     | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
                             exit 1

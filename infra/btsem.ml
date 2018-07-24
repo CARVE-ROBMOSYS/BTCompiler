@@ -198,7 +198,7 @@ module BT_gen_semantics =
   | [] -> 0
   | head :: tail ->
     (match head with
-     | Succ -> add (countSucc tail) (succ 0)
+     | Succ -> succ (countSucc tail)
      | _ -> countSucc tail)
 
   (** val countFail : return_enum list -> int **)
@@ -207,7 +207,7 @@ module BT_gen_semantics =
   | [] -> 0
   | head :: tail ->
     (match head with
-     | Fail -> add (countFail tail) (succ 0)
+     | Fail -> succ (countFail tail)
      | _ -> countFail tail)
 
   (** val tick : btree -> skills_input -> return_enum **)
