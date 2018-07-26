@@ -87,7 +87,7 @@ module BT_gen_rsem :
 
   val countFail : return_enum list -> int
 
-  val reset : btree -> skills_reset -> bool
+  val reset_bt : btree -> skills_reset -> bool
 
   val reset_forest : btforest -> skills_reset -> bool
 

@@ -229,22 +229,22 @@ module BT_gen_rsem =
      | Fail -> succ (countFail tail)
      | Succ -> countFail tail)
 
-  (** val reset : btree -> skills_reset -> bool **)
+  (** val reset_bt : btree -> skills_reset -> bool **)
 
-  let rec reset t reset_f =
+  let rec reset_bt t reset_f =
     match t with
     | Skill s -> reset_f s
     | TRUE -> true
     | Node (_, _, f) -> reset_forest f reset_f
-    | Dec (_, _, t0) -> reset t0 reset_f
+    | Dec (_, _, t0) -> reset_bt t0 reset_f
 
   (** val reset_forest : btforest -> skills_reset -> bool **)
 
   and reset_forest f reset_f =
     match f with
-    | Child t -> reset t reset_f
+    | Child t -> reset_bt t reset_f
     | Add (t1, rest) ->
-      let x = reset t1 reset_f in (&&) x (reset_forest rest reset_f)
+      let x = reset_bt t1 reset_f in (&&) x (reset_forest rest reset_f)
 
   (** val tick : btree -> skills_input -> skills_reset -> return_enum **)
 

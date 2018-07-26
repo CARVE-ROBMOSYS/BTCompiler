@@ -33,17 +33,17 @@ Module BT_gen_rsem (X: BT_SIG).
                         end
     end.
 
-  Fixpoint reset (t: btree) (reset_f: skills_reset) :=
+  Fixpoint reset_bt (t: btree) (reset_f: skills_reset) :=
     match t with
     | Skill s => reset_f s
     | TRUE => true
     | Node _ _ f => reset_forest f reset_f
-    | Dec _ _ t => reset t reset_f
+    | Dec _ _ t => reset_bt t reset_f
     end
   with reset_forest (f: btforest) (reset_f: skills_reset) :=
     match f with
-    | Child t => reset t reset_f
-    | Add t1 rest => let x := reset t1 reset_f in
+    | Child t => reset_bt t reset_f
+    | Add t1 rest => let x := reset_bt t1 reset_f in
                      x && (reset_forest rest reset_f)
     end.
                         
