@@ -14,8 +14,6 @@ void PortableSleep(unsigned int MSec)
 usleep((useconds_t)MSec * 1000);
 #elif defined(_WIN32)
 Sleep((DWORD)MSec);
-#else
-//#error non-supported platform
 #endif
 }
 
@@ -26,63 +24,51 @@ int DoDummySkill(int status, int elapsed_time_milliseconds)
     return status;
 }
 
+int ExecuteOrResetSkill(const char *name, int is_tick) {
 
-int ExecuteSkill(const char *name){
+  if (is_tick == 1) {
+    printf ("Ticking the skill: %s \n", name);
+  } else {
+    printf ("Halting the skill: %s \n", name);
+    return SUCCESS;
+  }
 
-    printf ("Executing the skill: %s \n", name);
+  if (strcmp(name,"Action1SecondSuccess") == 0) {
+    int return_status = DoDummySkill(SUCCESS, 1000);
+    printf ("I am returning %d \n", return_status);
+    
+    return return_status;
+  }
+  else if (strcmp(name, "Action1SecondFailure") == 0) {
+    int return_status = DoDummySkill(FAILURE, 1000);
+    printf ("I am returning %d \n", return_status);
+    
+    return return_status;
+  }
+  else if (strcmp(name, "ConditionTrue") == 0) {
+    int return_status = DoDummySkill(SUCCESS, 0);
+    printf ("I am returning %d \n", return_status);
+    
+    return return_status;
+  }
+  else if (strcmp(name, "ConditionFalse") == 0) {
+    int return_status = DoDummySkill(FAILURE, 0);
+    printf ("I am returning %d \n", return_status);
 
-    // Uncomment (and implement the remaining code) when you want to introduce the HALT
-    //    int is_tick = 1;
-
-    //    if (is_tick == 1)
-    //    {
-    //        printf ("Ticking the skill: %s \n", name);
-    //    }
-    //    else
-    //    {
-    //        printf ("Halting the skill: %s \n", name);
-    //    }
-
-    if (strcmp(name,"Action1SecondSuccess") == 0)
-    {
-        int return_status = DoDummySkill(SUCCESS, 1000);
-        printf ("I am returning %d \n", return_status);
-
-        return return_status;
-    }
-    else if (strcmp(name, "Action1SecondFailure") == 0) {
-
-        int return_status = DoDummySkill(FAILURE, 1000);
-        printf ("I am returning %d \n", return_status);
-
-        return return_status;
-
-    }
-    else if (strcmp(name, "ConditionTrue") == 0) {
-
-        int return_status = DoDummySkill(SUCCESS, 0);
-        printf ("I am returning %d \n", return_status);
-
-        return return_status;
-    }
-    else if (strcmp(name, "ConditionFalse") == 0) {
-
-        int return_status = DoDummySkill(FAILURE, 0);
-        printf ("I am returning %d \n", return_status);
-
-        return return_status;
-    }
-    else
-    {
-        printf ("Node %s not known \n", name);
-        return ERROR;
-    }
-
-
-    // Runn, Fail, Success, Error
+    return return_status;
+  }
+  else {
+    printf ("Node %s not known \n", name);
+    return ERROR;
+  }
 
 }
 
+int ExecuteSkill(const char *name) {
+  return ExecuteOrResetSkill(name,1);
+}
 
-
-
+void ResetSkill(const char *name) {
+  ExecuteOrResetSkill(name,0);
+  return;
+}

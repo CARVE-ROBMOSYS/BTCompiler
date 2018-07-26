@@ -21,5 +21,9 @@ interp: checkpkg
 	$(OCB) 'interpreter.native.o'
 	cp _build/interpreter.native.o ../test/modcaml.o
 
+int2: checkpkg
+	$(OCB) 'int2.native.o'
+	cp _build_int2.native.o ../test/modreset.o
+
 clean:
 	$(OCB) -clean

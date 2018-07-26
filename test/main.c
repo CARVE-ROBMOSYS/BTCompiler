@@ -9,9 +9,13 @@ extern value tick(value bt);
 /* from dummy_skills.c */
 extern int ExecuteSkill(const char *name);
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
   int result;
 
+  if (argc == 1) {
+    printf("Please specify an input file\n");
+    exit(1);
+  }
   caml_startup(argv);
   value bt = readbt(argv[1]);
   result = tick(bt);

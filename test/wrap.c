@@ -8,6 +8,7 @@
 #include <caml/callback.h>
 
 extern int ExecuteSkill(const char *name);
+extern void ResetSkill(const char *name);
 
 /*
   type return_enum = Runn | Fail | Succ
@@ -34,4 +35,9 @@ int tick(value bt) {
 
 CAMLprim value exec(value v) {
   return Val_int(ExecuteSkill(String_val(v)));
+}
+
+CAMLprim value reset(value v) {
+  ResetSkill(String_val(v));
+  return Val_true;
 }
