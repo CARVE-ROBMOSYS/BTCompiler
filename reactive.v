@@ -13,7 +13,7 @@ Module BT_gen_rsem (X: BT_SIG).
   Inductive return_enum := Runn | Fail | Succ.
 
   Definition skills_input := X.skillSet -> return_enum.
-  Definition skills_reset := X.skillSet -> unit.
+  Definition skills_reset := X.skillSet -> bool.
 
   Fixpoint countSucc (l: list return_enum) :=
     match l with
@@ -36,70 +36,71 @@ Module BT_gen_rsem (X: BT_SIG).
   Fixpoint reset (t: btree) (reset_f: skills_reset) :=
     match t with
     | Skill s => reset_f s
-    | TRUE => tt
+    | TRUE => true
     | Node _ _ f => reset_forest f reset_f
     | Dec _ _ t => reset t reset_f
     end
   with reset_forest (f: btforest) (reset_f: skills_reset) :=
     match f with
     | Child t => reset t reset_f
-    | Add t1 rest => let _ := reset t1 reset_f in
-                     reset_forest rest reset_f
+    | Add t1 rest => let x := reset t1 reset_f in
+                     x && (reset_forest rest reset_f)
     end.
                         
-  Fixpoint tick (t: btree) (input_f: skills_input) :=
+  Fixpoint tick (t: btree) (input_f: skills_input) (reset_f: skills_reset) :=
     match t with
     | Skill s => input_f s
     | TRUE => Succ
     | Node k _ f => match k with
-                    | Sequence => tick_sequence f input_f
-                    | Fallback => tick_fallback f input_f
+                    | Sequence => tick_sequence f input_f reset_f
+                    | Fallback => tick_fallback f input_f reset_f
                     | Parallel n =>
-                      let results := tick_all f input_f in
+                      let results := tick_all f input_f reset_f in
                       if n <=? (countSucc results) then Succ
                       else if (len f - n) <? (countFail results) then Fail
                            else Runn
                     end
     | Dec k _ t => match k with
                    | Not =>
-                     match tick t input_f with
+                     match tick t input_f reset_f with
                      | Runn => Runn
                      | Fail => Succ
                      | Succ => Fail
                      end
                    | IsRunning =>
-                     match tick t input_f with
+                     match tick t input_f reset_f with
                      | Runn => Succ
                      | Fail => Fail
                      | Succ => Fail
                      end
                    end
     end
-  with tick_sequence (f: btforest) (input_f: skills_input) :=
+  with tick_sequence (f: btforest) (input_f: skills_input) (reset_f: skills_reset) :=
          match f with
-         | Child t => tick t input_f
-         | Add t1 rest => match tick t1 input_f with
-                          | Runn => let _ := reset_forest rest in
-                                    Runn
-                          | Fail => let _ := reset_forest rest in
-                                    Fail
-                          | Succ => tick_sequence rest input_f
+         | Child t => tick t input_f reset_f
+         | Add t1 rest => match tick t1 input_f reset_f with
+                          | Runn => let b := reset_forest rest reset_f in
+                                    if b then Runn else Fail
+                          | Fail => let b := reset_forest rest reset_f in
+                                    if b then Fail else Fail
+                          | Succ => tick_sequence rest input_f reset_f
                           end
          end
-  with tick_fallback (f: btforest) (input_f: skills_input) :=
+  with tick_fallback (f: btforest) (input_f: skills_input) (reset_f: skills_reset) :=
          match f with
-         | Child t => tick t input_f
-         | Add t1 rest => match tick t1 input_f with
-                          | Runn => let _ := reset_forest rest in
-                                    Runn
-                          | Fail => tick_fallback rest input_f
+         | Child t => tick t input_f reset_f
+         | Add t1 rest => match tick t1 input_f reset_f with
+                          | Runn => let b := reset_forest rest reset_f in
+                                    if b then Runn else Fail
+                          | Fail => tick_fallback rest input_f reset_f
                           | Succ => Succ
                           end
          end
-  with tick_all (f: btforest) (input_f: skills_input) :=
+  with tick_all (f: btforest) (input_f: skills_input) (reset_f: skills_reset) :=
          match f with
-         | Child t => cons (tick t input_f) nil
-         | Add t1 rest => cons (tick t1 input_f) (tick_all rest input_f)
+         | Child t => cons (tick t input_f reset_f) nil
+         | Add t1 rest => cons (tick t1 input_f reset_f)
+                               (tick_all rest input_f reset_f)
          end.
 
   Definition return_same_value (t1 t2: btree) :=
@@ -115,30 +116,36 @@ Module BT_gen_rsem (X: BT_SIG).
     end.
 
   Hint Unfold return_same_value all_return_same_value.
+
+(*  
+  reset_tree (normalize t) r = reset_tree t r
+  reset_forest (normalize_forest f) r = reset_forest f r
   
   Lemma norm_seq: forall f: btforest,
       all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input,
-        tick_sequence f i = tick_sequence (normalize_forest f) i.
+      -> forall i: skills_input, forall r: skills_reset,
+        tick_sequence f i r = tick_sequence (normalize_forest f) i r.
   Proof.
     apply (btforest_mind
              (fun bt: btree => return_same_value bt (normalize bt)
-                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
+                               -> forall i: skills_input, forall r: skills_reset,
+                    tick bt i r = tick (normalize bt) i r)
              (fun f: btforest => all_return_same_value f (normalize_forest f)
-                                 -> forall i: skills_input, tick_sequence f i = tick_sequence (normalize_forest f) i)).
+                                 -> forall i: skills_input, forall r:skills_reset,
+                    tick_sequence f i r = tick_sequence (normalize_forest f) i r)).
     - simpl; auto.
     - simpl; auto.
-    - simpl; auto.
-    - simpl; auto.
+    - simpl. auto. shelve.
+    - simpl; auto. shelve.
     - simpl.
-      intros t H H0 i.
+      intros t H H0 i r.
       rewrite (H H0 i); trivial.
     - simpl.
       intros t Ht f Hf.
-      intros [H0 H1] i.
+      intros [H0 H1] i r.
       rewrite (Ht H0); rewrite (Hf H1); trivial.
   Qed.
-
+                                       
   Lemma norm_fall: forall f: btforest,
       all_return_same_value f (normalize_forest f)
       -> forall i: skills_input,
@@ -269,7 +276,7 @@ Module BT_gen_rsem (X: BT_SIG).
     - destruct b; simpl; auto.
     - destruct b; simpl; auto.
   Qed.
-    
+*)    
 End BT_gen_rsem.
 
 (* Program extraction for the behavior tree interpreter *)
@@ -280,5 +287,6 @@ Extract Inductive nat => "int" ["0" "succ"]
                                "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
 Extract Constant plus => "( + )".
 
+Unset Extraction Optimize.    (* needed to keep every call to reset_forest *)
 Extraction "infra/btrsem.ml" BT_gen_rsem.
 

@@ -2,6 +2,7 @@
 
 bt.v
 shallow.v
+reactive.v
 stream.v
 micro_smv.v
 spec_extr.v
