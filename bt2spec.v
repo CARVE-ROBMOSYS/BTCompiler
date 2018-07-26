@@ -2,23 +2,23 @@ Require Import bt micro_smv spec_extr.
 Require Import List String.
 Open Scope string_scope.
 
+Definition bt_input_type :=
+  (TEnum ("Runn"::"Fail"::"Succ"::nil)).
+
+Definition bt_output_type :=
+  (TEnum ("none"::"running"::"failed"::"succeeded"::nil)).
+
 Module BT_bin_spec (X: BT_SIG).
 
   Include BT_binary X.
 
-  Definition RootName (t: btree) :=
+  Definition rootName (t: btree) :=
     match t with
     | Skill s => X.skillName s
     | TRUE => "BTSucc"
     | Node _ n _ _ => n
     | Dec _ n _ => n
     end.
-
-  Definition bt_input_type :=
-    (TEnum ("Runn"::"Fail"::"Succ"::nil)).
-
-  Definition bt_output_type :=
-    (TSimp (TEnum ("none"::"running"::"failed"::"succeeded"::nil))).
 
   (* boilerplate modules *)
 
@@ -39,7 +39,7 @@ Module BT_bin_spec (X: BT_SIG).
       nil
       ((IVAR (LastI "input" bt_input_type))
        ::
-       (VAR (AddV "output" bt_output_type
+       (VAR (AddV "output" (TSimp bt_output_type)
                   (LastV "enable" (TSimp TBool))))
        ::
        (ASSIGN (AddA (init (Id "output") (SConst "none"))
@@ -113,7 +113,7 @@ Module BT_bin_spec (X: BT_SIG).
       "bt_parallel1"
       ("left_bt"::"right_bt"::nil)
       ((VAR (AddV "enable" (TSimp TBool)
-                  (LastV "left_bt_stored_output" bt_output_type)))
+                  (LastV "left_bt_stored_output" (TSimp bt_output_type))))
        ::
        (ASSIGN
           (AddA (invar (Mod "left_bt" (Id "enable"))
@@ -176,7 +176,7 @@ Module BT_bin_spec (X: BT_SIG).
       "bt_parallel2"
       ("left_bt"::"right_bt"::nil)
       ((VAR (AddV "enable" (TSimp TBool)
-                  (LastV "left_bt_stored_output" bt_output_type)))
+                  (LastV "left_bt_stored_output" (TSimp bt_output_type))))
        ::
        (ASSIGN
           (AddA (invar (Mod "left_bt" (Id "enable"))
@@ -274,7 +274,7 @@ Module BT_bin_spec (X: BT_SIG).
                                                           (SConst "failed")))))))
        ::nil).
 
-  Definition nodename (k: nodeKind) :=
+  Definition nodeName (k: nodeKind) :=
     match k with
     | Sequence => "bt_sequence"
     | Fallback => "bt_fallback"
@@ -282,7 +282,7 @@ Module BT_bin_spec (X: BT_SIG).
     | Parallel2 => "bt_parallel2"
     end.
   
-  Definition decname (d: decKind) :=
+  Definition decName (d: decKind) :=
     match d with
     | Not => "bt_not"
     | IsRunning => "bt_is_running"
@@ -295,15 +295,15 @@ Module BT_bin_spec (X: BT_SIG).
     | Node k name t1 t2 =>
       let x := varlist_app (make_vars t1) (make_vars t2) in
       AddV name
-           (TComp (TModPar (nodename k)
-                           (AddP (Simple (Qual (Id (RootName t1))))
-                                 (LastP (Simple (Qual (Id (RootName t2))))))))
+           (TComp (TModPar (nodeName k)
+                           (AddP (Simple (Qual (Id (rootName t1))))
+                                 (LastP (Simple (Qual (Id (rootName t2))))))))
            x
     | Dec d name t =>
       let x := make_vars t in
       AddV name
-           (TComp (TModPar (decname d)
-                           (LastP (Simple (Qual (Id (RootName t)))))))
+           (TComp (TModPar (decName d)
+                           (LastP (Simple (Qual (Id (rootName t)))))))
            x
     end.
 
@@ -314,7 +314,7 @@ Module BT_bin_spec (X: BT_SIG).
       nil
       (cons (VAR (AddV "tick_generator"
                        (TComp (TModPar "bt_tick_generator"
-                                       (LastP (Simple (Qual (Id (RootName t)))))))
+                                       (LastP (Simple (Qual (Id (rootName t)))))))
                        l))
             nil).
 
@@ -325,6 +325,43 @@ Module BT_bin_spec (X: BT_SIG).
 
 End BT_bin_spec.
 
+Inductive modtype :=
+| Skmod: modtype
+| TRUEmod: modtype
+| Seqmod: nat -> modtype
+| Fallmod: nat -> modtype
+| Parmod: nat -> modtype
+| Notmod: modtype
+| Runmod: modtype.
+
+Module BT_gen_spec (X: BT_SIG).
+
+  Include BT_general X.
+
+  Definition rootName (t: btree) :=
+    match t with
+    | Skill s => X.skillName s
+    | TRUE => "BTSucc"
+    | Node _ n _ => n
+    | Dec _ n _ => n
+    end.
+
+  Definition scan_for_modules (t: btree): list modtype :=
+    nil.
+
+  Definition make_modules (l: list modtype): list smv_module :=
+    nil.
+
+  Definition make_main (t: btree): list smv_module :=
+    nil.
+
+  Definition make_spec (t: btree): list smv_module :=
+    let needed := scan_for_modules t in
+    let modlist := make_modules needed in
+    app modlist (make_main t).
+
+End BT_gen_spec.
+  
 (* Program extraction for the BT specification builder *)
 
 Require Import Extraction.
