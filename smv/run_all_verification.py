@@ -1,4 +1,3 @@
-# CONFIDENTIAL -- UTRC Proprietary.
 # This document contains no USA or EU export controlled technical data.
 #
 # CARVE has received funding from the European Union's Horizon 2020 research
