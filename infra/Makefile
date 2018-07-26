@@ -23,7 +23,7 @@ interp: checkpkg
 
 int2: checkpkg
 	$(OCB) 'int2.native.o'
-	cp _build_int2.native.o ../test/modreset.o
+	cp _build/int2.native.o ../test/modreset.o
 
 clean:
 	$(OCB) -clean
