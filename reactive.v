@@ -1,7 +1,7 @@
 
 (* Operational semantics for reactive BTs (= skills with reset function) *)
 
-Require Import Arith.
+Require Import Arith List.
 Require Import bt.
 
 (* Version for BTs with arbitrary branching. *)
@@ -44,9 +44,26 @@ Module BT_gen_rsem (X: BT_SIG).
     match f with
     | Child t => reset_bt t reset_f
     | Add t1 rest => let x := reset_bt t1 reset_f in
-                     x && (reset_forest rest reset_f)
+                     andb x (reset_forest rest reset_f)
     end.
-                        
+
+  Fixpoint reset_running (f: btforest) (l: list return_enum) (reset_f: skills_reset) :=
+  (* Notice that this function will always be called when l has the same 
+     length as f, so hd and tl will never fail *)
+    match f with
+    | Child t => match hd Fail l with
+                 | Runn => reset_bt t reset_f
+                 | _ => true
+                 end
+    | Add t1 rest => let x :=
+                         match hd Fail l with
+                         | Runn => reset_bt t1 reset_f
+                         | _ => true
+                         end
+                     in
+                     andb x (reset_running rest (tl l) reset_f)
+    end.
+        
   Fixpoint tick (t: btree) (input_f: skills_input) (reset_f: skills_reset) :=
     match t with
     | Skill s => input_f s
@@ -56,9 +73,15 @@ Module BT_gen_rsem (X: BT_SIG).
                     | Fallback => tick_fallback f input_f reset_f
                     | Parallel n =>
                       let results := tick_all f input_f reset_f in
-                      if n <=? (countSucc results) then Succ
-                      else if (len f - n) <? (countFail results) then Fail
-                           else Runn
+                      if n <=? (countSucc results) then
+                        (* result is surely Succ *)
+                        let b := reset_running f results reset_f in
+                        if b then Succ else Fail
+                      else if (len f - n) <? (countFail results) then
+                             (* result is surely Fail *)
+                             let b := reset_running f results reset_f in
+                             if b then Fail else Fail
+                           else Runn  (* not enough results to make a decision *)
                     end
     | Dec k _ t => match k with
                    | Not =>
@@ -93,7 +116,8 @@ Module BT_gen_rsem (X: BT_SIG).
                           | Runn => let b := reset_forest rest reset_f in
                                     if b then Runn else Fail
                           | Fail => tick_fallback rest input_f reset_f
-                          | Succ => Succ
+                          | Succ => let b := reset_forest rest reset_f in
+                                    if b then Succ else Fail
                           end
          end
   with tick_all (f: btforest) (input_f: skills_input) (reset_f: skills_reset) :=
@@ -287,6 +311,9 @@ Extract Inductive nat => "int" ["0" "succ"]
                                "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
 Extract Constant plus => "( + )".
 
-Unset Extraction Optimize.    (* needed to keep every call to reset_forest *)
+(* The following option is needed to keep in the generated ML code some 
+   statements of the form
+   if b then x else x
+   that we execute purely for their side effects (reset of skills). *)
+Unset Extraction Optimize.
 Extraction "infra/btrsem.ml" BT_gen_rsem.
-

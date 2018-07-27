@@ -10,6 +10,10 @@ module Nat :
   val ltb : int -> int -> bool
  end
 
+val hd : 'a1 -> 'a1 list -> 'a1
+
+val tl : 'a1 list -> 'a1 list
+
 module type BT_SIG =
  sig
   type skillSet
@@ -90,6 +94,8 @@ module BT_gen_rsem :
   val reset_bt : btree -> skills_reset -> bool
 
   val reset_forest : btforest -> skills_reset -> bool
+
+  val reset_running : btforest -> return_enum list -> skills_reset -> bool
 
   val tick : btree -> skills_input -> skills_reset -> return_enum
 

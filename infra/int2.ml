@@ -33,6 +33,10 @@ let f1 tag childs =
                         (coqstring_of_camlstring (extract "name" tag)),
                         (forest_of_list childs))
           end
+(*       | "Decorator" ->
+          begin
+            let deckind = extract "ID" tag in
+            match deckind  *)
        (* Decorators still to be added... *)
        | _ -> raise (Parsing ("unkown node: " ^ n))
 

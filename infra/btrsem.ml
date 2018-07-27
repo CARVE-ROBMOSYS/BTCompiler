@@ -35,6 +35,18 @@ module Nat =
     leb (succ n) m
  end
 
+(** val hd : 'a1 -> 'a1 list -> 'a1 **)
+
+let hd default = function
+| [] -> default
+| x :: _ -> x
+
+(** val tl : 'a1 list -> 'a1 list **)
+
+let tl = function
+| [] -> []
+| _ :: m -> m
+
 module type BT_SIG =
  sig
   type skillSet
@@ -149,7 +161,7 @@ module BT_gen_rsem =
 
   and cs_forest = function
   | Child t -> count_skills t
-  | Add (t, tl) -> add (count_skills t) (cs_forest tl)
+  | Add (t, tl0) -> add (count_skills t) (cs_forest tl0)
 
   (** val normalize : btree -> btree **)
 
@@ -246,6 +258,25 @@ module BT_gen_rsem =
     | Add (t1, rest) ->
       let x = reset_bt t1 reset_f in (&&) x (reset_forest rest reset_f)
 
+  (** val reset_running :
+      btforest -> return_enum list -> skills_reset -> bool **)
+
+  let rec reset_running f l reset_f =
+    match f with
+    | Child t ->
+      (match hd Fail l with
+       | Runn -> reset_bt t reset_f
+       | Fail -> true
+       | Succ -> true)
+    | Add (t1, rest) ->
+      let x =
+        match hd Fail l with
+        | Runn -> reset_bt t1 reset_f
+        | Fail -> true
+        | Succ -> true
+      in
+      (&&) x (reset_running rest (tl l) reset_f)
+
   (** val tick : btree -> skills_input -> skills_reset -> return_enum **)
 
   let rec tick t input_f reset_f =
@@ -259,9 +290,11 @@ module BT_gen_rsem =
        | Parallel n ->
          let results = tick_all f input_f reset_f in
          if Nat.leb n (countSucc results)
-         then Succ
+         then let b = reset_running f results reset_f in
+              if b then Succ else Fail
          else if Nat.ltb (sub (len f) n) (countFail results)
-              then Fail
+              then let b = reset_running f results reset_f in
+                   if b then Fail else Fail
               else Runn)
     | Dec (k, _, t0) ->
       (match k with
@@ -298,7 +331,7 @@ module BT_gen_rsem =
       (match tick t1 input_f reset_f with
        | Runn -> let b = reset_forest rest reset_f in if b then Runn else Fail
        | Fail -> tick_fallback rest input_f reset_f
-       | Succ -> Succ)
+       | Succ -> let b = reset_forest rest reset_f in if b then Succ else Fail)
 
   (** val tick_all :
       btforest -> skills_input -> skills_reset -> return_enum list **)

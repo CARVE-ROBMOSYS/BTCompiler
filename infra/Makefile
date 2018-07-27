@@ -8,7 +8,7 @@ CFLAGS = -I .
 
 .PHONY: all clean checkpkg readskill interp
 
-all: readskill interp
+all: readskill interp int2
 
 # check that needed OCaml packages can be found
 checkpkg:
