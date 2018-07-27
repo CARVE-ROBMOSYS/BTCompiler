@@ -3,11 +3,11 @@
    in the OCaml module "skills.ml". 
 
 TODO:
-- document format of source XML file
-- accept more than one input file? (concatenating the resulting lists)
-- currently the parser ignores every unused attribute of a skill; 
-  should we emit a warning if one is found?
-- also ignores every tag after SkillList: another warning?
+[ ] document format of source XML file
+[ ] accept more than one input file? (concatenating the resulting lists)
+[ ] currently the parser ignores every unused attribute of a skill; 
+    should we emit a warning if one is found?
+[ ] also ignores every tag after SkillList: another warning?
 *)
 
 open Utils
@@ -27,7 +27,10 @@ let rec read_skill_list acc i =
         "Action" | "Condition" ->
         let id = extract "ID" t in
         if Xmlm.input i = (`El_end) then
-          read_skill_list (id :: acc) i
+          if not (List.mem id acc) then
+            read_skill_list (id :: acc) i
+          else
+            raise (Parsing ("duplicated skill: " ^ id))
         else
           raise (Parsing ("unexpected data in skill " ^ id))
         | _ -> raise (Parsing ("unknown skill specifier: " ^ n))
@@ -54,7 +57,7 @@ let make_skills_module l =
     | h :: t -> ("| " ^ (List.hd idlist) ^ " -> " ^ coqstrrep_of_string h)
                 :: make_names_list (List.tl idlist) t
   in
-  (* notice that the Parsing exception is not available in the Skills module
+  (* notice that the Parsing exception is not available in the module
      we are generating, so we resort to Invalid_argument *)
   let rec make_transl_func idlist = function
       [] -> "| _ -> invalid_arg (\"unknown skill: \" ^ s)" :: []
