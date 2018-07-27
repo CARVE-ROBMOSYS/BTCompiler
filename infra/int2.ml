@@ -7,7 +7,12 @@ module Btree = BT_gen_rsem(Skills)
 open Utils
 
 (* This function is called by input_tree to manage opening/closing tags *)
-let f1 tag childs =
+let f1 tag children =
+  let rec tree_of_list = function
+      [] -> raise (Parsing "ill-formed BT (decorator with no children)")
+    | [h] -> h
+    | _ -> raise (Parsing "ill-formed BT (decorator with too many children)")
+  in
   let rec forest_of_list = function
       [] -> (raise (Parsing "ill-formed BT (node with no children)"))
     | [h] -> Btree.Child h
@@ -20,24 +25,33 @@ let f1 tag childs =
          "Sequence" ->
          Btree.Node (Btree.Sequence,
                      (coqstring_of_camlstring (extract "name" tag)),
-                     (forest_of_list childs))
+                     (forest_of_list children))
        | "Fallback" ->
           Btree.Node (Btree.Fallback,
                       (coqstring_of_camlstring (extract "name" tag)),
-                      (forest_of_list childs))
+                      (forest_of_list children))
        | "Parallel" ->
           begin
             let tres = extract "threshold" tag in
             let n = (int_of_string tres) in
             Btree.Node (Btree.Parallel n,
                         (coqstring_of_camlstring (extract "name" tag)),
-                        (forest_of_list childs))
+                        (forest_of_list children))
           end
-(*       | "Decorator" ->
+       | "Decorator" ->
           begin
-            let deckind = extract "ID" tag in
-            match deckind  *)
-       (* Decorators still to be added... *)
+            let d = extract "ID" tag in
+            match d with
+            | "Negation" ->
+               Btree.Dec (Btree.Not,
+                          (coqstring_of_camlstring (extract "name" tag)),
+                          (tree_of_list children))
+            | "IsRunning" ->
+               Btree.Dec (Btree.IsRunning,
+                          (coqstring_of_camlstring (extract "name" tag)),
+                          (tree_of_list children))
+            | _ -> raise (Parsing ("unknown decorator: " ^ d))
+          end
        | _ -> raise (Parsing ("unkown node: " ^ n))
 
 (* This function is called by input_tree to manage data tags
@@ -88,7 +102,7 @@ let load_bt filename =
 (* C function mapping (a string identifying) a skill to its return value *)
 external exec: string -> Btree.return_enum = "exec"
 
-(* This is the equivalent term of type skills_input *)
+(* Equivalent term of type skills_input *)
 let input_f s =
   exec (camlstring_of_coqstring (Skills.skillName s))
 

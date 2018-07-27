@@ -311,9 +311,7 @@ Extract Inductive nat => "int" ["0" "succ"]
                                "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
 Extract Constant plus => "( + )".
 
-(* The following option is needed to keep in the generated ML code some 
-   statements of the form
-   if b then x else x
-   that we execute purely for their side effects (reset of skills). *)
+(* The following option is needed to keep in the generated ML code the
+   statements of the form 'if b then x else x' *)
 Unset Extraction Optimize.
 Extraction "infra/btrsem.ml" BT_gen_rsem.
