@@ -38,3 +38,4 @@ _build/
 # ocamlbuild targets
 *.byte
 *.native
+*.swp
