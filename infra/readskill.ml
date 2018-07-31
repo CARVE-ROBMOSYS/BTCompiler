@@ -84,7 +84,7 @@ let read_skills filename =
                      raise (Parsing ("expected SkillList tag, found " ^ n))
   | _ -> raise (Parsing "input XML is ill-formed")
 
-let main () =
+let _ =
   let argc = Array.length Sys.argv in
   if argc = 1 then begin
       Printf.printf "Please specify an input XML file\n";
@@ -114,6 +114,6 @@ let main () =
                    exit 1
     | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
                             exit 1
-;;
 
-main();;
+
+

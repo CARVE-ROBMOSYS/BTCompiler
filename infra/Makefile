@@ -6,9 +6,9 @@ OCB_FLAGS = -use-ocamlfind
 CC = gcc $(CFLAGS)
 CFLAGS = -I .
 
-.PHONY: all clean checkpkg readskill interp
+.PHONY: all clean checkpkg readskill interp int2 mkspec
 
-all: readskill interp int2
+all: readskill interp int2 mkspec
 
 # check that needed OCaml packages can be found
 checkpkg:
@@ -24,6 +24,9 @@ interp: checkpkg
 int2: checkpkg
 	$(OCB) 'int2.native.o'
 	cp _build/int2.native.o ../test/modreset.o
+
+mkspec: checkpkg
+	$(OCB) 'mkspec.native'
 
 clean:
 	$(OCB) -clean
