@@ -1,5 +1,5 @@
 Require Import bt micro_smv spec_extr.
-Require Import List String.
+Require Import List ListSet String.
 Open Scope string_scope.
 
 Definition bt_input_type :=
@@ -7,18 +7,6 @@ Definition bt_input_type :=
 
 Definition bt_output_type :=
   (TEnum ("none"::"running"::"failed"::"succeeded"::nil)).
-
-Module BT_bin_spec (X: BT_SIG).
-
-  Include BT_binary X.
-
-  Definition rootName (t: btree) :=
-    match t with
-    | Skill s => X.skillName s
-    | TRUE => "BTSucc"
-    | Node _ n _ _ => n
-    | Dec _ n _ => n
-    end.
 
   (* boilerplate modules *)
 
@@ -274,6 +262,19 @@ Module BT_bin_spec (X: BT_SIG).
                                                           (SConst "failed")))))))
        ::nil).
 
+
+Module BT_bin_spec (X: BT_SIG).
+
+  Include BT_binary X.
+
+  Definition rootName (t: btree) :=
+    match t with
+    | Skill s => X.skillName s
+    | TRUE => "BTSucc"
+    | Node _ n _ _ => n
+    | Dec _ n _ => n
+    end.
+
   Definition nodeName (k: nodeKind) :=
     match k with
     | Sequence => "bt_sequence"
@@ -308,15 +309,15 @@ Module BT_bin_spec (X: BT_SIG).
     end.
 
   Definition make_main (t: btree) :=
-    let l := make_vars t in
+    let vars := make_vars t in
     Build_smv_module
       "main"
       nil
-      (cons (VAR (AddV "tick_generator"
-                       (TComp (TModPar "bt_tick_generator"
-                                       (LastP (Simple (Qual (Id (rootName t)))))))
-                       l))
-            nil).
+      ((VAR (AddV "tick_generator"
+                  (TComp (TModPar "bt_tick_generator"
+                                  (LastP (Simple (Qual (Id (rootName t)))))))
+                  vars))
+       ::nil).
 
   Definition make_spec (t: btree) :=
     boiler_tick_generator :: boiler_skill :: boiler_TRUE ::
@@ -329,10 +330,14 @@ Inductive modtype :=
 | Skmod: modtype
 | TRUEmod: modtype
 | Seqmod: nat -> modtype
-| Fallmod: nat -> modtype
-| Parmod: nat -> modtype
+| Fbmod: nat -> modtype
+| Parmod: nat -> nat -> modtype   (* threshold, n. of args *)
 | Notmod: modtype
 | Runmod: modtype.
+
+Theorem modtype_dec: forall x y:modtype, {x = y} + {x <> y}.
+  decide equality; apply PeanoNat.Nat.eq_dec.
+Defined.
 
 Module BT_gen_spec (X: BT_SIG).
 
@@ -346,19 +351,111 @@ Module BT_gen_spec (X: BT_SIG).
     | Dec _ n _ => n
     end.
 
-  Definition scan_for_modules (t: btree): list modtype :=
-    nil.
+  Fixpoint addmod (t: btree) (s: ListSet.set modtype) :=
+    match t with
+    | Skill _ => set_add modtype_dec Skmod s
+    | TRUE => set_add modtype_dec TRUEmod s
+    | Node k _ f => let l := len f in
+                    addmod_f f (set_add modtype_dec
+                                        match k with
+                                        | Sequence => Seqmod l
+                                        | Fallback => Fbmod l
+                                        | Parallel n => Parmod n l
+                                        end
+                                        s)
+    | Dec k _ t' => addmod t' (set_add modtype_dec
+                                       match k with
+                                       | Not => Notmod
+                                       | IsRunning => Runmod
+                                       end
+                                       s)
+    end
+  with addmod_f (f: btforest) (s: ListSet.set modtype) :=
+         match f with
+         | Child t => addmod t s
+         | Add t1 rest => addmod_f rest (addmod t1 s)
+         end.
 
-  Definition make_modules (l: list modtype): list smv_module :=
-    nil.
+  Definition make_mod (t: modtype): smv_module :=
+    match t with
+    | Skmod => boiler_skill
+    | TRUEmod => boiler_TRUE
+    | Seqmod l => if Nat.eqb l 2 then boiler_sequence
+                  else boiler_TRUE  (* to be implemented *)
+    | Fbmod l => if Nat.eqb l 2 then boiler_fallback
+                  else boiler_TRUE  (* to be implemented *)
+    | Parmod n l => if Nat.eqb l 2 then
+                      (if Nat.eqb n 1 then boiler_par1 else boiler_par2)
+                    else boiler_TRUE  (* to be implemented *)
+    | Notmod => boiler_not
+    | Runmod => boiler_isRunning
+    end.
 
-  Definition make_main (t: btree): list smv_module :=
-    nil.
+  Fixpoint make_mod_list (l: list modtype): list smv_module :=
+    match l with
+    | nil => nil
+    | m :: rest => cons (make_mod m) (make_mod_list rest)
+    end.
+
+  Definition nodeName (k: nodeKind) :=
+    (* this is uncorrect; how to convert a nat to a string in coq? *)
+    match k with
+    | Sequence => "bt_sequence"
+    | Fallback => "bt_fallback"
+    | Parallel _ => "bt_parallel"
+    end.
+
+  Definition decName (d: decKind) :=
+    match d with
+    | Not => "bt_not"
+    | IsRunning => "bt_is_running"
+    end.
+
+  Fixpoint make_paramlist (f: btforest) :=
+    match f with
+    | Child t => (LastP (Simple (Qual (Id (rootName t)))))
+    | Add t1 rest => (AddP (Simple (Qual (Id (rootName t1))))
+                           (make_paramlist rest))
+    end.
+
+  Fixpoint make_vars (t: btree) :=
+    match t with
+    | Skill s => LastV (X.skillName s) (TComp (TMod "bt_skill"))
+    | TRUE => LastV "t" (TComp (TMod "bt_TRUE"))
+    | Node k name f =>
+      let params := make_paramlist f in
+      let vars := make_vars_f f in
+      AddV name
+           (TComp (TModPar (nodeName k) params))
+           vars
+    | Dec d name t =>
+      let vars := make_vars t in
+      AddV name
+           (TComp (TModPar (decName d)
+                           (LastP (Simple (Qual (Id (rootName t)))))))
+           vars
+    end
+  with make_vars_f (f: btforest) :=
+         match f with
+         | Child t => (make_vars t)
+         | Add t1 rest => varlist_app (make_vars t1) (make_vars_f rest)
+         end.
+
+  Definition make_main (t: btree) :=
+    let vars := make_vars t in
+    Build_smv_module
+      "main"
+      nil
+      ((VAR (AddV "tick_generator"
+                  (TComp (TModPar "bt_tick_generator"
+                                  (LastP (Simple (Qual (Id (rootName t)))))))
+                  vars))
+       ::nil).
 
   Definition make_spec (t: btree): list smv_module :=
-    let needed := scan_for_modules t in
-    let modlist := make_modules needed in
-    app modlist (make_main t).
+    let needed := addmod t (empty_set modtype) in
+    let modlist := make_mod_list needed in
+    app modlist (boiler_tick_generator :: (make_main t) :: nil).
 
 End BT_gen_spec.
   
@@ -371,3 +468,4 @@ Extract Inductive nat => "int" ["0" "succ"]
 Extract Constant plus => "( + )".
 
 Extraction "infra/btspec.ml" BT_bin_spec translate_spec.
+Extraction "infra/btgspec.ml" BT_gen_spec translate_spec.
