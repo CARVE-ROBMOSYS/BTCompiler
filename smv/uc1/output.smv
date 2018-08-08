@@ -1,0 +1,133 @@
+MODULE bt_tick_generator(top_level_bt)
+ASSIGN
+init(top_level_bt.enable) := TRUE;
+next(top_level_bt.enable) := !(top_level_bt.output = none);
+
+MODULE bt_skill()
+IVAR
+input : { Runn, Fail, Succ };
+VAR
+output : { none, running, failed, succeeded };
+enable : boolean;
+ASSIGN
+init(output) := none;
+next(output) := case
+!(enable) : none;
+input = Runn : running;
+input = Fail : failed;
+input = Succ : succeeded;
+esac;
+
+MODULE bt_TRUE()
+VAR
+enable : boolean;
+DEFINE
+output := succeeded;
+
+MODULE bt_sequence(left_bt, right_bt)
+VAR
+enable : boolean;
+ASSIGN
+left_bt.enable := enable;
+right_bt.enable := left_bt.output = succeeded;
+DEFINE
+output := case
+left_bt.output = succeeded : right_bt.output;
+TRUE : left_bt.output;
+esac;
+
+MODULE bt_fallback(left_bt, right_bt)
+VAR
+enable : boolean;
+ASSIGN
+left_bt.enable := enable;
+right_bt.enable := left_bt.output = failed;
+DEFINE
+output := case
+left_bt.output = failed : right_bt.output;
+TRUE : left_bt.output;
+esac;
+
+MODULE bt_parallel1(left_bt, right_bt)
+VAR
+enable : boolean;
+left_bt_stored_output : { none, running, failed, succeeded };
+ASSIGN
+left_bt.enable := enable;
+right_bt.enable := is_left_bt_active;
+init(left_bt_stored_output) := none;
+next(left_bt_stored_output) := case
+is_left_bt_active : left_bt.output;
+TRUE : left_bt_stored_output;
+esac;
+DEFINE
+is_left_bt_active := !(left_bt.output = none);
+is_right_bt_active := !(right_bt.output = none);
+true_output_count := count(left_bt_stored_output = succeeded, right_bt.output = succeeded);
+running_output_count := count(left_bt_stored_output = running, right_bt.output = running);
+output := case
+is_right_bt_active & 0 < true_output_count : succeeded;
+is_right_bt_active & true_output_count + running_output_count < 1 : failed;
+is_right_bt_active : running;
+TRUE : none;
+esac;
+
+MODULE bt_parallel2(left_bt, right_bt)
+VAR
+enable : boolean;
+left_bt_stored_output : { none, running, failed, succeeded };
+ASSIGN
+left_bt.enable := enable;
+right_bt.enable := is_left_bt_active;
+init(left_bt_stored_output) := none;
+next(left_bt_stored_output) := case
+is_left_bt_active : left_bt.output;
+TRUE : left_bt_stored_output;
+esac;
+DEFINE
+is_left_bt_active := !(left_bt.output = none);
+is_right_bt_active := !(right_bt.output = none);
+true_output_count := count(left_bt_stored_output = succeeded, right_bt.output = succeeded);
+running_output_count := count(left_bt_stored_output = running, right_bt.output = running);
+output := case
+is_right_bt_active & 1 < true_output_count : succeeded;
+is_right_bt_active & true_output_count + running_output_count < 2 : failed;
+is_right_bt_active : running;
+TRUE : none;
+esac;
+
+MODULE bt_not(child_bt)
+VAR
+enable : boolean;
+ASSIGN
+child_bt.enable := enable;
+DEFINE
+output := case
+child_bt.output = failed : succeeded;
+child_bt.output = succeeded : failed;
+TRUE : child_bt.output;
+esac;
+
+MODULE bt_isRunning(child_bt)
+VAR
+enable : boolean;
+ASSIGN
+child_bt.enable := enable;
+DEFINE
+output := case
+child_bt.output = running : succeeded;
+child_bt.output = none : none;
+TRUE : failed;
+esac;
+
+MODULE main()
+VAR
+tick_generator : bt_tick_generator(root);
+root : bt_fallback(go_and_find_and_fetch, Ask_for_help);
+go_and_find_and_fetch : bt_sequence(Go_to_kitchen, find_and_fetch);
+Go_to_kitchen : bt_skill;
+find_and_fetch : bt_sequence(Find_bottle, Fetch_bottle);
+Find_bottle : bt_skill;
+Fetch_bottle : bt_skill;
+Ask_for_help : bt_skill;
+
