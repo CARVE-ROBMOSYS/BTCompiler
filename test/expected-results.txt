@@ -1,0 +1,23 @@
+Expected result for unit tests:
+
+bt0001: Success, no reset
+bt0002: Failure, reset Action1SecondSuccess
+bt0003: Success, reset Action1SecondSuccess
+bt0004: Success, no reset
+bt0005: Success, no reset
+bt0006: Failure, reset Action1SecondSuccess
+bt0007: Success, no reset
+bt0008: Success, reset Action1SecondFailure
+bt0009: 
+bt0010: 
+bt0011: 
+bt0012: 
+bt0013: 
+bt0014: 
+bt0015: 
+bt0016: 
+bt0017: 
+bt0018: 
+bt0019: 
+
+
