@@ -33,10 +33,18 @@ let f1 tag children =
        | "Parallel" ->
           begin
             let tres = extract "threshold" tag in
-            let n = (int_of_string tres) in
-            Btree.Node (Btree.Parallel n,
-                        (coqstring_of_camlstring (extract "name" tag)),
-                        (forest_of_list children))
+            match int_of_string tres with
+            | exception (Failure _) ->
+               raise (Parsing ("wrong threshold in parallel node "
+                               ^ (extract "name" tag)))
+            | n ->
+               if (n < 0) || (n > (List.length children)) then
+                 raise (Parsing ("wrong threshold in parallel node "
+                                 ^ (extract "name" tag)))
+               else
+                 Btree.Node (Btree.Parallel n,
+                             (coqstring_of_camlstring (extract "name" tag)),
+                             (forest_of_list children))
           end
        | "Decorator" ->
           begin

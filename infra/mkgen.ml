@@ -1,12 +1,12 @@
-(* Library to package the BT interpreter - version without reset support *)
+(* Specification extractor *)
 
-open Btsem
+open Btgspec
 
-module Btree = BT_gen_semantics(Skills)
+module Btree = BT_gen_spec(Skills)
 
 open Utils
 
-(* This function is called by input_tree to manage opening/closing tags *)
+(* stuff from interp.ml *)
 let f1 tag children =
   let rec tree_of_list = function
       [] -> raise (Parsing "ill-formed BT (decorator with no children)")
@@ -62,16 +62,12 @@ let f1 tag children =
           end
        | _ -> raise (Parsing ("unkown node: " ^ n))
 
-(* This function is called by input_tree to manage data tags
-   Since our XML files never have data fields, we just throw an exception *)
 let f2 s =
   raise (Parsing "unexpected data in input XML file")
 
-(* Parses a BT using the Xmlm input_tree facility *)
 let input_bt i =
   Xmlm.input_tree ~el:f1 ~data:f2 i
 
-(* Loads a BT from an XML file *)
 let load_bt filename =
   try
     let input_ch = open_in filename in
@@ -107,18 +103,20 @@ let load_bt filename =
                           exit 1
 
 
-(* C function mapping (a string identifying) a skill to its return value *)
-external exec: string -> Btree.return_enum = "exec"
+let main () =
+  (* perhaps we should use getopt here... *)
+  let argc = Array.length Sys.argv in
+  if argc = 1 then begin
+      Printf.printf "Please specify an input XML file\n";
+      exit 1
+    end
+  else
+    let bt = load_bt Sys.argv.(1) in
+    let spec = translate_spec (Btree.make_spec bt) in
+    print_string (camlstring_of_coqstring spec);
+    exit 0
+;;
 
-(* Equivalent term of type skills_input *)
-let input_f s =
-  exec (camlstring_of_coqstring (Skills.skillName s))
+main();;
 
-(* The function we shall actually export *)
-let tick1 bt =
-  Btree.tick bt input_f
-
-
-(* Callbacks from C code *)
-let _ = Callback.register "readbt" load_bt
-let _ = Callback.register "tick" tick1
+  

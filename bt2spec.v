@@ -58,7 +58,7 @@ Definition bt_output_type :=
 
   Definition boiler_sequence :=
     Build_smv_module
-      "bt_sequence"
+      "bt_sequence_2"
       ("left_bt"::"right_bt"::nil)
       ((VAR (LastV "enable" (TSimp TBool)))
        ::
@@ -78,7 +78,7 @@ Definition bt_output_type :=
 
   Definition boiler_fallback :=
     Build_smv_module
-      "bt_fallback"
+      "bt_fallback_2"
       ("left_bt"::"right_bt"::nil)
       ((VAR (LastV "enable" (TSimp TBool)))
        ::
@@ -397,12 +397,21 @@ Module BT_gen_spec (X: BT_SIG).
     | m :: rest => cons (make_mod m) (make_mod_list rest)
     end.
 
-  Definition nodeName (k: nodeKind) :=
-    (* this is uncorrect; how to convert a nat to a string in coq? *)
+  Definition string_of_nat (n: nat) :=
+    (String (Ascii.ascii_of_nat (n + 48))
+            EmptyString).
+  (* problem: how to deal with n>9 ? *)
+
+  Definition nodeName (k: nodeKind) (flen: nat) :=
     match k with
-    | Sequence => "bt_sequence"
-    | Fallback => "bt_fallback"
-    | Parallel _ => "bt_parallel"
+    | Sequence => append "bt_sequence_"
+                         (string_of_nat flen)                         
+    | Fallback => append "bt_fallback_"
+                         (string_of_nat flen)
+    | Parallel t => append (append "bt_parallel"
+                                   (string_of_nat t))
+                           (append "_"
+                                   (string_of_nat flen))
     end.
 
   Definition decName (d: decKind) :=
@@ -426,7 +435,7 @@ Module BT_gen_spec (X: BT_SIG).
       let params := make_paramlist f in
       let vars := make_vars_f f in
       AddV name
-           (TComp (TModPar (nodeName k) params))
+           (TComp (TModPar (nodeName k (len f)) params))
            vars
     | Dec d name t =>
       let vars := make_vars t in
