@@ -6,9 +6,7 @@
 #include <caml/alloc.h>
 #include <caml/custom.h>
 #include <caml/callback.h>
-
-extern int ExecuteSkill(const char *name);
-extern void ResetSkill(const char *name);
+#include "dummy_skills.h"
 
 /*
   type return_enum = Runn | Fail | Succ
@@ -31,7 +29,7 @@ int tick(value bt) {
   return Int_val(caml_callback(*tick_closure, bt));
 }
 
-/* OCaml interface to the C function ExecuteSkill */
+/* OCaml interface to the C functions ExecuteSkill, ResetSkill */
 
 CAMLprim value exec(value v) {
   return Val_int(ExecuteSkill(String_val(v)));

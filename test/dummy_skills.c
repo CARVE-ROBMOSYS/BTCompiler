@@ -35,26 +35,32 @@ int ExecuteOrResetSkill(const char *name, int is_tick) {
 
   if (strcmp(name,"Action1SecondSuccess") == 0) {
     int return_status = DoDummySkill(SUCCESS, 1000);
-    printf ("I am returning %d \n", return_status);
+    //    printf ("I am returning %d \n", return_status);
     
     return return_status;
   }
   else if (strcmp(name, "Action1SecondFailure") == 0) {
     int return_status = DoDummySkill(FAILURE, 1000);
-    printf ("I am returning %d \n", return_status);
+    //    printf ("I am returning %d \n", return_status);
     
     return return_status;
   }
   else if (strcmp(name, "ConditionTrue") == 0) {
     int return_status = DoDummySkill(SUCCESS, 0);
-    printf ("I am returning %d \n", return_status);
+    //    printf ("I am returning %d \n", return_status);
     
     return return_status;
   }
   else if (strcmp(name, "ConditionFalse") == 0) {
     int return_status = DoDummySkill(FAILURE, 0);
-    printf ("I am returning %d \n", return_status);
+    //    printf ("I am returning %d \n", return_status);
 
+    return return_status;
+  }
+  else if (strcmp(name, "ActionRunning") == 0) {
+    int return_status = DoDummySkill(RUNNING, 1000);
+    //    printf ("I am returning %d \n", return_status);
+    
     return return_status;
   }
   else {

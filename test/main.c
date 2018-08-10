@@ -1,13 +1,11 @@
 #include <stdio.h>
 #include <caml/mlvalues.h>
 #include <caml/callback.h>
+#include "dummy_skills.h"
 
 /* from wrap.c */
 extern value readbt(char *filename);
 extern value tick(value bt);
-
-/* from dummy_skills.c */
-extern int ExecuteSkill(const char *name);
 
 int main(int argc, char *argv[]) {
 

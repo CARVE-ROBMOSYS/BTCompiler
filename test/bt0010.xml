@@ -1,0 +1,11 @@
+<root>
+
+  <BehaviorTree ID="bt0010">
+    <Sequence name="seq0010">
+      <Action ID="Action1SecondSuccess" />
+      <Action ID="ActionRunning" />
+    </Sequence>
+  </BehaviorTree>
+
+</root>
+

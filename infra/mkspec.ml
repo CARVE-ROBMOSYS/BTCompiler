@@ -5,9 +5,14 @@ open Btsem
 module Btree = BT_gen_semantics(Skills)
 module Btbin = BT_bin_spec(Skills)
 
-(* stuff from interpreter.ml *)
+(* stuff from interpr.ml *)
 
-let f1 tag childs =
+let f1 tag children =
+  let rec tree_of_list = function
+      [] -> raise (Parsing "ill-formed BT (decorator with no children)")
+    | [h] -> h
+    | _ -> raise (Parsing "ill-formed BT (decorator with too many children)")
+  in
   let rec forest_of_list = function
       [] -> (raise (Parsing "ill-formed BT (node with no children)"))
     | [h] -> Btree.Child h
@@ -20,20 +25,33 @@ let f1 tag childs =
          "Sequence" ->
          Btree.Node (Btree.Sequence,
                      (coqstring_of_camlstring (extract "name" tag)),
-                     (forest_of_list childs))
+                     (forest_of_list children))
        | "Fallback" ->
           Btree.Node (Btree.Fallback,
                       (coqstring_of_camlstring (extract "name" tag)),
-                      (forest_of_list childs))
+                      (forest_of_list children))
        | "Parallel" ->
           begin
             let tres = extract "threshold" tag in
             let n = (int_of_string tres) in
             Btree.Node (Btree.Parallel n,
                         (coqstring_of_camlstring (extract "name" tag)),
-                        (forest_of_list childs))
+                        (forest_of_list children))
           end
-       (* Decorators still to be added... *)
+       | "Decorator" ->
+          begin
+            let d = extract "ID" tag in
+            match d with
+            | "Negation" ->
+               Btree.Dec (Btree.Not,
+                          (coqstring_of_camlstring (extract "name" tag)),
+                          (tree_of_list children))
+            | "IsRunning" ->
+               Btree.Dec (Btree.IsRunning,
+                          (coqstring_of_camlstring (extract "name" tag)),
+                          (tree_of_list children))
+            | _ -> raise (Parsing ("unknown decorator: " ^ d))
+          end
        | _ -> raise (Parsing ("unkown node: " ^ n))
 
 let f2 s =

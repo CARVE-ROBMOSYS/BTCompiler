@@ -20,6 +20,7 @@
   <Action ID="PassThroughWindow" />
   <Action ID="Action1SecondSuccess" />
   <Action ID="Action1SecondFailure" />
+  <Action ID="ActionRunning" />
   <Condition ID="ConditionTrue" /> 
   <Condition ID="ConditionFalse" />
 </SkillList>

@@ -1,0 +1,11 @@
+<root>
+
+  <BehaviorTree ID="bt0019">
+    <Parallel name="par0019" threshold="0">
+      <Action ID="Action1SecondFailure" />
+      <Action ID="ActionRunning" />
+    </Parallel>
+  </BehaviorTree>
+
+</root>
+

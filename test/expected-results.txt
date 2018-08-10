@@ -8,16 +8,16 @@ bt0005: Success, no reset
 bt0006: Failure, reset Action1SecondSuccess
 bt0007: Success, no reset
 bt0008: Success, reset Action1SecondFailure
-bt0009: 
-bt0010: 
-bt0011: 
-bt0012: 
-bt0013: 
-bt0014: 
-bt0015: 
-bt0016: 
-bt0017: 
-bt0018: 
-bt0019: 
+bt0009: Running, reset Action1SecondFailure
+bt0010: Running, no reset
+bt0011: Running, reset Action1SecondFailure
+bt0012: Failure, reset ActionRunning, Action1SecondSuccess
+bt0013: Running, reset Action1SecondFailure
+bt0014: Running, no reset
+bt0015: Success, no reset
+bt0016: Failure, no reset
+bt0017: Success, reset ActionRunning
+bt0018: Running, no reset
+bt0019: Success, reset ActionRunning
 
 
