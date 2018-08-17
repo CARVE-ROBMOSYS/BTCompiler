@@ -25,6 +25,7 @@ Fixpoint translate_sexp (e: sexp) : string :=
   | Paren e' => "(" ++ translate_sexp e' ++ ")"
   | Neg e' => "!(" ++ translate_sexp e' ++ ")"
   | And e' e'' => translate_sexp e' ++ " & " ++ translate_sexp e''
+  | Or e' e'' => translate_sexp e' ++ " | " ++ translate_sexp e''
   | Equal e' e'' => translate_sexp e' ++ " = " ++ translate_sexp e''
   | Less e' e'' => translate_sexp e' ++ " < " ++ translate_sexp e''
   | Sum e' e'' => translate_sexp e' ++ " + " ++ translate_sexp e''

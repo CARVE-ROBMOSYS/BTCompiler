@@ -56,6 +56,18 @@ Definition bt_output_type :=
        (DEFINE (LastD "output" (SConst "succeeded")))
        ::nil).
 
+  Definition boiler_identity :=
+    Build_smv_module
+      "bt_id"
+      ("bt"::nil)
+      ((VAR (LastV "enable" (TSimp TBool)))
+       ::
+       (ASSIGN (LastA (invar (Mod "bt" (Id "enable")) (Qual (Id "enable")))))
+       ::
+       (DEFINE (LastD "output" (Case (Cexp (BConst smvT)
+                                           (Qual (Mod "bt" (Id "output")))))))
+       ::nil).
+
   Definition boiler_sequence :=
     Build_smv_module
       "bt_sequence_2"
@@ -351,6 +363,31 @@ Module BT_gen_spec (X: BT_SIG).
     | Dec _ n _ => n
     end.
 
+  (* NOTE: currently this works as expected only for n<10 ! *)
+  Definition string_of_nat (n: nat) :=
+    (String (Ascii.ascii_of_nat (n + 48))
+            EmptyString).
+
+  Definition nodeName (k: nodeKind) (n: nat) :=
+    match k with
+    | Sequence => append "bt_sequence_"
+                         (string_of_nat n)
+    | Fallback => append "bt_fallback_"
+                         (string_of_nat n)
+    | Parallel t => append (append "bt_parallel"
+                                   (string_of_nat t))
+                           (append "_"
+                                   (string_of_nat n))
+    end.
+
+  Definition decName (d: decKind) :=
+    match d with
+    | Not => "bt_not"
+    | IsRunning => "bt_is_running"
+    end.
+
+  (* This function scans a BT compiling a list of the needed modules *)
+  
   Fixpoint addmod (t: btree) (s: ListSet.set modtype) :=
     match t with
     | Skill _ => set_add modtype_dec Skmod s
@@ -376,14 +413,198 @@ Module BT_gen_spec (X: BT_SIG).
          | Add t1 rest => addmod_f rest (addmod t1 s)
          end.
 
+  (* Helper functions to generate the non-boilerplate SMV modules *)
+  
+  Fixpoint mk_param_list (l: nat) :=
+    match l with
+    | O => nil
+    | S p => (cons ("bt" ++ string_of_nat l) (mk_param_list p))
+    end.
+(*
+  Fixpoint mk_seq_invar (l: nat) :=
+    match l with
+    | 0 =>    (* this case will never happen, so any term will do *)
+      (LastA (invar (Id "enable") (BConst smvF)))
+    | 1 =>
+      (LastA (invar (Mod "bt1" (Id "enable"))
+                    (Qual (Id "enable"))))
+    | (S p) =>
+      (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat p) (Id "output")))
+                          (SConst "succeeded")))
+            (mk_seq_invar p))
+    end.
+
+  Fixpoint mk_seq_trans (l i: nat) :=
+    match i with
+    | 0 =>
+      (Cexp (BConst smvT)
+            (Qual (Mod ("bt" ++ string_of_nat l) (Id "output"))))
+    | (S p) =>
+      (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
+                          (SConst "running"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
+                          (SConst "failed")))
+               (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
+               (mk_seq_trans l p))
+    end.
+
+  Definition make_sequence (l: nat) :=
+    Build_smv_module
+      (nodeName Sequence l)
+      (rev (mk_param_list l))
+      ((VAR (LastV "enable" (TSimp TBool)))
+       ::
+       (ASSIGN (mk_seq_invar l))
+       ::
+       (DEFINE (LastD "output" (Case (mk_seq_trans l (pred l)))))
+       ::nil).
+
+  Compute (make_sequence 1).
+
+   
+MODULE bt_sequence_3(bt1, bt2, bt3)
+VAR
+  enable : boolean;
+ASSIGN
+  bt3.enable := bt2.output = succeeded;
+  bt2.enable := bt1.output = succeeded;
+  bt1.enable := enable;
+DEFINE
+  output := case
+  bt2.output = running | bt2.output = failed : bt2.output;
+  bt1.output = running | bt1.output = failed : bt1.output;
+  TRUE : bt3.output;
+  esac;
+
+Altro approccio:
+*)
+
+  Fixpoint mk_seq_invar (l: nat) :=
+    match l with
+    | 0 => (* will never happen *)
+      (LastA (invar (Id "enable") (BConst smvF)))
+    | 1 =>
+      (LastA (invar (Mod "bt1" (Id "enable"))
+                    (Equal (Qual (Mod "bt2" (Id "output")))
+                           (SConst "succeeded"))))
+    | (S p) =>
+      (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat (S (S p))) (Id "output")))
+                          (SConst "succeeded")))
+            (mk_seq_invar p))
+    end.
+
+  Fixpoint mk_seq_trans (l: nat) :=
+    match l with
+    | 0 => (* will never happen *)
+      (Cexp (BConst smvT) (BConst smvT))
+    | 1 =>
+      (Cexp (BConst smvT)
+            (Qual (Mod "bt1" (Id "output"))))
+    | (S p) =>
+      (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+                          (SConst "running"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+                          (SConst "failed")))
+               (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+               (mk_seq_trans p))
+    end.
+
+  Definition make_sequence (l: nat) :=
+    match l with
+    | 0 => boiler_TRUE
+    | 1 => boiler_identity
+    | S (S p) =>
+      Build_smv_module
+        (nodeName Sequence l)
+        (mk_param_list l)
+        ((VAR (LastV "enable" (TSimp TBool)))
+         ::
+         (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
+                              (Qual (Id "enable")))
+                       (mk_seq_invar (S p))))
+         ::
+         (DEFINE (LastD "output" (Case (mk_seq_trans l))))
+         ::nil)
+    end.
+
+  Fixpoint mk_fb_invar (l: nat) :=
+    match l with
+    | 0 => (* will never happen *)
+      (LastA (invar (Id "enable") (BConst smvF)))
+    | 1 =>
+      (LastA (invar (Mod "bt1" (Id "enable"))
+                    (Equal (Qual (Mod "bt2" (Id "output")))
+                           (SConst "failed"))))
+    | (S p) =>
+      (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat (S (S p))) (Id "output")))
+                          (SConst "failed")))
+            (mk_fb_invar p))
+    end.
+
+  Fixpoint mk_fb_trans (l: nat) :=
+    match l with
+    | 0 => (* will never happen *)
+      (Cexp (BConst smvT) (BConst smvT))
+    | 1 =>
+      (Cexp (BConst smvT)
+            (Qual (Mod "bt1" (Id "output"))))
+    | (S p) =>
+      (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+                          (SConst "running"))
+                   (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+                          (SConst "succeeded")))
+               (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
+               (mk_fb_trans p))
+    end.
+
+  Definition make_fallback (l: nat) :=
+    match l with
+    | 0 => boiler_TRUE
+    | 1 => boiler_identity
+    | S (S p) =>
+      Build_smv_module
+        (nodeName Fallback l)
+        (mk_param_list l)
+        ((VAR (LastV "enable" (TSimp TBool)))
+         ::
+         (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
+                              (Qual (Id "enable")))
+                       (mk_fb_invar (S p))))
+         ::
+         (DEFINE (LastD "output" (Case (mk_fb_trans l))))
+         ::nil)
+    end.
+
+(*  Compute (translate (make_fallback 3)). *)
+
+  Definition make_parallel (n l: nat) :=
+    match l with
+    | 0 => boiler_TRUE
+    | 1 => boiler_identity
+    | S (S p) =>
+      Build_smv_module
+        (nodeName (Parallel n) l)
+        (cons "threshold" (mk_param_list l))
+        ((VAR (LastV "enable" (TSimp TBool)))
+         ::
+         (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
+                              (Qual (Id "enable")))
+                       (mk_fb_invar (S p))))
+         ::
+         (DEFINE (LastD "output" (Case (mk_fb_trans l))))
+         ::nil)
+    end.
+
+
   Definition make_mod (t: modtype): smv_module :=
     match t with
     | Skmod => boiler_skill
     | TRUEmod => boiler_TRUE
-    | Seqmod l => if Nat.eqb l 2 then boiler_sequence
-                  else boiler_TRUE  (* to be implemented *)
-    | Fbmod l => if Nat.eqb l 2 then boiler_fallback
-                  else boiler_TRUE  (* to be implemented *)
+    | Seqmod l => make_sequence l
+    | Fbmod l => make_fallback l
     | Parmod n l => if Nat.eqb l 2 then
                       (if Nat.eqb n 1 then boiler_par1 else boiler_par2)
                     else boiler_TRUE  (* to be implemented *)
@@ -397,29 +618,8 @@ Module BT_gen_spec (X: BT_SIG).
     | m :: rest => cons (make_mod m) (make_mod_list rest)
     end.
 
-  Definition string_of_nat (n: nat) :=
-    (String (Ascii.ascii_of_nat (n + 48))
-            EmptyString).
-  (* problem: how to deal with n>9 ? *)
-
-  Definition nodeName (k: nodeKind) (flen: nat) :=
-    match k with
-    | Sequence => append "bt_sequence_"
-                         (string_of_nat flen)                         
-    | Fallback => append "bt_fallback_"
-                         (string_of_nat flen)
-    | Parallel t => append (append "bt_parallel"
-                                   (string_of_nat t))
-                           (append "_"
-                                   (string_of_nat flen))
-    end.
-
-  Definition decName (d: decKind) :=
-    match d with
-    | Not => "bt_not"
-    | IsRunning => "bt_is_running"
-    end.
-
+  (* Functions to generate the main module *)
+  
   Fixpoint make_paramlist (f: btforest) :=
     match f with
     | Child t => (LastP (Simple (Qual (Id (rootName t)))))

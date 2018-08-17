@@ -94,7 +94,7 @@ Module BT_general (X: BT_SIG).
     | Add t tl => count_skills t + cs_forest tl
     end.
 
-  (* The following function replaces inner nodes with a single child with
+  (* The following function replaces inner nodes having a single child with
      the child tree itself. We may prove later that this operation does not
      alter the semantics of the BT. *)
 
@@ -110,7 +110,7 @@ Module BT_general (X: BT_SIG).
                            | _ => Node k n (normalize_forest f)
                            end
                     end
-   this cannot be proved correct because of meaningless thresholds in
+   This cannot be proved correct because of the unsharp specification of
    parallel nodes. So we leave parallel nodes alone: *)
                     | Sequence =>
                       match f with
@@ -126,7 +126,7 @@ Module BT_general (X: BT_SIG).
                     end
     | Dec k n t => match k with
                    | Not => match t with
-                            | Dec Not _ t' => t'      (* Not is an involution *)
+                            | Dec Not _ t' => t'    (* Not is an involution *)
                             | _ => Dec Not n (normalize t)
                             end
                    | _ => Dec k n (normalize t)

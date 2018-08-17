@@ -20,6 +20,7 @@ Inductive sexp :=
 | Paren: sexp -> sexp
 | Neg: sexp -> sexp
 | And: sexp -> sexp -> sexp
+| Or: sexp -> sexp -> sexp
 | Equal: sexp -> sexp -> sexp
 | Less: sexp -> sexp -> sexp
 | Sum: sexp -> sexp -> sexp
