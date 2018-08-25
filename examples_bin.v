@@ -1,4 +1,4 @@
-Require Import bt shallow.
+Require Import bt basic.
 Require Import String.
 Open Scope string_scope.
 

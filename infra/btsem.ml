@@ -1,7 +1,10 @@
 
-(** val add : int -> int -> int **)
+(** val app : 'a1 list -> 'a1 list -> 'a1 list **)
 
-let rec add = ( + )
+let rec app l m =
+  match l with
+  | [] -> m
+  | a :: l1 -> a :: (app l1 m)
 
 (** val sub : int -> int -> int **)
 
@@ -129,19 +132,19 @@ module BT_gen_semantics =
   | Child _ -> succ 0
   | Add (_, rest) -> succ (len rest)
 
-  (** val count_skills : btree -> int **)
+  (** val sklist : btree -> X.skillSet list **)
 
-  let rec count_skills = function
-  | Skill _ -> succ 0
-  | TRUE -> 0
-  | Node (_, _, f) -> cs_forest f
-  | Dec (_, _, t0) -> count_skills t0
+  let rec sklist = function
+  | Skill s -> s :: []
+  | TRUE -> []
+  | Node (_, _, f) -> skl_forest f
+  | Dec (_, _, t0) -> sklist t0
 
-  (** val cs_forest : btforest -> int **)
+  (** val skl_forest : btforest -> X.skillSet list **)
 
-  and cs_forest = function
-  | Child t -> count_skills t
-  | Add (t, tl) -> add (count_skills t) (cs_forest tl)
+  and skl_forest = function
+  | Child t -> sklist t
+  | Add (t, tl) -> app (sklist t) (skl_forest tl)
 
   (** val normalize : btree -> btree **)
 

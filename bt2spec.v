@@ -488,7 +488,7 @@ Altro approccio:
       (LastA (invar (Mod "bt1" (Id "enable"))
                     (Equal (Qual (Mod "bt2" (Id "output")))
                            (SConst "succeeded"))))
-    | (S p) =>
+    | S p =>
       (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
                    (Equal (Qual (Mod ("bt" ++ string_of_nat (S (S p))) (Id "output")))
                           (SConst "succeeded")))
@@ -502,7 +502,7 @@ Altro approccio:
     | 1 =>
       (Cexp (BConst smvT)
             (Qual (Mod "bt1" (Id "output"))))
-    | (S p) =>
+    | S p =>
       (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
                           (SConst "running"))
                    (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
@@ -515,7 +515,7 @@ Altro approccio:
     match l with
     | 0 => boiler_TRUE
     | 1 => boiler_identity
-    | S (S p) =>
+    | S p =>
       Build_smv_module
         (nodeName Sequence l)
         (mk_param_list l)
@@ -523,7 +523,7 @@ Altro approccio:
          ::
          (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
                               (Qual (Id "enable")))
-                       (mk_seq_invar (S p))))
+                       (mk_seq_invar p)))
          ::
          (DEFINE (LastD "output" (Case (mk_seq_trans l))))
          ::nil)
@@ -537,7 +537,7 @@ Altro approccio:
       (LastA (invar (Mod "bt1" (Id "enable"))
                     (Equal (Qual (Mod "bt2" (Id "output")))
                            (SConst "failed"))))
-    | (S p) =>
+    | S p =>
       (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
                    (Equal (Qual (Mod ("bt" ++ string_of_nat (S (S p))) (Id "output")))
                           (SConst "failed")))
@@ -551,7 +551,7 @@ Altro approccio:
     | 1 =>
       (Cexp (BConst smvT)
             (Qual (Mod "bt1" (Id "output"))))
-    | (S p) =>
+    | S p =>
       (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
                           (SConst "running"))
                    (Equal (Qual (Mod ("bt" ++ string_of_nat l) (Id "output")))
@@ -564,7 +564,7 @@ Altro approccio:
     match l with
     | 0 => boiler_TRUE
     | 1 => boiler_identity
-    | S (S p) =>
+    | S p =>
       Build_smv_module
         (nodeName Fallback l)
         (mk_param_list l)
@@ -572,7 +572,7 @@ Altro approccio:
          ::
          (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
                               (Qual (Id "enable")))
-                       (mk_fb_invar (S p))))
+                       (mk_fb_invar p)))
          ::
          (DEFINE (LastD "output" (Case (mk_fb_trans l))))
          ::nil)
@@ -584,7 +584,7 @@ Altro approccio:
     match l with
     | 0 => boiler_TRUE
     | 1 => boiler_identity
-    | S (S p) =>
+    | S p =>
       Build_smv_module
         (nodeName (Parallel n) l)
         (cons "threshold" (mk_param_list l))
@@ -592,7 +592,7 @@ Altro approccio:
          ::
          (ASSIGN (AddA (invar (Mod ("bt" ++ string_of_nat l) (Id "enable"))
                               (Qual (Id "enable")))
-                       (mk_fb_invar (S p))))
+                       (mk_fb_invar p)))
          ::
          (DEFINE (LastD "output" (Case (mk_fb_trans l))))
          ::nil)
@@ -612,14 +612,14 @@ Altro approccio:
     | Runmod => boiler_isRunning
     end.
 
+  (* Functions to generate the main module *)
+
   Fixpoint make_mod_list (l: list modtype): list smv_module :=
     match l with
     | nil => nil
     | m :: rest => cons (make_mod m) (make_mod_list rest)
     end.
 
-  (* Functions to generate the main module *)
-  
   Fixpoint make_paramlist (f: btforest) :=
     match f with
     | Child t => (LastP (Simple (Qual (Id (rootName t)))))

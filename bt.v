@@ -37,12 +37,12 @@ Module BT_binary (X: BT_SIG).
 
   (* Utility functions *)
 
-  Fixpoint count_skills (t: btree) :=
+  Fixpoint sklist (t: btree): list X.skillSet :=
     match t with
-    | Skill _ => 1
-    | TRUE => 0
-    | Node _ _ t1 t2 => count_skills t1 + count_skills t2
-    | Dec _ _ t => count_skills t
+    | Skill s => s::nil
+    | TRUE => nil
+    | Node _ _ t1 t2 => app (sklist t1) (sklist t2)
+    | Dec _ _ t => sklist t
     end.
 
 End BT_binary.
@@ -81,17 +81,17 @@ Module BT_general (X: BT_SIG).
     | Add t1 rest => S (len rest)
     end.
 
-  Fixpoint count_skills (t: btree) :=
+  Fixpoint sklist (t: btree): list X.skillSet :=
     match t with
-    | Skill _ => 1
-    | TRUE => 0
-    | Node _ _ f => cs_forest f
-    | Dec _ _ t => count_skills t
+    | Skill s => s::nil
+    | TRUE => nil
+    | Node _ _ f => skl_forest f
+    | Dec _ _ t => sklist t
     end
-  with cs_forest (f: btforest) :=
+  with skl_forest (f: btforest) :=
     match f with
-    | Child t => count_skills t
-    | Add t tl => count_skills t + cs_forest tl
+    | Child t => sklist t
+    | Add t tl => app (sklist t) (skl_forest tl)
     end.
 
   (* The following function replaces inner nodes having a single child with

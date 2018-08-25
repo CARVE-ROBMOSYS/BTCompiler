@@ -1,5 +1,5 @@
 
-val add : int -> int -> int
+val app : 'a1 list -> 'a1 list -> 'a1 list
 
 val sub : int -> int -> int
 
@@ -62,9 +62,9 @@ module BT_gen_semantics :
 
   val len : btforest -> int
 
-  val count_skills : btree -> int
+  val sklist : btree -> X.skillSet list
 
-  val cs_forest : btforest -> int
+  val skl_forest : btforest -> X.skillSet list
 
   val normalize : btree -> btree
 

@@ -1,4 +1,4 @@
-Require Import bt shallow.
+Require Import bt basic.
 Require Import String.
 Open Scope string_scope.
 
@@ -52,7 +52,7 @@ Definition sc1 :=                  (* a BT similar to the one from scenario 1 *)
                                                       (Child (Skill sk3)))))
              (Child (Skill sk4)))).
 
-Compute count_skills sc1.
+Compute sklist sc1.
 
 (* mangled version of sc1, to test normalization *)
 

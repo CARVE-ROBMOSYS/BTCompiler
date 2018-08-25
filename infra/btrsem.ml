@@ -1,7 +1,12 @@
 
-(** val add : int -> int -> int **)
+(** val app : 'a1 list -> 'a1 list -> 'a1 list **)
 
-let rec add = ( + )
+let app x =
+  let rec app0 l m =
+    match l with
+    | [] -> m
+    | a :: l1 -> a :: (app0 l1 m)
+  in app0 x
 
 (** val sub : int -> int -> int **)
 
@@ -149,19 +154,19 @@ module BT_gen_rsem =
   | Child _ -> succ 0
   | Add (_, rest) -> succ (len rest)
 
-  (** val count_skills : btree -> int **)
+  (** val sklist : btree -> X.skillSet list **)
 
-  let rec count_skills = function
-  | Skill _ -> succ 0
-  | TRUE -> 0
-  | Node (_, _, f) -> cs_forest f
-  | Dec (_, _, t0) -> count_skills t0
+  let rec sklist = function
+  | Skill s -> s :: []
+  | TRUE -> []
+  | Node (_, _, f) -> skl_forest f
+  | Dec (_, _, t0) -> sklist t0
 
-  (** val cs_forest : btforest -> int **)
+  (** val skl_forest : btforest -> X.skillSet list **)
 
-  and cs_forest = function
-  | Child t -> count_skills t
-  | Add (t, tl0) -> add (count_skills t) (cs_forest tl0)
+  and skl_forest = function
+  | Child t -> sklist t
+  | Add (t, tl0) -> app (sklist t) (skl_forest tl0)
 
   (** val normalize : btree -> btree **)
 
