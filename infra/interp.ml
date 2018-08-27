@@ -35,11 +35,11 @@ let f1 tag children =
             let tres = extract "threshold" tag in
             match int_of_string tres with
             | exception (Failure _) ->
-               raise (Parsing ("wrong threshold in parallel node "
+               raise (Parsing ("bad threshold in parallel node "
                                ^ (extract "name" tag)))
             | n ->
                if (n < 0) || (n > (List.length children)) then
-                 raise (Parsing ("wrong threshold in parallel node "
+                 raise (Parsing ("bad threshold in parallel node "
                                  ^ (extract "name" tag)))
                else
                  Btree.Node (Btree.Parallel n,
@@ -76,22 +76,31 @@ let load_bt filename =
   try
     let input_ch = open_in filename in
     let i = Xmlm.make_input ~strip:true (`Channel input_ch) in
-    let _ = Xmlm.input i in               (* discard the dtd *)
+    let _ = Xmlm.input i in                   (* discard the dtd *)
     let root_tag = Xmlm.input i in
     match root_tag with
-      `El_start t1 ->
-      if (extract_node t1) = "root" then
-        let tree_tag = Xmlm.input i in
-        match tree_tag with
-          `El_start t2 ->
-          if (extract_node t2) = "BehaviorTree" then
-            let bt = input_bt i in
-            close_in input_ch;  (* only one BT per file! *)
-            bt
-          else raise (Parsing "cannot find BehaviorTree node")
-        | _ -> raise (Parsing "cannot find BehaviorTree node")
-      else raise (Parsing "first node is not root")
-    | _ -> raise (Parsing "first node is not root")
+    | `El_start t1 ->
+       if (extract_node t1) = "root" then
+         let bt = ref None in
+         while (Xmlm.peek i <> `El_end) do    (* end of root node *)
+           let next_tag = Xmlm.input i in
+           match next_tag with
+           | `El_start t2 ->
+              (match (extract_node t2) with
+               | "BehaviorTree" -> if !bt = None then
+                                     bt := Some (input_bt i)
+                                   else
+                                     raise (Parsing "too many BehaviorTree tags")
+               | _ -> ());              (* unknown tags are silently ignored *)
+              discard_tag i 1
+           | _ -> raise (Parsing "ill-formed input file")
+         done;
+         close_in input_ch;
+         match !bt with
+         | Some x -> x
+         | None -> raise (Parsing "cannot find BehaviorTree node")
+       else raise (Parsing "cannot find root node")
+    | _ -> raise (Parsing "ill-formed input file")
   with
     Sys_error s -> Printf.eprintf "System error: %s\n" s;
                    exit 2

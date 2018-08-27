@@ -2,19 +2,12 @@
    and writes the corresponding definitions needed for the BT interpreter
    in the OCaml module "skills.ml". 
 
-TODO:
-[ ] document format of source XML file
-[ ] accept more than one input file? (concatenating the resulting lists)
-[ ] currently the parser ignores every unused attribute of a skill; 
-    should we emit a warning if one is found?
-[ ] also ignores every tag after SkillList: another warning?
+Possible improvements:
+[ ] accept more than one input file (concatenating the resulting lists)
+[ ] relax the syntax of the input file by ignoring unknown top-level tags
 *)
 
 open Utils
-
-(* Helper function to format a list of strings for displaying *)
-let string_of_slist l =
-  "[" ^ String.concat "; " l ^ "]"
 
 (* Reads a sequence of "Action" or "Condition" nodes until first closing tag
    (no children or data is allowed; attributes other than "ID" are ignored) *)
@@ -82,7 +75,7 @@ let read_skills filename =
                      read_skill_list [] i
                    else
                      raise (Parsing ("expected SkillList tag, found " ^ n))
-  | _ -> raise (Parsing "input XML is ill-formed")
+  | _ -> raise (Parsing "ill-formed input file")
 
 let _ =
   let argc = Array.length Sys.argv in
@@ -97,7 +90,7 @@ let _ =
         if sklist = [] then Printf.printf "Warning: no skills found\n"
         else Printf.printf "Found %d skills: %s\n"
                            (List.length sklist)
-                           (string_of_slist sklist);
+                           (String.concat ", " sklist);
         let output_ch = open_out "skills.ml" in
         output_string output_ch (make_skills_module sklist);
         close_out output_ch;

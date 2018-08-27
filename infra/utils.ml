@@ -24,7 +24,7 @@ exception Parsing of string
    use the XML namespace mechanism *)
 let extract_node tag = (snd (fst tag))
 
-(* Extracts an attribute (by name) from an XML tag *)
+(* Extracts a mandatory attribute from an XML tag *)
 let extract attr_name tag =
   let attr_list = snd tag in
   try
@@ -35,3 +35,21 @@ let extract attr_name tag =
     raise (Parsing
              ("missing attribute " ^ attr_name ^
                 " in node " ^ (extract_node tag)))
+
+(* Extracts a optional attribute from an XML tag *)
+let opt_extract attr_name tag =
+  let attr_list = snd tag in
+  try
+    let name = List.find (fun attr -> (snd (fst attr)) = attr_name) attr_list in
+    Some (snd name)
+  with
+    Not_found -> None
+
+(* Discards a tag from input stream i *)
+let rec discard_tag i depth =
+  match Xmlm.input i with
+  | `El_start _ -> discard_tag i (depth + 1)
+  | `El_end -> if depth = 1 then () else discard_tag i (depth - 1)
+  | _ -> raise (Parsing "ill-formed input file")
+
+  
