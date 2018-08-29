@@ -1,0 +1,55 @@
+<root>
+
+  <BehaviorTree
+      mission = "is_bottle_fetched = true"
+      assume = "true"
+      guarantee = "in the future (from_Go_to_kitchen = succeeded and
+                   from_Find_bottle = succeeded and
+                   from_Fetch_bottle = succeeded)">
+    <Fallback name = "root">
+      <Sequence name="find_and_fetch">
+        <Action
+            ID="Go_to_kitchen"
+            assume="true"
+            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                       always (is_robot_in_kitchen -> (to_bt = none or to_bt = succeeded))"
+            />
+        <Action
+            ID="Find_bottle"
+            assume="true"
+            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                       always (is_bottle_found -> (to_bt = none or to_bt = succeeded))"
+            />
+        <Action
+            ID="Fetch_bottle"
+            assume="true"
+            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                       always (is_bottle_fetched -> (to_bt = none or to_bt = succeeded))"
+            />
+      </Sequence>
+      <Action
+          ID="Ask_for_help"
+          assume="true"
+          guarantee="always ((from_bt = Enable) -> next (to_bt != none))"
+          />
+    </Fallback>
+  </BehaviorTree>
+
+  <Environment
+      assume="true"
+      guarantee="always(req_Go_to_kitchen -> in the future is_robot_in_kitchen) and
+                 always((req_Find_bottle and is_bottle_visible) -> in the future is_bottle_found) and
+		 always((req_Fetch_bottle and is_bottle_found) -> in the future is_bottle_fetched) and
+                 always(is_bottle_visible iff is_robot_in_kitchen) and
+		 always(is_robot_in_kitchen -> always is_robot_in_kitchen) and
+		 always(is_bottle_found -> always is_bottle_found) and
+		 always(is_bottle_fetched -> always is_bottle_fetched)">
+
+    <Variable name="is_robot_in_kitchen" />
+    <Variable name="is_bottle_visible" />
+    <Variable name="is_bottle_found" />
+    <Variable name="is_bottle_fetched" />
+  </Environment>
+  
+</root>
+

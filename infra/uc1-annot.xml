@@ -1,0 +1,45 @@
+<root>
+
+  <BehaviorTree mission = "is_Fetch_bottle = true"
+                assume = "true"
+                guarantee = "in the future (from_Go_to_kitchen = succeeded and
+                             from_Find_bottle = succeeded and
+                             from_Fetch_bottle = succeeded)">
+    <Fallback name = "root">
+      <Sequence name="find_and_fetch">
+        <Action ID="Go_to_kitchen"
+                assume="true"
+                guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                           always (is_Go_to_kitchen -> (to_bt = none or to_bt = succeeded))"
+                />
+        <Action ID="Find_bottle"
+                assume="true"
+                guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                           always (is_Find_bottle -> (to_bt = none or to_bt = succeeded))"
+                />
+        <Action ID="Fetch_bottle"
+                assume="true"
+                guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                           always (is_Fetch_bottle -> (to_bt = none or to_bt = succeeded))"
+                />
+      </Sequence>
+      <Action ID="Ask_for_help"
+              assume="true"
+              guarantee="always ((from_bt = Enable) -> next (to_bt != none))"
+              />
+    </Fallback>
+  </BehaviorTree>
+
+  <Environment
+      assume="true"
+      guarantee="always(req_Go_to_kitchen -> in the future is_Go_to_kitchen) and
+                 always((req_Find_bottle and is_bottle_visible) -> in the future is_Find_bottle) and
+		 always((req_Fetch_bottle and is_Find_bottle) -> in the future is_Fetch_bottle) and
+		 always(is_bottle_visible iff is_Go_to_kitchen) and
+		 always(is_Go_to_kitchen -> always is_Go_to_kitchen) and
+		 always(is_Find_bottle -> always is_Find_bottle) and
+		 always(is_Fetch_bottle -> always is_Fetch_bottle)"
+      />
+  
+</root>
+
