@@ -17,6 +17,13 @@ let contract_stack = ref []
 let push_contract c =
   contract_stack := c :: !contract_stack
 
+type signal = {
+    id: string;
+    destinations: string list;
+  }
+  
+let signals = ref []
+
 let mission = ref ""
 
 (* The following functions are adapted from the corresponding ones in
@@ -100,6 +107,67 @@ let f2 s =
 let input_bt i =
   Xmlm.input_tree ~el:f1 ~data:f2 i
 
+ (* reads an (optional) list of tags 
+let rec read_list i tagname attr acc =
+  match Xmlm.input i with
+  | `El_start t ->
+     let n = extract_node t in
+     begin
+       match name with
+       | tagname ->
+          let n = extract attr t in
+          if Xmlm.input i = (`El_end) then
+            if not (List.mem id acc) then
+              read_skill_list (id :: acc) i
+            else
+              raise (Parsing ("duplicated skill: " ^ id))
+          else
+      raise (Parsing ("unexpected data in skill " ^ id))
+
+       | _ -> raise (Parsing ("unknown tag: " ^ n))
+     end
+  | `El_end -> List.rev acc
+  | _ -> raise (Parsing "ill-formed input file")
+
+e poi faccio
+read_list i "Signal" "name"
+  *)
+
+let rec read_dests i acc =
+  match Xmlm.input i with
+  | `El_start t ->
+     let n = extract_node t in
+     begin
+       match n with
+       | "Destination" ->
+          let id = extract "ID" t in
+          let _ = Xmlm.input i in
+          read_dests i (id :: acc)
+       | _ -> raise (Parsing ("unknown Signal tag: " ^ n))
+     end
+  | `El_end -> List.rev acc
+  | _ -> raise (Parsing "ill-formed input file")
+  
+  
+let rec read_signals i acc =
+  match Xmlm.input i with
+  | `El_start t ->
+     let n = extract_node t in
+     begin
+       match n with
+       | "Signal" ->
+          let n = extract "name" t in
+          let dests = read_dests i [] in
+          let signal = {
+              id = n;
+              destinations = dests } in
+          read_signals i (signal :: acc)
+       | _ -> raise (Parsing ("unknown Environment tag: " ^ n))
+     end
+  | `El_end -> List.rev acc
+  | _ -> raise (Parsing "ill-formed input file")
+
+
 let load_bt filename =
   try
     let input_ch = open_in filename in
@@ -132,7 +200,8 @@ let load_bt filename =
                                         | Some s -> s
                                         | None -> "true") }
                       in
-                      push_contract bt_contract
+                      push_contract bt_contract;
+                      discard_tag i 1
                     end
                   else
                     raise (Parsing "too many BehaviorTree tags")
@@ -140,6 +209,7 @@ let load_bt filename =
                   if not !env_found then
                     begin
                       env_found := true;
+                      (* read contract *)
                       let ass = opt_extract "assume" t2 in
                       let gua = opt_extract "guarantee" t2 in
                       let env_contract =
@@ -151,12 +221,14 @@ let load_bt filename =
                                         | Some s -> s
                                         | None -> "true") }
                       in
-                      push_contract env_contract
+                      push_contract env_contract;
+                      (* read signals *)
+                      if Xmlm.peek i <> `El_end then
+                        signals := read_signals i []
                     end
                   else
                     raise (Parsing "too many Environment tags")
-               | _ -> ());              (* unknown tags are silently ignored *)
-              discard_tag i 1
+               | _ -> discard_tag i 1)  (* unknown tags are silently ignored *)
            | _ -> raise (Parsing "ill-formed input file")
          done;
          close_in input_ch;
@@ -194,13 +266,20 @@ let rec mksubs = function
      ["SUB "; skname; ": "; String.uppercase_ascii skname; ";\n  "]
      @ mksubs rest
 
+let rec custom_conn skname = function
+  | [] -> [""]
+  | signal :: rest ->
+     if List.mem skname signal.destinations then
+       ["CONNECTION "; skname; "."; signal.id; " := Robot_env."; signal.id; ";\n\n  "] @ custom_conn skname rest
+     else custom_conn skname rest
+    
 let rec mkconn = function
   | [] -> [""]
   | skname :: rest ->
      ["CONNECTION Bt_fsm.from_"; skname; " := "; skname; ".to_bt;\n  ";
       "CONNECTION "; skname; ".from_bt := Bt_fsm.to_"; skname; ";\n  ";
-      "CONNECTION Robot_env.req_"; skname; " := "; skname; ".req_"; skname; ";\n  ";
-      "CONNECTION "; skname; ".is_"; skname; " := Robot_env.is_"; skname; ";\n\n  "]
+      "CONNECTION Robot_env.req_"; skname; " := "; skname; ".req_"; skname; ";\n  "]
+     @ custom_conn skname !signals
      @ mkconn rest
 
 let rec mktail = function
@@ -208,6 +287,7 @@ let rec mktail = function
   | skname :: rest -> [", "; skname; ".skill_contract"] @ mktail rest
 
 let make_comp_system lst =
+  let disc_time_head = "@requires discrete-time\n" in
   let header =
     String.concat "" ["COMPONENT uc1 system\n INTERFACE\n";
                       "  OUTPUT PORT mission: boolean;\n\n";
@@ -224,18 +304,18 @@ let make_comp_system lst =
                        "CONTRACT mission REFINEDBY Bt_fsm.bt_contract, ";
                        "Robot_env.env_contract"] @ mktail lst) in
 
-  String.concat "" [header; subs; connections; refinement]
+  String.concat "" [disc_time_head; header; subs; connections; refinement]
 
-let rec mkports = function
+let rec mkports_bt = function
   | [] -> ["\n"]
   | skname :: rest ->
      ["INPUT PORT from_"; skname; ": {none, running, failed, succeeded};\n  ";
       "OUTPUT PORT to_"; skname; ": {Enable, Reset};\n  "]
-     @ mkports rest
+     @ mkports_bt rest
 
 let make_comp_bt lst =
   let header = "COMPONENT BT_FSM\n INTERFACE\n  " in
-  let ports = String.concat "" (mkports lst) in
+  let ports = String.concat "" (mkports_bt lst) in
   let c = List.find (fun x -> x.name = "Bt") !contract_stack in
   let contract = String.concat "" ["  CONTRACT bt_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
@@ -243,16 +323,22 @@ let make_comp_bt lst =
 
   String.concat "" [header; ports; contract]
 
-let rec mkports2 = function
-  | [] -> ["\n"]
+let rec mkinports_env = function
+  | [] -> []
   | skname :: rest ->
-     ["INPUT PORT req_"; skname; ": boolean;\n  ";
-      "OUTPUT PORT is_"; skname; ": boolean;\n  "]
-     @ mkports2 rest
+     ["INPUT PORT req_"; skname; ": boolean;\n  "]
+     @ mkinports_env rest
 
+let rec mkoutports_env = function
+  | [] -> ["\n"]
+  | signal :: rest ->
+     ["OUTPUT PORT "; signal.id; ": boolean;\n  "]
+    @ mkoutports_env rest
+    
 let make_comp_robot lst =
   let header = "COMPONENT ROBOT_AND_ENVIRONMENT\n INTERFACE\n  " in
-  let ports = String.concat "" (mkports2 lst) in
+  let ports = String.concat "" ((mkinports_env lst) @
+                                  (mkoutports_env !signals)) in
   let c = List.find (fun x -> x.name = "Environment") !contract_stack in
   let contract = String.concat "" ["  CONTRACT env_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
@@ -260,14 +346,27 @@ let make_comp_robot lst =
 
   String.concat "" [header; ports; contract]
 
+     
+(*     match List.find (fun s -> _) signal.destinations with
+     | ... -> ...
+     | exception Not_found ->
+ *)
+  
 let make_comp_skill skname =
+  let rec mkinport_sk = function
+    | [] -> []
+    | signal :: rest ->
+       if List.mem skname signal.destinations then
+         ["INPUT PORT "; signal.id; ": boolean;\n  "] @ mkinport_sk rest
+       else mkinport_sk rest
+  in
   let header =
     String.concat "" ["COMPONENT "; String.uppercase_ascii skname; "\n INTERFACE\n  "] in
   let ports =
-    String.concat "" ["INPUT PORT from_bt: {Enable, Reset};\n  ";
-                      "INPUT PORT is_"; skname; ": boolean;\n  ";
-                      "OUTPUT PORT to_bt: {none, running, failed, succeeded};\n  ";
-                      "OUTPUT PORT req_"; skname; ": boolean;\n\n"] in
+    String.concat "" (["INPUT PORT from_bt: {Enable, Reset};\n  "]
+                      @ mkinport_sk !signals
+                      @ ["OUTPUT PORT to_bt: {none, running, failed, succeeded};\n  ";
+                         "OUTPUT PORT req_"; skname; ": boolean;\n\n"]) in
   let c = List.find (fun x -> x.name = skname) !contract_stack in
   let contract = String.concat "" ["  CONTRACT skill_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
@@ -309,6 +408,7 @@ let _ =
       let oss_outfile = open_out oss_filename in
       output_string oss_outfile oss_spec;
       close_out oss_outfile;
+
       exit 0
     with
       Sys_error s -> Printf.eprintf "System error: %s\n" s;
