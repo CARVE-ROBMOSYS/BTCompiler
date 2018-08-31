@@ -12,17 +12,30 @@ type contract = {
     guarantees: string;
   }
 
-let contract_stack = ref []
+let contract_stack: contract list ref = ref []
 
 let push_contract c =
   contract_stack := c :: !contract_stack
 
+let read_contract id tag =
+  let ass = opt_extract "assume" tag in
+  let gua = opt_extract "guarantee" tag in
+  { name = id;
+    assumptions = (match ass with
+                   | Some s -> s
+                   | None -> "true");
+    guarantees = (match gua with
+                  | Some s -> s
+                  | None -> "true") }
+
 type signal = {
     id: string;
-    destinations: string list;
+    target: string list;
   }
-  
-let signals = ref []
+
+let in_signals: signal list ref = ref []
+
+let out_signals: signal list ref = ref []
 
 let mission = ref ""
 
@@ -43,23 +56,8 @@ let f1 tag children =
   let n = extract_node tag in
   if (n = "Action") || (n = "Condition") then
     let id = extract "ID" tag in
-    begin
-      (* retrieve contract and store it in the stack *)
-      let ass = opt_extract "assume" tag in
-      let gua = opt_extract "guarantee" tag in
-      let node_contract =
-        { name = id;
-          assumptions = (match ass with
-                         | Some s -> s
-                         | None -> "true");
-          guarantees = (match gua with
-                        | Some s -> s
-                        | None -> "true") }
-      in
-      push_contract node_contract;
-      (* go on building the BT as usual *)
-      Btree.Skill (Skills.skill_id id)
-    end
+    push_contract (read_contract id tag);
+    Btree.Skill (Skills.skill_id id)
   else match n with
          "Sequence" ->
          Btree.Node (Btree.Sequence,
@@ -107,67 +105,58 @@ let f2 s =
 let input_bt i =
   Xmlm.input_tree ~el:f1 ~data:f2 i
 
- (* reads an (optional) list of tags 
-let rec read_list i tagname attr acc =
+(* The following function is taken (with trivial changes) from readskill.ml *)
+
+let rec read_taglist i name attr acc =
   match Xmlm.input i with
   | `El_start t ->
      let n = extract_node t in
-     begin
-       match name with
-       | tagname ->
-          let n = extract attr t in
-          if Xmlm.input i = (`El_end) then
-            if not (List.mem id acc) then
-              read_skill_list (id :: acc) i
-            else
-              raise (Parsing ("duplicated skill: " ^ id))
-          else
-      raise (Parsing ("unexpected data in skill " ^ id))
-
-       | _ -> raise (Parsing ("unknown tag: " ^ n))
-     end
+     if n = name then
+       let id = extract attr t in
+       if Xmlm.input i = (`El_end) then
+         if not (List.mem id acc) then
+           read_taglist i name attr (id :: acc)
+         else
+           raise (Parsing ("duplicated skill: " ^ id))
+       else
+         raise (Parsing ("unexpected data in tag " ^ n))
+     else
+       raise (Parsing ("unknown tag: " ^ n))
   | `El_end -> List.rev acc
   | _ -> raise (Parsing "ill-formed input file")
 
-e poi faccio
-read_list i "Signal" "name"
-  *)
+(* This function reads a list of InSignal and OutSignal inside an
+   Environment tag *)
 
-let rec read_dests i acc =
-  match Xmlm.input i with
-  | `El_start t ->
-     let n = extract_node t in
-     begin
-       match n with
-       | "Destination" ->
-          let id = extract "ID" t in
-          let _ = Xmlm.input i in
-          read_dests i (id :: acc)
-       | _ -> raise (Parsing ("unknown Signal tag: " ^ n))
-     end
-  | `El_end -> List.rev acc
-  | _ -> raise (Parsing "ill-formed input file")
+let read_signals i =
+  while (Xmlm.peek i <> `El_end) do
+    let next_tag = Xmlm.input i in
+    match next_tag with
+    | `El_start t ->
+       let n = extract_node t in
+       begin
+         match n with
+         | "OutSignal" ->
+            let n = extract "name" t in
+            let dests = read_taglist i "Destination" "ID" [] in
+            let signal = {
+                id = n;
+                target = dests } in
+            out_signals := signal :: !out_signals
+         | "InSignal" ->
+            let n = extract "name" t in
+            let srcs = read_taglist i "Source" "ID" [] in
+            let signal = {
+                id = n;
+                target = srcs } in
+            in_signals := signal :: !in_signals
+         | _ -> raise (Parsing ("unknown Environment tag: " ^ n))
+       end
+    | _ -> raise (Parsing "ill-formed input file")
+  done
+
+(* Adapted version of load_bt which reads also contracts and signals *)
   
-  
-let rec read_signals i acc =
-  match Xmlm.input i with
-  | `El_start t ->
-     let n = extract_node t in
-     begin
-       match n with
-       | "Signal" ->
-          let n = extract "name" t in
-          let dests = read_dests i [] in
-          let signal = {
-              id = n;
-              destinations = dests } in
-          read_signals i (signal :: acc)
-       | _ -> raise (Parsing ("unknown Environment tag: " ^ n))
-     end
-  | `El_end -> List.rev acc
-  | _ -> raise (Parsing "ill-formed input file")
-
-
 let load_bt filename =
   try
     let input_ch = open_in filename in
@@ -189,19 +178,7 @@ let load_bt filename =
                     begin
                       bt := Some (input_bt i);
                       mission := extract "mission" t2;
-                      let ass = opt_extract "assume" t2 in
-                      let gua = opt_extract "guarantee" t2 in
-                      let bt_contract =
-                        { name = "Bt";
-                          assumptions = (match ass with
-                                         | Some s -> s
-                                         | None -> "true");
-                          guarantees = (match gua with
-                                        | Some s -> s
-                                        | None -> "true") }
-                      in
-                      push_contract bt_contract;
-                      discard_tag i 1
+                      push_contract (read_contract "Bt" t2)
                     end
                   else
                     raise (Parsing "too many BehaviorTree tags")
@@ -209,26 +186,13 @@ let load_bt filename =
                   if not !env_found then
                     begin
                       env_found := true;
-                      (* read contract *)
-                      let ass = opt_extract "assume" t2 in
-                      let gua = opt_extract "guarantee" t2 in
-                      let env_contract =
-                        { name = "Environment";
-                          assumptions = (match ass with
-                                         | Some s -> s
-                                         | None -> "true");
-                          guarantees = (match gua with
-                                        | Some s -> s
-                                        | None -> "true") }
-                      in
-                      push_contract env_contract;
-                      (* read signals *)
-                      if Xmlm.peek i <> `El_end then
-                        signals := read_signals i []
+                      push_contract (read_contract "Environment" t2);
+                      read_signals i
                     end
                   else
                     raise (Parsing "too many Environment tags")
-               | _ -> discard_tag i 1)  (* unknown tags are silently ignored *)
+               | _ -> ());              (* unknown tags are silently ignored *)
+              discard_tag i 1           (* jump to closing tag *)
            | _ -> raise (Parsing "ill-formed input file")
          done;
          close_in input_ch;
@@ -248,8 +212,6 @@ let load_bt filename =
                              exit 1
   | Parsing s -> Printf.eprintf "BT parsing error: %s\n" s;
                  exit 1
-  (* Invalid_argument is raised (among other places...) when you pass to
-     Skills.skill_id a string which does not correspond to any skill *)
   | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
                           exit 1
 
@@ -266,20 +228,29 @@ let rec mksubs = function
      ["SUB "; skname; ": "; String.uppercase_ascii skname; ";\n  "]
      @ mksubs rest
 
-let rec custom_conn skname = function
+let rec in_conn skname = function
   | [] -> [""]
   | signal :: rest ->
-     if List.mem skname signal.destinations then
-       ["CONNECTION "; skname; "."; signal.id; " := Robot_env."; signal.id; ";\n\n  "] @ custom_conn skname rest
-     else custom_conn skname rest
+     if List.mem skname signal.target then
+       ["CONNECTION Robot_env."; signal.id; " := "; skname; "."; signal.id; ";\n  "]
+       @ in_conn skname rest
+     else in_conn skname rest
+
+let rec out_conn skname = function
+  | [] -> [""]
+  | signal :: rest ->
+     if List.mem skname signal.target then
+       ["CONNECTION "; skname; "."; signal.id; " := Robot_env."; signal.id; ";\n\n  "]
+       @ out_conn skname rest
+     else out_conn skname rest
     
 let rec mkconn = function
   | [] -> [""]
   | skname :: rest ->
      ["CONNECTION Bt_fsm.from_"; skname; " := "; skname; ".to_bt;\n  ";
-      "CONNECTION "; skname; ".from_bt := Bt_fsm.to_"; skname; ";\n  ";
-      "CONNECTION Robot_env.req_"; skname; " := "; skname; ".req_"; skname; ";\n  "]
-     @ custom_conn skname !signals
+      "CONNECTION "; skname; ".from_bt := Bt_fsm.to_"; skname; ";\n  "]
+     @ in_conn skname !in_signals
+     @ out_conn skname !out_signals
      @ mkconn rest
 
 let rec mktail = function
@@ -325,8 +296,8 @@ let make_comp_bt lst =
 
 let rec mkinports_env = function
   | [] -> []
-  | skname :: rest ->
-     ["INPUT PORT req_"; skname; ": boolean;\n  "]
+  | signal :: rest ->
+     ["INPUT PORT "; signal.id; ": boolean;\n  "]
      @ mkinports_env rest
 
 let rec mkoutports_env = function
@@ -337,8 +308,8 @@ let rec mkoutports_env = function
     
 let make_comp_robot lst =
   let header = "COMPONENT ROBOT_AND_ENVIRONMENT\n INTERFACE\n  " in
-  let ports = String.concat "" ((mkinports_env lst) @
-                                  (mkoutports_env !signals)) in
+  let ports = String.concat "" ((mkinports_env !in_signals)
+                                @ (mkoutports_env !out_signals)) in
   let c = List.find (fun x -> x.name = "Environment") !contract_stack in
   let contract = String.concat "" ["  CONTRACT env_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
@@ -346,29 +317,30 @@ let make_comp_robot lst =
 
   String.concat "" [header; ports; contract]
 
-     
-(*     match List.find (fun s -> _) signal.destinations with
-     | ... -> ...
-     | exception Not_found ->
- *)
-  
 let make_comp_skill skname =
   let rec mkinport_sk = function
     | [] -> []
     | signal :: rest ->
-       if List.mem skname signal.destinations then
+       if List.mem skname signal.target then
          ["INPUT PORT "; signal.id; ": boolean;\n  "] @ mkinport_sk rest
        else mkinport_sk rest
+  in
+  let rec mkoutport_sk = function
+    | [] -> []
+    | signal :: rest ->
+       if List.mem skname signal.target then
+         ["OUTPUT PORT "; signal.id; ": boolean;\n  "] @ mkoutport_sk rest
+       else mkoutport_sk rest
   in
   let header =
     String.concat "" ["COMPONENT "; String.uppercase_ascii skname; "\n INTERFACE\n  "] in
   let ports =
     String.concat "" (["INPUT PORT from_bt: {Enable, Reset};\n  "]
-                      @ mkinport_sk !signals
-                      @ ["OUTPUT PORT to_bt: {none, running, failed, succeeded};\n  ";
-                         "OUTPUT PORT req_"; skname; ": boolean;\n\n"]) in
+                      @ mkinport_sk !out_signals
+                      @ ["OUTPUT PORT to_bt: {none, running, failed, succeeded};\n  "]
+                      @ mkoutport_sk !in_signals) in
   let c = List.find (fun x -> x.name = skname) !contract_stack in
-  let contract = String.concat "" ["  CONTRACT skill_contract\n";
+  let contract = String.concat "" ["CONTRACT skill_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
                                    "   guarantee: "; c.guarantees; ";\n"] in
 

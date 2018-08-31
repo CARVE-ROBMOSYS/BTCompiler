@@ -420,65 +420,6 @@ Module BT_gen_spec (X: BT_SIG).
     | O => nil
     | S p => (cons ("bt" ++ string_of_nat l) (mk_param_list p))
     end.
-(*
-  Fixpoint mk_seq_invar (l: nat) :=
-    match l with
-    | 0 =>    (* this case will never happen, so any term will do *)
-      (LastA (invar (Id "enable") (BConst smvF)))
-    | 1 =>
-      (LastA (invar (Mod "bt1" (Id "enable"))
-                    (Qual (Id "enable"))))
-    | (S p) =>
-      (AddA (invar (Mod ("bt" ++ string_of_nat (S p)) (Id "enable"))
-                   (Equal (Qual (Mod ("bt" ++ string_of_nat p) (Id "output")))
-                          (SConst "succeeded")))
-            (mk_seq_invar p))
-    end.
-
-  Fixpoint mk_seq_trans (l i: nat) :=
-    match i with
-    | 0 =>
-      (Cexp (BConst smvT)
-            (Qual (Mod ("bt" ++ string_of_nat l) (Id "output"))))
-    | (S p) =>
-      (AddCexp (Or (Equal (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
-                          (SConst "running"))
-                   (Equal (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
-                          (SConst "failed")))
-               (Qual (Mod ("bt" ++ string_of_nat (S p)) (Id "output")))
-               (mk_seq_trans l p))
-    end.
-
-  Definition make_sequence (l: nat) :=
-    Build_smv_module
-      (nodeName Sequence l)
-      (rev (mk_param_list l))
-      ((VAR (LastV "enable" (TSimp TBool)))
-       ::
-       (ASSIGN (mk_seq_invar l))
-       ::
-       (DEFINE (LastD "output" (Case (mk_seq_trans l (pred l)))))
-       ::nil).
-
-  Compute (make_sequence 1).
-
-   
-MODULE bt_sequence_3(bt1, bt2, bt3)
-VAR
-  enable : boolean;
-ASSIGN
-  bt3.enable := bt2.output = succeeded;
-  bt2.enable := bt1.output = succeeded;
-  bt1.enable := enable;
-DEFINE
-  output := case
-  bt2.output = running | bt2.output = failed : bt2.output;
-  bt1.output = running | bt1.output = failed : bt1.output;
-  TRUE : bt3.output;
-  esac;
-
-Altro approccio:
-*)
 
   Fixpoint mk_seq_invar (l: nat) :=
     match l with
@@ -676,5 +617,5 @@ Extract Inductive nat => "int" ["0" "succ"]
                                "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
 Extract Constant plus => "( + )".
 
-Extraction "infra/btspec.ml" BT_bin_spec translate_spec.
+Extraction "infra/btbspec.ml" BT_bin_spec translate_spec.
 Extraction "infra/btgspec.ml" BT_gen_spec translate_spec.

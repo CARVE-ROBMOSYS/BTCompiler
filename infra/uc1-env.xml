@@ -45,16 +45,30 @@
 		 always(is_bottle_found -> always is_bottle_found) and
 		 always(is_bottle_fetched -> always is_bottle_fetched)">
 
-    <Signal name="is_robot_in_kitchen">
+    <OutSignal name="is_robot_in_kitchen">
       <Destination ID="Go_to_kitchen"/>
-    </Signal>
-    <Signal name="is_bottle_visible" />
-    <Signal name="is_bottle_found">
+    </OutSignal>
+    <OutSignal name="is_bottle_visible" />
+    <OutSignal name="is_bottle_found">
       <Destination ID="Find_bottle"/>
-    </Signal>
-    <Signal name="is_bottle_fetched">
+    </OutSignal>
+    <OutSignal name="is_bottle_fetched">
       <Destination ID="Fetch_bottle"/>
-    </Signal>
+    </OutSignal>
+    
+    <InSignal name="req_Go_to_kitchen">
+      <Source ID="Go_to_kitchen"/>
+    </InSignal>
+    <InSignal name="req_Find_bottle">
+      <Source ID="Find_bottle"/>
+    </InSignal>
+    <InSignal name="req_Fetch_bottle">
+      <Source ID="Fetch_bottle"/>
+    </InSignal>
+    <InSignal name="req_Ask_for_help">
+      <Source ID="Ask_for_help"/>
+    </InSignal>  
+
   </Environment>
   
 </root>

@@ -88,9 +88,9 @@ Inductive smv_element :=
 | ASSIGN: asslist -> smv_element.
 
 Record smv_module: Set :=
-  {name: identifier;
-   params: list identifier;
-   body: list smv_element}.
+  { name: identifier;
+    params: list identifier;
+    body: list smv_element }.
 
 Definition smv_spec := list smv_module.
 
