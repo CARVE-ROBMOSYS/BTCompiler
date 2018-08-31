@@ -1,5 +1,7 @@
 
-(* Operational semantics for reactive BTs (= skills with reset function) *)
+(* A variation of the basic operational semantics for BTs which adds
+   reactiveness: each skill comes with a reset function, which is called
+   each time the skill is not ticked. *)
 
 Require Import Arith List.
 Require Import bt.
@@ -13,6 +15,7 @@ Module BT_gen_rsem (X: BT_SIG).
   Inductive return_enum := Runn | Fail | Succ.
 
   Definition skills_input := X.skillSet -> return_enum.
+
   Definition skills_reset := X.skillSet -> bool.
 
   Fixpoint countSucc (l: list return_enum) :=
@@ -141,166 +144,6 @@ Module BT_gen_rsem (X: BT_SIG).
 
   Hint Unfold return_same_value all_return_same_value.
 
-(*  
-  reset_tree (normalize t) r = reset_tree t r
-  reset_forest (normalize_forest f) r = reset_forest f r
-  
-  Lemma norm_seq: forall f: btforest,
-      all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input, forall r: skills_reset,
-        tick_sequence f i r = tick_sequence (normalize_forest f) i r.
-  Proof.
-    apply (btforest_mind
-             (fun bt: btree => return_same_value bt (normalize bt)
-                               -> forall i: skills_input, forall r: skills_reset,
-                    tick bt i r = tick (normalize bt) i r)
-             (fun f: btforest => all_return_same_value f (normalize_forest f)
-                                 -> forall i: skills_input, forall r:skills_reset,
-                    tick_sequence f i r = tick_sequence (normalize_forest f) i r)).
-    - simpl; auto.
-    - simpl; auto.
-    - simpl. auto. shelve.
-    - simpl; auto. shelve.
-    - simpl.
-      intros t H H0 i r.
-      rewrite (H H0 i); trivial.
-    - simpl.
-      intros t Ht f Hf.
-      intros [H0 H1] i r.
-      rewrite (Ht H0); rewrite (Hf H1); trivial.
-  Qed.
-                                       
-  Lemma norm_fall: forall f: btforest,
-      all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input,
-        tick_fallback f i = tick_fallback (normalize_forest f) i.
-  Proof.
-    apply (btforest_mind
-             (fun bt: btree => return_same_value bt (normalize bt)
-                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
-             (fun f: btforest => all_return_same_value f (normalize_forest f)
-                                 -> forall i: skills_input, tick_fallback f i = tick_fallback (normalize_forest f) i)).
-    - simpl; auto.
-    - simpl; auto.
-    - simpl; auto.
-    - simpl; auto.
-    - simpl.
-      intros t H H0 i.
-      rewrite (H H0 i); trivial.
-    - simpl.
-      intros t Ht f Hf.
-      intros [H0 H1] i.
-      rewrite (Ht H0); rewrite (Hf H1); trivial.
-  Qed.
-
-  Lemma normalize_preserves_length:
-    forall f: btforest, len (normalize_forest f) = len f.
-  Proof.
-    induction f.
-    - auto.
-    - simpl; f_equal; assumption.
-  Qed.
-
-  Lemma norm_par: forall f: btforest,
-      all_return_same_value f (normalize_forest f)
-      -> forall i: skills_input,
-        tick_all f i = tick_all (normalize_forest f) i.
-  Proof.
-    apply (btforest_mind
-             (fun bt: btree => return_same_value bt (normalize bt)
-                               -> forall i: skills_input, tick bt i = tick (normalize bt) i)
-             (fun f: btforest => all_return_same_value f (normalize_forest f)
-                                 -> forall i: skills_input, tick_all f i = tick_all (normalize_forest f) i)).
-    - simpl; auto.
-    - simpl; auto.
-    - simpl; auto.
-    - simpl; auto.
-    - simpl.
-      intros t H H0 i.
-      rewrite (H H0 i); trivial.
-    - simpl.
-      intros t Ht f Hf.
-      intros [H0 H1] i.
-      rewrite (Ht H0); rewrite (Hf H1); trivial.
-  Qed.
-
-  Lemma normalize_preserves_node:
-    forall (k: nodeKind) (s: String.string) (f: btforest),
-      all_return_same_value f (normalize_forest f) ->
-      return_same_value (Node k s f) (normalize (Node k s f)).
-  Proof.
-    induction k.
-    (* sequence case *)      
-    + destruct f.
-      -- simpl; auto.
-      -- simpl.
-         intros [H H0] i.
-         simpl.
-         assert (H1: tick b i = tick (normalize b) i) by (apply H).
-         assert (H2: tick_sequence f i = tick_sequence (normalize_forest f) i) by (apply norm_seq; assumption).
-         rewrite H1; rewrite H2; trivial.
-    (* fallback case *)
-    + destruct f.
-      -- simpl; auto.
-      -- simpl.
-         intros [H H0] i.
-         simpl.
-         assert (H1: tick b i = tick (normalize b) i) by (apply H).
-         assert (H2: tick_fallback f i = tick_fallback (normalize_forest f) i) by (apply norm_fall; assumption).
-         rewrite H1; rewrite H2; trivial.
-    (* parallel case *)
-    + destruct f.
-      -- simpl.
-         intros H i.
-         simpl; rewrite H; auto.
-      -- simpl.
-         intros [H H0] i.
-         unfold return_same_value in H.
-         simpl.
-         rewrite (H i).
-         rewrite (norm_par f H0 i).
-         rewrite (normalize_preserves_length f).
-         trivial.
-  Qed.
-
-  Lemma normalize_preserves_decs:
-    forall (d: decKind) (s: String.string) (t: btree),
-      return_same_value t (normalize t) ->
-      return_same_value (Dec d s t) (normalize (Dec d s t)).
-  Proof.
-    induction d.
-    (* not case *)
-    + intros s t H i.
-      simpl.
-      destruct t.
-      -- simpl; auto.
-      -- simpl; auto.
-      -- rewrite (H i); simpl.
-         destruct n; simpl in H; rewrite <- H; trivial.
-      -- destruct d.
-         ++ simpl.
-            destruct (tick t i); simpl; trivial.
-         ++ rewrite (H i).
-            simpl; trivial.
-    (* isrunning case*)
-    + intros s t H i.
-      simpl; rewrite H; trivial.
-  Qed.
-
-  Theorem normalize_preserves_return_value:
-    forall t: btree, return_same_value t (normalize t).
-  Proof.
-    apply (btree_mind
-             (fun bt: btree => return_same_value bt (normalize bt))
-             (fun f: btforest => all_return_same_value f (normalize_forest f))).
-    - simpl; auto.
-    - simpl; auto.
-    - apply normalize_preserves_node.
-    - apply normalize_preserves_decs.
-    - destruct b; simpl; auto.
-    - destruct b; simpl; auto.
-  Qed.
-*)    
 End BT_gen_rsem.
 
 (* Program extraction for the behavior tree interpreter *)

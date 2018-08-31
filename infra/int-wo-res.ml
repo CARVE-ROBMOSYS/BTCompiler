@@ -87,12 +87,13 @@ let load_bt filename =
            match next_tag with
            | `El_start t2 ->
               (match (extract_node t2) with
-               | "BehaviorTree" -> if !bt = None then
-                                     bt := Some (input_bt i)
-                                   else
-                                     raise (Parsing "too many BehaviorTree tags")
+               | "BehaviorTree" ->
+                  if !bt = None then
+                    bt := Some (input_bt i)
+                  else
+                    raise (Parsing "too many BehaviorTree tags")
                | _ -> ());              (* unknown tags are silently ignored *)
-              discard_tag i 1
+              discard_tag i 1           (* jump to closing tag *)
            | _ -> raise (Parsing "ill-formed input file")
          done;
          close_in input_ch;
@@ -110,8 +111,8 @@ let load_bt filename =
                              exit 1
   | Parsing s -> Printf.eprintf "BT parsing error: %s\n" s;
                  exit 1
-  (* Invalid_argument is raised (among other places...) when you pass to
-     Skills.skill_id a string which does not correspond to any skill *)
+  (* Invalid_argument is raised when you pass to Skills.skill_id a string 
+     which does not correspond to any skill *)
   | Invalid_argument s -> Printf.eprintf "Error: %s\n" s;
                           exit 1
 

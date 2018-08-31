@@ -2,9 +2,10 @@
    and writes the corresponding definitions needed for the BT interpreter
    in the OCaml module "skills.ml". 
 
-Possible improvements:
-[ ] accept more than one input file (concatenating the resulting lists)
-[ ] relax the syntax of the input file by ignoring unknown top-level tags
+   Possible improvements:
+   * accept more than one input file (concatenating the resulting lists)
+   * relax the syntax of the input file by ignoring unknown top-level tags
+     (this allows e.g. having the skill list and the BT in a single file)
 *)
 
 open Utils

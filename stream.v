@@ -1,7 +1,7 @@
 
-(* In this file we realize the operational semantics for BTs as programs
-   specified in the Gallina language. In other words, we define a
-   shallow embedding of the BT language in the type theory used by Coq. *)
+(* This is a variation of the basic operational semantics for BTs in which
+   the tick function operates on a stream of return values. This makes it
+   possible to model repeated ticking of a BT. *)
 
 Require Import Arith Streams.
 Require Import bt.
@@ -15,8 +15,6 @@ Module BT_bin_str_sem (X: BT_SIG).
   Inductive return_enum := Runn | Fail | Succ.
 
   Definition skills_input := X.skillSet -> return_enum.
-  (* A term of this type encapsulates a returns value for each skill
-     at the instant of time in which the tick is executed. *)
 
   Definition input_stream := Stream skills_input.
 
@@ -200,7 +198,7 @@ Module BT_gen_str_sem (X: BT_SIG).
                         end
     end.
 
-  (* single tick evaluation, discarding the input_stream *)
+  (* Single tick evaluation, discarding the input_stream *)
   
   Fixpoint tick (t: btree) (i: input_stream) :=
     match t with

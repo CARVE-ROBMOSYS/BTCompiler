@@ -1,6 +1,6 @@
 
-(* In this file we realize the operational semantics for BTs as programs
-   specified in the Gallina language. In other words, we define a
+(* In this file we realize the basic operational semantics for BTs as a
+   program specified in the Gallina language. In other words, we define a
    shallow embedding of the BT language in the type theory used by Coq. *)
 
 Require Import Arith.
@@ -73,6 +73,8 @@ Module BT_bin_semantics (X: BT_SIG).
   Definition return_same_value (a: btree) (b: btree): Prop :=
     forall i: skills_input, (tick a i) = (tick b i).
 
+  (* Proof of a simple result concerning associativity of binary nodes *)
+  
   Theorem all_nodes_are_associative:
     forall k: nodeKind,
     forall s s' s'': String.string,
@@ -105,6 +107,8 @@ Module BT_gen_semantics (X: BT_SIG).
   Inductive return_enum := Runn | Fail | Succ.
 
   Definition skills_input := X.skillSet -> return_enum.
+  (* A term of this type encapsulates a returns value for each skill
+     at the instant of time in which the tick is executed. *)
 
   Fixpoint countSucc (l: list return_enum) :=
     match l with
@@ -176,6 +180,9 @@ Module BT_gen_semantics (X: BT_SIG).
          | Add t1 rest => cons (tick t1 input_f) (tick_all rest input_f)
          end.
 
+  (* As an application, we prove that applying the normalize function
+     to a BT does not alter its return value. *)
+  
   Definition return_same_value (t1 t2: btree) :=
     forall i: skills_input, (tick t1 i) = (tick t2 i).
 
