@@ -31,8 +31,6 @@ Definition sc1 :=
               (Node Sequence "find_and_fetch" (Skill sk2) (Skill sk3)))
         (Skill sk4)).
 
-Compute count_skills sc1. 
-
 (* execution examples *)
 
 Compute (tick sc1 (fun s: my_skills =>
@@ -134,5 +132,21 @@ Compute tick2 (Node Sequence "s1" (Skill sk1)
 Compute reptick (Node Sequence "s1" (Skill sk1)
                       (Node Sequence "s2" (Skill sk2) (Skill sk3)))
         3 s1.
+
+(* SMV specifications *)
+
+Require Import spec_extr bt2spec.
+
+Module spec := BT_bin_spec ex_skills.
+
+Import spec.
+
+Definition uc1 :=
+  (Node Fallback "do_with_help"
+        (Node Sequence "go_and_fetch" (Skill sk1)
+              (Node Sequence "find_and_fetch" (Skill sk2) (Skill sk3)))
+        (Skill sk4)).
+
+Compute translate_spec (make_spec uc1).
 
 

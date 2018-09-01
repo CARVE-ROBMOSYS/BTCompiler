@@ -148,3 +148,19 @@ Compute reptick (Node Sequence "prova" (Add (Skill sk1)
                                                  (Child (Skill sk3)))))
         3 s1.
 
+(* SMV specifications *)
+
+Require Import spec_extr bt2spec.
+
+Module spec := BT_gen_spec ex_skills.
+
+Import spec.
+
+Definition uc1 :=
+  (Node Fallback "do_with_help"
+        (Add (Node Sequence "go_find_fetch" (Add (Skill sk1)
+                                                 (Add (Skill sk2)
+                                                      (Child (Skill sk3)))))
+             (Child (Skill sk4)))).
+
+Compute translate_spec (make_spec uc1).
