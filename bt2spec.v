@@ -301,10 +301,129 @@ Module BT_bin_spec (X: BT_SIG).
                   vars))
        ::nil).
 
+  (* Modules for OCRA inteface *)
+
+  Fixpoint mkop (lst: list X.skillSet) :=
+    match lst with
+    | nil => nil
+    | s :: rest => cons ("from_" ++ (X.skillName s)) (mkop rest)
+    end.
+    
+  Fixpoint mkov (lst: list X.skillSet) :=
+    match lst with
+    | nil => LastV "bt_main_inst" (TComp (TMod "bt_main"))
+    | s :: rest => AddV ("to_" ++ (X.skillName s))
+                        (TSimp bt_action_type)
+                        (mkov rest)
+    end.
+
+  Fixpoint mkot (lst: list X.skillSet) :=
+    match lst with
+    | nil => (* will never happen *)
+      (LastA (invar (Id "bt_main_inst") (BConst smvF)))
+    | s :: nil =>
+      (AddA
+         (invar (Mod "bt_main_inst"
+                     (Mod (X.skillName s)
+                          (Id "output")))
+                (Qual (Id ("from_" ++ (X.skillName s)))))
+         (LastA (invar (Id ("to_" ++ (X.skillName s)))
+                       (Case
+                          (AddCexp (Equal (Qual (Mod "bt_main_inst"
+                                                     (Mod (X.skillName s)
+                                                          (Id "enable"))))
+                                          (BConst smvT))
+                                   (SConst "Enable")
+                                   (Cexp (Equal (Qual (Mod "bt_main_inst"
+                                                           (Mod (X.skillName s)
+                                                                (Id "enable"))))
+                                                (BConst smvF))
+                                         (SConst "Reset")))))))
+    | s :: rest =>
+      (AddA
+         (invar (Mod "bt_main_inst"
+                     (Mod (X.skillName s)
+                          (Id "output")))
+                (Qual (Id ("from_" ++ (X.skillName s)))))
+         (AddA (invar (Id ("to_" ++ (X.skillName s)))
+                      (Case
+                         (AddCexp (Equal (Qual (Mod "bt_main_inst"
+                                                    (Mod (X.skillName s)
+                                                         (Id "enable"))))
+                                         (BConst smvT))
+                                  (SConst "Enable")
+                                  (Cexp (Equal (Qual (Mod "bt_main_inst"
+                                                          (Mod (X.skillName s)
+                                                               (Id "enable"))))
+                                               (BConst smvF))
+                                        (SConst "Reset")))))
+               (mkot rest)))
+    end.
+  
+  Definition ocra_bt_fsm (t: btree) :=
+    Build_smv_module
+      "BT_FSM"
+      (mkop (sklist t))
+      ((VAR (mkov (sklist t)))
+       ::
+       (ASSIGN (mkot (sklist t)))
+       ::nil).
+
+  Fixpoint mkparomain (l: list X.skillSet) :=
+    match l with
+    | nil => (* will never happen *)
+      LastP (Simple (Qual (Id "")))
+    | s :: nil =>
+      LastP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+    | s :: rest =>
+      AddP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+           (mkparomain rest)
+    end.
+
+  Fixpoint mkvaromain (lst: list X.skillSet) :=
+    match lst with
+    | nil => (* will never happen *)
+      LastV "" (TSimp bt_output_type)
+    | s :: nil =>
+      LastV ("from_" ++ (X.skillName s))
+            (TSimp bt_output_type)
+    | s :: rest =>
+      AddV ("from_" ++ (X.skillName s))
+           (TSimp bt_output_type)
+           (mkvaromain rest)
+    end.
+
+  Fixpoint mkdefomain (lst: list X.skillSet) :=
+    match lst with
+    | nil => (* will never happen *)
+      LastD "" (Qual (Id ""))
+    | s :: nil =>
+      LastD ("to_" ++ (X.skillName s))
+            (Qual (Mod "BT_FSM_inst"
+                       (Id ("to_" ++ (X.skillName s)))))
+    | s :: rest =>
+      AddD ("to_" ++ (X.skillName s))
+           (Qual (Mod "BT_FSM_inst"
+                      (Id ("to_" ++ (X.skillName s)))))
+           (mkdefomain rest)
+    end.
+  
+  Definition ocra_main (t: btree) :=
+    Build_smv_module
+      "main"
+      nil
+      ((VAR (AddV "BT_FSM_inst" (TComp (TModPar "BT_FSM"
+                                                (mkparomain (sklist t))))
+                  (mkvaromain (sklist t))))
+       ::
+       (DEFINE (mkdefomain (sklist t)))
+       ::
+       nil).
+
   Definition make_spec (t: btree) :=
-    bp_tick_generator :: bp_skill :: bp_TRUE ::
-    bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2 ::
-    bp_not :: bp_isRunning :: (make_main t) :: nil.
+    bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
+    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t)
+    :: (ocra_bt_fsm t) :: (ocra_main t) :: nil.
 
 End BT_bin_spec.
 
@@ -716,9 +835,9 @@ Module BT_gen_spec (X: BT_SIG).
     | nil => (* will never happen *)
       LastP (Simple (Qual (Id "")))
     | s :: nil =>
-      LastP (Simple (Qual (Id (X.skillName s))))
+      LastP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
     | s :: rest =>
-      AddP (Simple (Qual (Id (X.skillName s))))
+      AddP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
            (mkparomain rest)
     end.
 

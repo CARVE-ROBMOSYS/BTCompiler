@@ -1268,9 +1268,13 @@ module BT_gen_spec =
   | [] -> LastP (Simple (Qual (Id [])))
   | s :: rest ->
     (match rest with
-     | [] -> LastP (Simple (Qual (Id (X.skillName s))))
+     | [] ->
+       LastP (Simple (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))))
      | _ :: _ ->
-       AddP ((Simple (Qual (Id (X.skillName s)))), (mkparomain rest)))
+       AddP ((Simple (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s))))),
+         (mkparomain rest)))
 
   (** val mkvaromain : X.skillSet list -> varlist **)
 
