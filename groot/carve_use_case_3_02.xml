@@ -1,0 +1,65 @@
+<root>
+
+    <!-- This BT provides basic examples of sub-tree and parameters. -->
+
+    <BehaviorTree ID="GotoRoom">
+      <Fallback name="FallbackToHuman">
+        <Sequence name="TryToGoAutonomously">
+          <Condition ID="IsRoomKnown" room_name="${subtree.target_room}"/>
+          <Action ID="DriveToRoom" room_name="${subtree.target_room}"/>
+        </Sequence>
+        <Action ID="FollowHuman"/>
+      </Fallback>
+      <Parameter label="target_room" type="String"/>
+    </BehaviorTree>
+
+    <BehaviorTree ID="FindAndFetchObject">
+      <Sequence name="first_find_then_fetch">
+        <Action ID="FindObject" target_object="${subtree.target_object}"/>
+        <Action ID="FetchObject" target_object="${subtree.target_object}"/>
+      </Sequence>
+      <Parameter label="target_object" type="String"/>
+    </BehaviorTree>
+
+    <BehaviorTree ID="MainTree">
+      <Fallback name="root_Fallback">
+        <Sequence name="PrepareDrink">
+          <SubTree ID="GotoRoom" target_room="Kitchen"/>
+          <SubTree ID="FindAndFetchObject" target_object="bottle"/>
+          <SubTree ID="FindAndFetchObject" target_object="glass"/>
+          <Action ID="PourDrink"/>
+        </Sequence>
+        <Action ID="AskForHelp"/>
+      </Fallback>
+    </BehaviorTree>
+
+    <TreeNodesModel>
+
+      <Condition ID="IsRoomKnown">
+        <Parameter label="room_name" type="String"/>
+      </Condition>
+
+      <Action ID="FindObject">
+        <Parameter label="target_object" type="String"/>
+      </Action>
+      <Action ID="FetchObject">
+        <Parameter label="target_object" type="String"/>
+      </Action>
+      <Action ID="DriveToRoom">
+        <Parameter label="room_name" type="String"/>
+      </Action>
+      <Action ID="FollowHuman"/>
+      <Action ID="AskForHelp"/>
+      <Action ID="FindBottle"/>
+      <Action ID="FetchBottle"/>
+      <Action ID="FindGlass"/>
+      <Action ID="FetchGlass"/>
+      <Action ID="PourDrink"/>
+
+      <SubTree ID="FindAndFetchObject"/>
+
+
+  </TreeNodesModel>
+
+</root>
+

@@ -1,0 +1,39 @@
+<root>
+
+  <!-- This is the simplest form of BT, i.e. no-parameter, no-subtrees. -->
+
+    <BehaviorTree ID="MainTree">
+        <Fallback name="root_Fallback">
+          <Sequence name="PrepareDrink">
+            <Fallback name="FallbackToHuman">
+              <Sequence name="TryToGoAutonomously">
+                <Condition ID="IsKitchenKnown"/>
+                <Action ID="GotoKitchen"/>
+              </Sequence>
+              <Action ID="FollowHuman"/>
+            </Fallback>
+            <Action ID="FindBottle"/>
+            <Action ID="FetchBottle"/>
+            <Action ID="FindGlass"/>
+            <Action ID="FetchGlass"/>
+            <Action ID="PourDrink"/>
+          </Sequence>
+          <Action ID="AskForHelp"/>
+        </Fallback>
+    </BehaviorTree>
+
+    <TreeNodesModel>
+      <Condition ID="IsKitchenKnown"/>
+      <Action ID="GotoKitchen"/>
+      <Action ID="FollowHuman"/>
+      <Action ID="AskForHelp"/>
+      <Action ID="FindBottle"/>
+      <Action ID="FetchBottle"/>
+      <Action ID="FindGlass"/>
+      <Action ID="FetchGlass"/>
+      <Action ID="PourDrink"/>
+  </TreeNodesModel>
+
+</root>
+
+

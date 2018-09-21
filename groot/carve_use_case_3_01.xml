@@ -1,0 +1,49 @@
+<root>
+
+    <!-- This BT provides basic examples of sub-tree and parameters. -->
+
+    <BehaviorTree ID="ReachKitchen">
+      <Fallback name="FallbackToHuman">
+        <Sequence name="TryToGoAutonomously">
+          <Condition ID="IsRoomKnown" room_name="Kitchen"/>
+          <Action ID="GotoRoom" room_name="Kitchen"/>
+        </Sequence>
+        <Action ID="FollowHuman"/>
+      </Fallback>
+    </BehaviorTree>
+
+    <BehaviorTree ID="MainTree">
+        <Fallback name="root_Fallback">
+          <Sequence name="PrepareDrink">
+            <SubTree ID="ReachKitchen"/>
+            <Action ID="FindBottle"/>
+            <Action ID="FetchBottle"/>
+            <Action ID="FindGlass"/>
+            <Action ID="FetchGlass"/>
+            <Action ID="PourDrink"/>
+          </Sequence>
+          <Action ID="AskForHelp"/>
+        </Fallback>
+    </BehaviorTree>
+
+    <TreeNodesModel>
+
+      <Condition ID="IsRoomKnown">
+        <Parameter label="room_name" type="String"/>
+      </Condition>
+
+      <Action ID="GotoRoom">
+        <Parameter label="room_name" type="String"/>
+      </Action>
+      <Action ID="FollowHuman"/>
+      <Action ID="AskForHelp"/>
+      <Action ID="FindBottle"/>
+      <Action ID="FetchBottle"/>
+      <Action ID="FindGlass"/>
+      <Action ID="FetchGlass"/>
+      <Action ID="PourDrink"/>
+
+  </TreeNodesModel>
+
+</root>
+
