@@ -109,23 +109,28 @@ Fixpoint translate_asslist (al: asslist) :=
   | AddA c rest => translate_assign_cons c ++ translate_asslist rest
   end.
 
-Definition translate_smv_element (e: smv_element) :=
-  match e with
-  | VAR vl => "VAR" ++ newline ++ translate_varlist vl
-  | IVAR il => "IVAR" ++ newline ++ translate_ivarlist il
-  | DEFINE dl => "DEFINE" ++ newline ++ translate_deflist dl
-  | ASSIGN al => "ASSIGN" ++ newline ++ translate_asslist al
-  end.
-
-Fixpoint translate_body (b: list smv_element) :=
-  match b with
-  | nil => ""
-  | cons e rest => translate_smv_element e ++ translate_body rest
-  end.
-
 Definition translate (m: smv_module) :=
-  "MODULE " ++ (name m) ++ "(" ++ (concat ", " (params m)) ++ ")" ++ newline
-  ++ translate_body (body m) ++ newline.
+  "MODULE "
+    ++ (name m)
+    ++ "(" ++ (concat ", " (params m)) ++ ")"
+    ++ newline
+    ++ match vars m with
+       | Some vl => "VAR" ++ newline ++ translate_varlist vl
+       | None => ""
+       end
+    ++ match ivars m with
+       | Some il => "IVAR" ++ newline ++ translate_ivarlist il
+       | None => ""
+       end
+    ++ match defs m with
+       | Some dl => "DEFINE" ++ newline ++ translate_deflist dl
+       | None => ""
+       end
+    ++ match assigns m with
+       | Some al => "ASSIGN" ++ newline ++ translate_asslist al
+       | None => ""
+       end
+    ++ newline.
 
 Fixpoint translate_spec (f: smv_spec) :=
   match f with

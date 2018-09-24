@@ -85,20 +85,21 @@ type asslist =
 | LastA of assign_cons
 | AddA of assign_cons * asslist
 
-type smv_element =
-| VAR of varlist
-| IVAR of ivarlist
-| DEFINE of deflist
-| ASSIGN of asslist
-
 type smv_module = { name : identifier; params : identifier list;
-                    body : smv_element list }
+                    vars : varlist option; ivars : ivarlist option;
+                    defs : deflist option; assigns : asslist option }
 
 val name : smv_module -> identifier
 
 val params : smv_module -> identifier list
 
-val body : smv_module -> smv_element list
+val vars : smv_module -> varlist option
+
+val ivars : smv_module -> ivarlist option
+
+val defs : smv_module -> deflist option
+
+val assigns : smv_module -> asslist option
 
 type smv_spec = smv_module list
 
@@ -134,15 +135,13 @@ val translate_assign_cons : assign_cons -> char list
 
 val translate_asslist : asslist -> char list
 
-val translate_smv_element : smv_element -> char list
-
-val translate_body : smv_element list -> char list
-
 val translate : smv_module -> char list
 
 val translate_spec : smv_spec -> char list
 
 val bt_output_type : simp_type_spec
+
+val bt_action_type : simp_type_spec
 
 val bp_tick_generator : smv_module
 
@@ -210,6 +209,22 @@ module BT_bin_spec :
   val make_vars : btree -> varlist
 
   val make_main : btree -> smv_module
+
+  val mkop : X.skillSet list -> char list list
+
+  val mkov : X.skillSet list -> varlist
+
+  val mkot : X.skillSet list -> asslist
+
+  val ocra_bt_fsm : btree -> smv_module
+
+  val mkparomain : X.skillSet list -> param_list
+
+  val mkvaromain : X.skillSet list -> varlist
+
+  val mkdefomain : X.skillSet list -> deflist
+
+  val ocra_main : btree -> smv_module
 
   val make_spec : btree -> smv_module list
  end

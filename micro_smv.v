@@ -80,17 +80,15 @@ Inductive asslist :=
 | LastA: assign_cons -> asslist
 | AddA: assign_cons -> asslist -> asslist.
 
-(* general element of an SMV module *)
-Inductive smv_element :=
-| VAR: varlist -> smv_element
-| IVAR: ivarlist -> smv_element
-| DEFINE: deflist -> smv_element
-| ASSIGN: asslist -> smv_element.
-
+(* microSMV module *)
 Record smv_module: Set :=
   { name: identifier;
     params: list identifier;
-    body: list smv_element }.
+    vars: option varlist;
+    ivars: option ivarlist;
+    defs: option deflist;
+    assigns: option asslist
+  }.
 
 Definition smv_spec := list smv_module.
 

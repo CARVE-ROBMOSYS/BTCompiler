@@ -102,14 +102,9 @@ type asslist =
 | LastA of assign_cons
 | AddA of assign_cons * asslist
 
-type smv_element =
-| VAR of varlist
-| IVAR of ivarlist
-| DEFINE of deflist
-| ASSIGN of asslist
-
 type smv_module = { name : identifier; params : identifier list;
-                    body : smv_element list }
+                    vars : varlist option; ivars : ivarlist option;
+                    defs : deflist option; assigns : asslist option }
 
 (** val name : smv_module -> identifier **)
 
@@ -119,9 +114,21 @@ let name x = x.name
 
 let params x = x.params
 
-(** val body : smv_module -> smv_element list **)
+(** val vars : smv_module -> varlist option **)
 
-let body x = x.body
+let vars x = x.vars
+
+(** val ivars : smv_module -> ivarlist option **)
+
+let ivars x = x.ivars
+
+(** val defs : smv_module -> deflist option **)
+
+let defs x = x.defs
+
+(** val assigns : smv_module -> asslist option **)
+
+let assigns x = x.assigns
 
 type smv_spec = smv_module list
 
@@ -298,27 +305,6 @@ let rec translate_asslist = function
 | LastA c -> translate_assign_cons c
 | AddA (c, rest) -> append (translate_assign_cons c) (translate_asslist rest)
 
-(** val translate_smv_element : smv_element -> char list **)
-
-let translate_smv_element = function
-| VAR vl ->
-  append ('V'::('A'::('R'::[]))) (append newline (translate_varlist vl))
-| IVAR il ->
-  append ('I'::('V'::('A'::('R'::[]))))
-    (append newline (translate_ivarlist il))
-| DEFINE dl ->
-  append ('D'::('E'::('F'::('I'::('N'::('E'::[]))))))
-    (append newline (translate_deflist dl))
-| ASSIGN al ->
-  append ('A'::('S'::('S'::('I'::('G'::('N'::[]))))))
-    (append newline (translate_asslist al))
-
-(** val translate_body : smv_element list -> char list **)
-
-let rec translate_body = function
-| [] -> []
-| e :: rest -> append (translate_smv_element e) (translate_body rest)
-
 (** val translate : smv_module -> char list **)
 
 let translate m =
@@ -327,7 +313,31 @@ let translate m =
       (append ('('::[])
         (append (concat (','::(' '::[])) m.params)
           (append (')'::[])
-            (append newline (append (translate_body m.body) newline))))))
+            (append newline
+              (append
+                (match m.vars with
+                 | Some vl ->
+                   append ('V'::('A'::('R'::[])))
+                     (append newline (translate_varlist vl))
+                 | None -> [])
+                (append
+                  (match m.ivars with
+                   | Some il ->
+                     append ('I'::('V'::('A'::('R'::[]))))
+                       (append newline (translate_ivarlist il))
+                   | None -> [])
+                  (append
+                    (match m.defs with
+                     | Some dl ->
+                       append ('D'::('E'::('F'::('I'::('N'::('E'::[]))))))
+                         (append newline (translate_deflist dl))
+                     | None -> [])
+                    (append
+                      (match m.assigns with
+                       | Some al ->
+                         append ('A'::('S'::('S'::('I'::('G'::('N'::[]))))))
+                           (append newline (translate_asslist al))
+                       | None -> []) newline)))))))))
 
 (** val translate_spec : smv_spec -> char list **)
 
@@ -341,6 +351,12 @@ let bt_output_type =
   TEnum
     (('n'::('o'::('n'::('e'::[])))) :: (('r'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))) :: (('f'::('a'::('i'::('l'::('e'::('d'::[])))))) :: (('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))) :: []))))
 
+(** val bt_action_type : simp_type_spec **)
+
+let bt_action_type =
+  TEnum
+    (('E'::('n'::('a'::('b'::('l'::('e'::[])))))) :: (('R'::('e'::('s'::('e'::('t'::[]))))) :: []))
+
 (** val bp_tick_generator : smv_module **)
 
 let bp_tick_generator =
@@ -348,7 +364,8 @@ let bp_tick_generator =
     ('b'::('t'::('_'::('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[])))))))))))))))));
     params =
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))) :: []);
-    body = ((ASSIGN (AddA ((Init ((Mod
+    vars = None; ivars = None; defs = None; assigns = (Some (AddA ((Init
+    ((Mod
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))),
     (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (BConst SmvT))),
     (LastA (Next ((Mod
@@ -357,36 +374,34 @@ let bp_tick_generator =
     ((Qual (Mod
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))),
     (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-    ('n'::('o'::('n'::('e'::[]))))))))))))))) :: []) }
+    ('n'::('o'::('n'::('e'::[]))))))))))))))) }
 
 (** val bp_skill : smv_module **)
 
 let bp_skill =
   { name = ('b'::('t'::('_'::('s'::('k'::('i'::('l'::('l'::[]))))))));
-    params = []; body = ((VAR (AddV
+    params = []; vars = (Some (AddV
     (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (TSimp bt_output_type),
-    (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
-    TBool)))))) :: []) }
+    (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp TBool))))));
+    ivars = None; defs = None; assigns = None }
 
 (** val bp_TRUE : smv_module **)
 
 let bp_TRUE =
   { name = ('b'::('t'::('_'::('T'::('R'::('U'::('E'::[]))))))); params = [];
-    body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
-    TBool)))) :: ((DEFINE (LastD
+    vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
+    TBool)))); ivars = None; defs = (Some (LastD
     (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (SConst
-    ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))))))) :: [])) }
+    ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[])))))))))))));
+    assigns = None }
 
 (** val bp_not : smv_module **)
 
 let bp_not =
   { name = ('b'::('t'::('_'::('n'::('o'::('t'::[])))))); params =
     (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))) :: []);
-    body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
-    TBool)))) :: ((ASSIGN (LastA (Invar ((Mod
-    (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) :: ((DEFINE (LastD
+    vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
+    TBool)))); ivars = None; defs = (Some (LastD
     (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp ((Equal
     ((Qual (Mod (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))),
     (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
@@ -399,7 +414,11 @@ let bp_not =
     (SConst ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))), (Cexp ((BConst
     SmvT), (Qual (Mod
     (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
-    ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))))) :: []))) }
+    ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))))); assigns =
+    (Some (LastA (Invar ((Mod
+    (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
+    ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+    ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) }
 
 (** val bp_isRunning : smv_module **)
 
@@ -408,11 +427,8 @@ let bp_isRunning =
     ('b'::('t'::('_'::('i'::('s'::('R'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))))))));
     params =
     (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))) :: []);
-    body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
-    TBool)))) :: ((ASSIGN (LastA (Invar ((Mod
-    (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) :: ((DEFINE (LastD
+    vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp
+    TBool)))); ivars = None; defs = (Some (LastD
     (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp ((Equal
     ((Qual (Mod (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))),
     (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
@@ -423,7 +439,11 @@ let bp_isRunning =
     ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
     ('n'::('o'::('n'::('e'::[]))))))), (SConst
     ('n'::('o'::('n'::('e'::[]))))), (Cexp ((BConst SmvT), (SConst
-    ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))))))))))) :: []))) }
+    ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))))))))))); assigns = (Some
+    (LastA (Invar ((Mod
+    (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
+    ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+    ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) }
 
 module BT_bin_spec =
  functor (X:BT_SIG) ->
@@ -511,8 +531,17 @@ module BT_bin_spec =
       ('b'::('t'::('_'::('s'::('e'::('q'::('u'::('e'::('n'::('c'::('e'::[])))))))))));
       params =
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))) :: (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))) :: []));
-      body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
-      (TSimp TBool)))) :: ((ASSIGN (AddA ((Invar ((Mod
+      vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
+      (TSimp TBool)))); ivars = None; defs = (Some (LastD
+      (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp ((Equal
+      ((Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
+      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
+      ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[])))))))))))),
+      (Qual (Mod (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))),
+      (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (Cexp ((BConst
+      SmvT), (Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))),
+      (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))); assigns =
+      (Some (AddA ((Invar ((Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
       ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
       ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
@@ -520,16 +549,7 @@ module BT_bin_spec =
       ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Equal ((Qual (Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
       ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-      ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[])))))))))))))))))) :: ((DEFINE
-      (LastD (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp
-      ((Equal ((Qual (Mod
-      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
-      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-      ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[])))))))))))),
-      (Qual (Mod (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))),
-      (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (Cexp ((BConst
-      SmvT), (Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))),
-      (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))) :: []))) }
+      ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[])))))))))))))))))) }
 
   (** val bp_bin_fb : smv_module **)
 
@@ -538,8 +558,17 @@ module BT_bin_spec =
       ('b'::('t'::('_'::('f'::('a'::('l'::('l'::('b'::('a'::('c'::('k'::[])))))))))));
       params =
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))) :: (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))) :: []));
-      body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
-      (TSimp TBool)))) :: ((ASSIGN (AddA ((Invar ((Mod
+      vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
+      (TSimp TBool)))); ivars = None; defs = (Some (LastD
+      (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp ((Equal
+      ((Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
+      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
+      ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))), (Qual (Mod
+      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
+      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (Cexp ((BConst SmvT),
+      (Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
+      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))); assigns =
+      (Some (AddA ((Invar ((Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
       ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
       ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
@@ -547,16 +576,7 @@ module BT_bin_spec =
       ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Equal ((Qual (Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
       ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-      ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))))))))) :: ((DEFINE
-      (LastD (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Case (AddCexp
-      ((Equal ((Qual (Mod
-      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
-      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-      ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))), (Qual (Mod
-      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
-      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (Cexp ((BConst SmvT),
-      (Qual (Mod (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
-      ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))))))))))) :: []))) }
+      ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))))))))) }
 
   (** val bp_par1 : smv_module **)
 
@@ -565,14 +585,8 @@ module BT_bin_spec =
       ('b'::('t'::('_'::('p'::('a'::('r'::('a'::('l'::('l'::('e'::('l'::('1'::[]))))))))))));
       params =
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))) :: (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))) :: []));
-      body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
-      (TSimp TBool)))) :: ((ASSIGN (AddA ((Invar ((Mod
-      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
-      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))))) :: ((DEFINE (AddD
+      vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
+      (TSimp TBool)))); ivars = None; defs = (Some (AddD
       (('t'::('r'::('u'::('e'::('_'::('o'::('u'::('t'::('p'::('u'::('t'::('_'::('c'::('o'::('u'::('n'::('t'::[]))))))))))))))))),
       (Count (AddSexp ((Equal ((Qual (Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
@@ -600,7 +614,14 @@ module BT_bin_spec =
       ('f'::('a'::('i'::('l'::('_'::('o'::('u'::('t'::('p'::('u'::('t'::('_'::('c'::('o'::('u'::('n'::('t'::[]))))))))))))))))))))),
       (SConst ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))), (Cexp ((BConst
       SmvT), (SConst
-      ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[])))))))))))))))))))))) :: []))) }
+      ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))))))))))))))))));
+      assigns = (Some (AddA ((Invar ((Mod
+      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
+      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))))) }
 
   (** val bp_par2 : smv_module **)
 
@@ -609,14 +630,8 @@ module BT_bin_spec =
       ('b'::('t'::('_'::('p'::('a'::('r'::('a'::('l'::('l'::('e'::('l'::('2'::[]))))))))))));
       params =
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))) :: (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))) :: []));
-      body = ((VAR (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
-      (TSimp TBool)))) :: ((ASSIGN (AddA ((Invar ((Mod
-      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
-      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))))) :: ((DEFINE (AddD
+      vars = (Some (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))),
+      (TSimp TBool)))); ivars = None; defs = (Some (AddD
       (('t'::('r'::('u'::('e'::('_'::('o'::('u'::('t'::('p'::('u'::('t'::('_'::('c'::('o'::('u'::('n'::('t'::[]))))))))))))))))),
       (Count (AddSexp ((Equal ((Qual (Mod
       (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
@@ -644,7 +659,14 @@ module BT_bin_spec =
       ('f'::('a'::('i'::('l'::('_'::('o'::('u'::('t'::('p'::('u'::('t'::('_'::('c'::('o'::('u'::('n'::('t'::[]))))))))))))))))))))),
       (SConst ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))), (Cexp ((BConst
       SmvT), (SConst
-      ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[])))))))))))))))))))))) :: []))) }
+      ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))))))))))))))))));
+      assigns = (Some (AddA ((Invar ((Mod
+      (('l'::('e'::('f'::('t'::('_'::('b'::('t'::[]))))))), (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))), (LastA (Invar ((Mod
+      (('r'::('i'::('g'::('h'::('t'::('_'::('b'::('t'::[])))))))), (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))))) }
 
   (** val rootName : btree -> char list **)
 
@@ -694,16 +716,141 @@ module BT_bin_spec =
   (** val make_main : btree -> smv_module **)
 
   let make_main t =
-    let vars = make_vars t in
-    { name = ('m'::('a'::('i'::('n'::[])))); params = []; body = ((VAR (AddV
+    let vars0 = make_vars t in
+    { name = ('m'::('a'::('i'::('n'::[])))); params = []; vars = (Some (AddV
     (('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[])))))))))))))),
     (TComp (TModPar
     (('b'::('t'::('_'::('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[]))))))))))))))))),
-    (LastP (Simple (Qual (Id (rootName t)))))))), vars))) :: []) }
+    (LastP (Simple (Qual (Id (rootName t)))))))), vars0))); ivars = None;
+    defs = None; assigns = None }
+
+  (** val mkop : X.skillSet list -> char list list **)
+
+  let rec mkop = function
+  | [] -> []
+  | s :: rest ->
+    (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)) :: 
+      (mkop rest)
+
+  (** val mkov : X.skillSet list -> varlist **)
+
+  let rec mkov = function
+  | [] ->
+    LastV
+      (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+      (TComp (TMod ('b'::('t'::('_'::('m'::('a'::('i'::('n'::[]))))))))))
+  | s :: rest ->
+    AddV ((append ('t'::('o'::('_'::[]))) (X.skillName s)), (TSimp
+      bt_action_type), (mkov rest))
+
+  (** val mkot : X.skillSet list -> asslist **)
+
+  let rec mkot = function
+  | [] ->
+    LastA (Invar ((Id
+      ('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[]))))))))))))),
+      (BConst SmvF)))
+  | s :: rest ->
+    (match rest with
+     | [] ->
+       AddA ((Invar ((Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))))))), (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))))),
+         (LastA (Invar ((Id
+         (append ('t'::('o'::('_'::[]))) (X.skillName s))), (Case (AddCexp
+         ((Equal ((Qual (Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))), (BConst SmvT))),
+         (SConst ('E'::('n'::('a'::('b'::('l'::('e'::[]))))))), (Cexp ((Equal
+         ((Qual (Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))), (BConst SmvF))),
+         (SConst ('R'::('e'::('s'::('e'::('t'::[])))))))))))))))
+     | _ :: _ ->
+       AddA ((Invar ((Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))))))), (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))))),
+         (AddA ((Invar ((Id
+         (append ('t'::('o'::('_'::[]))) (X.skillName s))), (Case (AddCexp
+         ((Equal ((Qual (Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))), (BConst SmvT))),
+         (SConst ('E'::('n'::('a'::('b'::('l'::('e'::[]))))))), (Cexp ((Equal
+         ((Qual (Mod
+         (('b'::('t'::('_'::('m'::('a'::('i'::('n'::('_'::('i'::('n'::('s'::('t'::[])))))))))))),
+         (Mod ((X.skillName s), (Id
+         ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))), (BConst SmvF))),
+         (SConst ('R'::('e'::('s'::('e'::('t'::[]))))))))))))), (mkot rest)))))
+
+  (** val ocra_bt_fsm : btree -> smv_module **)
+
+  let ocra_bt_fsm t =
+    { name = ('B'::('T'::('_'::('F'::('S'::('M'::[])))))); params =
+      (mkop (sklist t)); vars = (Some (mkov (sklist t))); ivars = None;
+      defs = None; assigns = (Some (mkot (sklist t))) }
+
+  (** val mkparomain : X.skillSet list -> param_list **)
+
+  let rec mkparomain = function
+  | [] -> LastP (Simple (Qual (Id [])))
+  | s :: rest ->
+    (match rest with
+     | [] ->
+       LastP (Simple (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))))
+     | _ :: _ ->
+       AddP ((Simple (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s))))),
+         (mkparomain rest)))
+
+  (** val mkvaromain : X.skillSet list -> varlist **)
+
+  let rec mkvaromain = function
+  | [] -> LastV ([], (TSimp bt_output_type))
+  | s :: rest ->
+    (match rest with
+     | [] ->
+       LastV ((append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)),
+         (TSimp bt_output_type))
+     | _ :: _ ->
+       AddV ((append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)),
+         (TSimp bt_output_type), (mkvaromain rest)))
+
+  (** val mkdefomain : X.skillSet list -> deflist **)
+
+  let rec mkdefomain = function
+  | [] -> LastD ([], (Qual (Id [])))
+  | s :: rest ->
+    (match rest with
+     | [] ->
+       LastD ((append ('t'::('o'::('_'::[]))) (X.skillName s)), (Qual (Mod
+         (('B'::('T'::('_'::('F'::('S'::('M'::('_'::('i'::('n'::('s'::('t'::[]))))))))))),
+         (Id (append ('t'::('o'::('_'::[]))) (X.skillName s)))))))
+     | _ :: _ ->
+       AddD ((append ('t'::('o'::('_'::[]))) (X.skillName s)), (Qual (Mod
+         (('B'::('T'::('_'::('F'::('S'::('M'::('_'::('i'::('n'::('s'::('t'::[]))))))))))),
+         (Id (append ('t'::('o'::('_'::[]))) (X.skillName s)))))),
+         (mkdefomain rest)))
+
+  (** val ocra_main : btree -> smv_module **)
+
+  let ocra_main t =
+    { name = ('m'::('a'::('i'::('n'::[])))); params = []; vars = (Some (AddV
+      (('B'::('T'::('_'::('F'::('S'::('M'::('_'::('i'::('n'::('s'::('t'::[]))))))))))),
+      (TComp (TModPar (('B'::('T'::('_'::('F'::('S'::('M'::[])))))),
+      (mkparomain (sklist t))))), (mkvaromain (sklist t))))); ivars = None;
+      defs = (Some (mkdefomain (sklist t))); assigns = None }
 
   (** val make_spec : btree -> smv_module list **)
 
   let make_spec t =
-    bp_tick_generator :: (bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (
-      (make_main t) :: [])))))))))
+    bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
+      (make_main t) :: ((ocra_bt_fsm t) :: ((ocra_main t) :: [])))))))))))
  end

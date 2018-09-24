@@ -143,20 +143,21 @@ type asslist =
 | LastA of assign_cons
 | AddA of assign_cons * asslist
 
-type smv_element =
-| VAR of varlist
-| IVAR of ivarlist
-| DEFINE of deflist
-| ASSIGN of asslist
-
 type smv_module = { name : identifier; params : identifier list;
-                    body : smv_element list }
+                    vars : varlist option; ivars : ivarlist option;
+                    defs : deflist option; assigns : asslist option }
 
 val name : smv_module -> identifier
 
 val params : smv_module -> identifier list
 
-val body : smv_module -> smv_element list
+val vars : smv_module -> varlist option
+
+val ivars : smv_module -> ivarlist option
+
+val defs : smv_module -> deflist option
+
+val assigns : smv_module -> asslist option
 
 type smv_spec = smv_module list
 
@@ -191,10 +192,6 @@ val translate_deflist : deflist -> char list
 val translate_assign_cons : assign_cons -> char list
 
 val translate_asslist : asslist -> char list
-
-val translate_smv_element : smv_element -> char list
-
-val translate_body : smv_element list -> char list
 
 val translate : smv_module -> char list
 
