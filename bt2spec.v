@@ -280,18 +280,23 @@ Module BT_bin_spec (X: BT_SIG).
            x
     end.
 
-  Definition make_main (t: btree) :=
-    let vars := make_vars t in
+  Definition make_main (t: btree) (modname: string) :=
     Build_smv_module
-      "bt_main"
+      modname
       nil
-      (Some (AddV "tick_generator"
-                  (TComp (TModPar "bt_tick_generator"
-                                  (LastP (Simple (Qual (Id (rootName t)))))))
-                  vars))
+      (Some (varlist_rev
+               (AddV "tick_generator"
+                     (TComp (TModPar "bt_tick_generator"
+                                     (LastP (Simple (Qual (Id (rootName t)))))))
+                     (make_vars t))))
       None
       None
       None.
+
+  Definition make_spec (t: btree): list smv_module :=
+    bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2 ::
+    bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
+
 
   (* Modules for OCRA inteface *)
 
@@ -411,9 +416,9 @@ Module BT_bin_spec (X: BT_SIG).
       (Some (mkdefomain (sklist t)))
       None.
 
-  Definition make_spec (t: btree) :=
+  Definition make_spec_ocra (t: btree): list smv_module :=
     bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
-    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t)
+    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "bt_main")
     :: (ocra_bt_fsm t) :: (ocra_main t) :: nil.
 
 End BT_bin_spec.
@@ -731,18 +736,24 @@ Module BT_gen_spec (X: BT_SIG).
          | Add t1 rest => varlist_app (make_vars t1) (make_vars_f rest)
          end.
 
-  Definition make_main (t: btree) :=
-    let vars := make_vars t in
+  Definition make_main (t: btree) (modname: string) :=
     Build_smv_module
-      "bt_main"
+      modname
       nil
-      (Some (AddV "tick_generator"
-                  (TComp (TModPar "bt_tick_generator"
-                                  (LastP (Simple (Qual (Id (rootName t)))))))
-                  vars))
+      (Some (varlist_rev
+               (AddV "tick_generator"
+                     (TComp (TModPar "bt_tick_generator"
+                                     (LastP (Simple (Qual (Id (rootName t)))))))
+                     (make_vars t))))
       None
       None
       None.
+
+  Definition make_spec (t: btree): list smv_module :=
+    let needed := addmod t (empty_set modtype) in
+    let modlist := make_mod_list needed in
+    app modlist (bp_tick_generator :: (make_main t "main") :: nil).
+
 
   (* Modules for OCRA inteface *)
 
@@ -862,10 +873,10 @@ Module BT_gen_spec (X: BT_SIG).
       (Some (mkdefomain (sklist t)))
       None.
   
-  Definition make_spec (t: btree): list smv_module :=
+  Definition make_spec_ocra (t: btree): list smv_module :=
     let needed := addmod t (empty_set modtype) in
     let modlist := make_mod_list needed in
-    app modlist (bp_tick_generator :: (make_main t)
+    app modlist (bp_tick_generator :: (make_main t "bt_main")
                  :: (ocra_bt_fsm t) :: (ocra_main t) :: nil).
 
 End BT_gen_spec.

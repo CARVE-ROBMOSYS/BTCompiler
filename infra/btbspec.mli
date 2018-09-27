@@ -105,6 +105,8 @@ type smv_spec = smv_module list
 
 val varlist_app : varlist -> varlist -> varlist
 
+val varlist_rev : varlist -> varlist
+
 val newline : char list
 
 val translate_qualid : qualid -> identifier
@@ -208,7 +210,9 @@ module BT_bin_spec :
 
   val make_vars : btree -> varlist
 
-  val make_main : btree -> smv_module
+  val make_main : btree -> char list -> smv_module
+
+  val make_spec : btree -> smv_module list
 
   val mkop : X.skillSet list -> char list list
 
@@ -226,5 +230,5 @@ module BT_bin_spec :
 
   val ocra_main : btree -> smv_module
 
-  val make_spec : btree -> smv_module list
+  val make_spec_ocra : btree -> smv_module list
  end

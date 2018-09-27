@@ -97,5 +97,12 @@ Definition smv_spec := list smv_module.
 Fixpoint varlist_app (a b: varlist) :=
   match a with
   | LastV v t => AddV v t b
-  | AddV v t c => AddV v t (varlist_app c b)
+  | AddV v t rest => AddV v t (varlist_app rest b)
+  end.
+
+Fixpoint varlist_rev (a: varlist) :=
+  match a with
+  | LastV v t => LastV v t
+  | AddV v t rest => varlist_app (varlist_rev rest)
+                                 (LastV v t)
   end.

@@ -349,39 +349,60 @@ let make_comp_skill skname =
 (* Main program *)
 
 let _ =
-  let argc = Array.length Sys.argv in
-  if argc <> 2 then begin
+  let standalone = ref false in
+  let filename = ref "" in
+  let arg_list =
+    ["-s", Arg.Set standalone, " Produce a standalone SMV specification"] in
+  let arg_usage = "Usage: mkspec [-s] filename" in
+  let set_filename s =
+    if !filename = "" then filename := s
+    else
+      begin
+        Printf.printf "Too many arguments on the command line\n";
+        exit 1
+      end
+  in
+  Arg.parse arg_list set_filename arg_usage;
+  if !filename = "" then
+    begin
       Printf.printf "Please specify an input XML file\n";
       exit 1
     end
-  else
-    let bt = load_bt Sys.argv.(1) in   (* has its own error management *)
+  else                              (* parameters are ok *)
+    let bt = load_bt !filename in   (* load_bt has its own error management *)
     try
       (* Part 1: generation of the SMV module describing the FSM equivalent
          to the loaded BT *)
 
-      let trunk = Filename.remove_extension Sys.argv.(1) in
-      let smv_spec = translate_spec (Btree.make_spec bt) in
+      let trunk = Filename.remove_extension !filename in
       let smv_filename = String.concat "" [trunk; ".smv"] in
       let smv_outfile = open_out smv_filename in
+      let smv_spec =
+        if !standalone then
+          translate_spec (Btree.make_spec bt)
+        else
+          translate_spec (Btree.make_spec_ocra bt)
+      in
       output_string smv_outfile (camlstring_of_coqstring smv_spec);
       close_out smv_outfile;
       
       (* Part 2: generation of the OSS specification describing the whole
          system (BT + skills + environment) *)
 
-      let skill_list = skills_to_names (Btree.sklist bt) in
-      let components_list = [make_comp_system skill_list;
-                             make_comp_bt skill_list;
-                             make_comp_robot skill_list]
-                            @ List.map make_comp_skill skill_list in
-      let oss_spec = String.concat "\n" components_list in
-      let oss_filename = String.concat "" [trunk; ".oss"] in
-      let oss_outfile = open_out oss_filename in
-      output_string oss_outfile oss_spec;
-      close_out oss_outfile;
-
-      exit 0
+      if !standalone then
+        exit 0
+      else
+        let skill_list = skills_to_names (Btree.sklist bt) in
+        let components_list = [make_comp_system skill_list;
+                               make_comp_bt skill_list;
+                               make_comp_robot skill_list]
+                              @ List.map make_comp_skill skill_list in
+        let oss_spec = String.concat "\n" components_list in
+        let oss_filename = String.concat "" [trunk; ".oss"] in
+        let oss_outfile = open_out oss_filename in
+        output_string oss_outfile oss_spec;
+        close_out oss_outfile;
+        exit 0
     with
       Sys_error s -> Printf.eprintf "System error: %s\n" s;
                      exit 2

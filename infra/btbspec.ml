@@ -137,7 +137,13 @@ type smv_spec = smv_module list
 let rec varlist_app a b =
   match a with
   | LastV (v, t) -> AddV (v, t, b)
-  | AddV (v, t, c) -> AddV (v, t, (varlist_app c b))
+  | AddV (v, t, rest) -> AddV (v, t, (varlist_app rest b))
+
+(** val varlist_rev : varlist -> varlist **)
+
+let rec varlist_rev = function
+| LastV (v, t) -> LastV (v, t)
+| AddV (v, t, rest) -> varlist_app (varlist_rev rest) (LastV (v, t))
 
 (** val newline : char list **)
 
@@ -713,16 +719,22 @@ module BT_bin_spec =
     AddV (name0, (TComp (TModPar ((decName d), (LastP (Simple (Qual (Id
     (rootName t0)))))))), x)
 
-  (** val make_main : btree -> smv_module **)
+  (** val make_main : btree -> char list -> smv_module **)
 
-  let make_main t =
-    let vars0 = make_vars t in
-    { name = ('m'::('a'::('i'::('n'::[])))); params = []; vars = (Some (AddV
-    (('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[])))))))))))))),
-    (TComp (TModPar
-    (('b'::('t'::('_'::('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[]))))))))))))))))),
-    (LastP (Simple (Qual (Id (rootName t)))))))), vars0))); ivars = None;
-    defs = None; assigns = None }
+  let make_main t modname =
+    { name = modname; params = []; vars = (Some
+      (varlist_rev (AddV
+        (('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[])))))))))))))),
+        (TComp (TModPar
+        (('b'::('t'::('_'::('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[]))))))))))))))))),
+        (LastP (Simple (Qual (Id (rootName t)))))))), (make_vars t)))));
+      ivars = None; defs = None; assigns = None }
+
+  (** val make_spec : btree -> smv_module list **)
+
+  let make_spec t =
+    bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
+      (make_main t ('m'::('a'::('i'::('n'::[]))))) :: [])))))))))
 
   (** val mkop : X.skillSet list -> char list list **)
 
@@ -848,9 +860,10 @@ module BT_bin_spec =
       (mkparomain (sklist t))))), (mkvaromain (sklist t))))); ivars = None;
       defs = (Some (mkdefomain (sklist t))); assigns = None }
 
-  (** val make_spec : btree -> smv_module list **)
+  (** val make_spec_ocra : btree -> smv_module list **)
 
-  let make_spec t =
+  let make_spec_ocra t =
     bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
-      (make_main t) :: ((ocra_bt_fsm t) :: ((ocra_main t) :: [])))))))))))
+      (make_main t ('b'::('t'::('_'::('m'::('a'::('i'::('n'::[])))))))) :: (
+      (ocra_bt_fsm t) :: ((ocra_main t) :: [])))))))))))
  end
