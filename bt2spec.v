@@ -462,18 +462,20 @@ Module BT_gen_spec (X: BT_SIG).
     | Dec _ n _ => n
     end.
 
-  (* NOTE: this works only for n<100 ! *)
+  Definition string_of_digit (n: nat) :=
+    (String (Ascii.ascii_of_nat (n + 48)) EmptyString).
+
   Definition string_of_nat (n: nat) :=
-    if n <? 10 then
-      (String (Ascii.ascii_of_nat (n + 48))
-              EmptyString)
-    else if n<? 100 then
-           let (q,r) := (n / 10, n mod 10) in
-           (String (Ascii.ascii_of_nat (q + 48))
-                   (String (Ascii.ascii_of_nat (r + 48))
-                           EmptyString))
-         else
-           "100".
+    (fix rec_string_of_nat (i n: nat) (acc: string): string :=
+       let d := string_of_digit (n mod 10) in
+       let acc' := d ++ acc in
+       match i with
+       | 0 => acc'
+       | S p => match n / 10 with
+                | 0 => acc'
+                | n' => rec_string_of_nat p n' acc'
+                end
+       end) n n "".
 
   Definition nodeName (k: nodeKind) (n: nat) :=
     match k with

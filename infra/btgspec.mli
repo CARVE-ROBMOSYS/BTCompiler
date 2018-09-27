@@ -13,10 +13,6 @@ module Nat :
 
   val eqb : int -> int -> bool
 
-  val leb : int -> int -> bool
-
-  val ltb : int -> int -> bool
-
   val divmod : int -> int -> int -> int -> int * int
 
   val div : int -> int -> int
@@ -286,6 +282,8 @@ module BT_gen_spec :
   val normalize_forest : btforest -> btforest
 
   val rootName : btree -> char list
+
+  val string_of_digit : int -> char list
 
   val string_of_nat : int -> char list
 

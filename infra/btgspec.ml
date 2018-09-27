@@ -50,23 +50,6 @@ module Nat =
         m)
       n0
 
-  (** val leb : int -> int -> bool **)
-
-  let rec leb n0 m =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> true)
-      (fun n' ->
-      (fun fO fS n -> if n=0 then fO () else fS (n-1))
-        (fun _ -> false)
-        (fun m' -> leb n' m')
-        m)
-      n0
-
-  (** val ltb : int -> int -> bool **)
-
-  let ltb n0 m =
-    leb (succ n0) m
-
   (** val divmod : int -> int -> int -> int -> int * int **)
 
   let rec divmod x y q u =
@@ -830,53 +813,38 @@ module BT_gen_spec =
   | Node (_, n0, _) -> n0
   | Dec (_, n0, _) -> n0
 
+  (** val string_of_digit : int -> char list **)
+
+  let string_of_digit n0 =
+    (ascii_of_nat
+      (add n0 (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
+        (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
+        (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
+        (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
+        (succ (succ (succ (succ (succ
+        0))))))))))))))))))))))))))))))))))))))))))))))))))::[]
+
   (** val string_of_nat : int -> char list **)
 
   let string_of_nat n0 =
-    if Nat.ltb n0 (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-         0))))))))))
-    then (ascii_of_nat
-           (add n0 (succ (succ (succ (succ (succ (succ (succ (succ (succ
-             (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-             (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-             (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-             (succ (succ (succ (succ (succ (succ (succ (succ (succ
-             0))))))))))))))))))))))))))))))))))))))))))))))))))::[]
-    else if Nat.ltb n0 (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-              (succ
-              0))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-         then let q =
-                Nat.div n0 (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ 0))))))))))
-              in
-              let r =
-                Nat.modulo n0 (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ 0))))))))))
-              in
-              (ascii_of_nat
-                (add q (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  0))))))))))))))))))))))))))))))))))))))))))))))))))::(
-              (ascii_of_nat
-                (add r (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  (succ (succ (succ (succ (succ (succ (succ (succ (succ
-                  0))))))))))))))))))))))))))))))))))))))))))))))))))::[])
-         else '1'::('0'::('0'::[]))
+    let rec rec_string_of_nat i n1 acc =
+      let d =
+        string_of_digit
+          (Nat.modulo n1 (succ (succ (succ (succ (succ (succ (succ (succ
+            (succ (succ 0)))))))))))
+      in
+      let acc' = append d acc in
+      ((fun fO fS n -> if n=0 then fO () else fS (n-1))
+         (fun _ -> acc')
+         (fun p ->
+         (fun fO fS n -> if n=0 then fO () else fS (n-1))
+           (fun _ -> acc')
+           (fun n2 ->
+           rec_string_of_nat p (succ n2) acc')
+           (Nat.div n1 (succ (succ (succ (succ (succ (succ (succ (succ (succ
+             (succ 0))))))))))))
+         i)
+    in rec_string_of_nat n0 n0 []
 
   (** val nodeName : nodeKind -> int -> char list **)
 
