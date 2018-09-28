@@ -98,17 +98,13 @@ and scexp =
 | Cexp of sexp * sexp
 | AddCexp of sexp * sexp * scexp
 
-type nexp =
-| Simple of sexp
-| Basic of sexp
-
 type simp_type_spec =
 | TBool
 | TEnum of symbolic_constant list
 
 type param_list =
-| LastP of nexp
-| AddP of nexp * param_list
+| LastP of sexp
+| AddP of sexp * param_list
 
 type mod_type_spec =
 | TMod of identifier
@@ -133,7 +129,7 @@ type deflist =
 type assign_cons =
 | Invar of qualid * sexp
 | Init of qualid * sexp
-| Next of qualid * nexp
+| Next of qualid * sexp
 
 type asslist =
 | LastA of assign_cons
@@ -170,8 +166,6 @@ val translate_sexp : sexp -> char list
 val translate_sexplist : sexplist -> char list
 
 val translate_cexp : scexp -> char list
-
-val translate_nexp : nexp -> char list
 
 val translate_simp_type_spec : simp_type_spec -> char list
 

@@ -94,23 +94,30 @@ Section Microsmv_execution.
 
   Definition inputs := list symbolic_constant.  (* of length = #ivars *)
 
-  Fixpoint make_ss_ivar (il: ivarlist): list symbolic_constant :=
-    match il with
-    | LastI _ t => cons "epsilon" (poss_val t)
-    | AddI _ t rest => app (poss_val t) (make_ss_ivar rest)
-    end.
-  (* NOTE: this may be incorrect; we probably need a tuple of values, one for each input variable in the module *)
+  Definition is_single_ivar (ty: simp_type_spec): set inputs :=
+    map (fun x => cons x nil) (poss_val ty).
 
-  Definition make_isym: list symbolic_constant :=
+  Fixpoint make_is (il: ivarlist): set inputs :=
+    match il with
+    | LastI _ ty => is_single_ivar ty
+    | AddI _ ty rest => flat_map (fun st => map (fun z => (cons z st))
+                                                (poss_val ty))
+                                 (make_is rest)
+    end.
+
+  Definition make_input_alphabet :=
     match ivars m with
     | None => nil
-    | Some il => make_ss_ivar il
+    | Some il => make_is il
     end.
 
-  (*Compute make_ss_ivar (LastI "input" bt_input_type).*)
+(*  Compute make_is (LastI "input" bt_input_type).
+  Compute make_is (AddI "enable" TBool (LastI "input" bt_input_type)).*)
 
-  (* Definition of initial states *)
+  (* Extraction of invariants, init and next constraints *)
 
+  (* invariants TBD *)
+  
   Definition add_init_cons (c: assign_cons) (res: list (identifier * sexp)) :=
     match c with
     | init qid exp =>
@@ -121,7 +128,7 @@ Section Microsmv_execution.
     | _ => res
     end.
 
-  Definition extract_init: list (identifier * sexp)%type :=
+  Definition extract_init: list (identifier * sexp) :=
     match assigns m with
     | None => nil
     | Some acl =>
@@ -132,6 +139,27 @@ Section Microsmv_execution.
          end) acl
     end.
 
+  Definition add_next_cons (c: assign_cons) (res: list (identifier * sexp)) :=
+    match c with
+    | next qid exp =>
+      match qid with
+      | Id id => cons (pair id exp) res
+      | Mod id1 id2 => cons (pair id1 exp) res (* to be fixed later... *)
+      end
+    | _ => res
+    end.
+
+  Definition extract_next: list (identifier * sexp) :=
+    match assigns m with
+    | None => nil
+    | Some acl =>
+      (fix scan_for_next (al: asslist) :=
+         match al with
+         | LastA x => add_next_cons x nil
+         | AddA x rest => add_next_cons x (scan_for_next rest)
+         end) acl
+    end.
+  
   (* The next function evaluates a simple expression on a state.
      Returns None in case of an error (e.g. the given state is ill-formed,
      type mismatch, etc) *)
@@ -262,6 +290,8 @@ Section Microsmv_execution.
   Compute eval (Count (AddSexp (BConst smvT) (AddSexp (SConst "a") (Sexp (BConst smvT))))) nil.
 *)
 
+  (* Predicate defining initial states *)
+
   Definition is_initial (x: state): bool :=
     let init_cons := extract_init in   (* list (identifier * sexp) *)
     let exps :=
@@ -290,10 +320,14 @@ Section Microsmv_execution.
          end
        | _ , _ => false   (* will never happen *)
        end) exps x.
+  
+  (* Predicate defining transitions *)
 
-(*  Definition there_is_transition (x1: state) (i: inputs) (x2: state): bool :=
+  Definition there_is_transition (x1: state) (i: inputs) (x2: state): bool :=
+    let next_cons := extract_next in
     true.
-*)
+
+
 
 
   (* The FSM corresponding to the module m is ... *)
@@ -320,11 +354,14 @@ Definition inverter :=
     (Some (AddA (init (Id "b0")
                       (BConst smvF))
                 (LastA (next (Id "b0")
-                             (Simple (Neg (Qual (Id "b0")))))))).
+                             (Neg (Qual (Id "b0"))))))).
 
 Compute translate inverter.
 Compute make_state_space inverter.
-
+(* ("TRUE" :: nil) :: ("FALSE" :: nil) :: nil *)
+Compute idlist inverter.
+Compute is_initial inverter ("FALSE"::nil).
+Compute extract_next inverter.  
 
 (* Example of non-deterministic dynamics, from the NuSMV manual *)
 Definition ex1 :=
@@ -337,15 +374,16 @@ Definition ex1 :=
     None
     (Some (AddA (init (Id "state") (SConst "ready"))
                 (LastA (next (Id "state")
-                             (Simple (Case
-                                        (AddCexp (And (Equal (Qual (Id "state")) (SConst "ready"))
-                                                      (Equal (Qual (Id "request")) (BConst smvT)))
-                                                 (SConst "busy")
-                                                 (Cexp (BConst smvT)
-                                                       (SConst "ready"))))))))).
+                             (Case
+                                (AddCexp (And (Equal (Qual (Id "state")) (SConst "ready"))
+                                              (Equal (Qual (Id "request")) (BConst smvT)))
+                                         (SConst "busy")
+                                         (Cexp (BConst smvT)
+                                               (SConst "ready")))))))).
 
-Compute make_state_space ex1.
 Compute translate ex1.
+Compute make_state_space ex1.
+
 
 (* A 6-hour clock *)
 Definition clock :=
@@ -363,20 +401,19 @@ Definition clock :=
              (AddA (init (Id "hour")
                          (SConst "6"))
                    (LastA (next (Id "hour")
-                                (Simple
-                                   (Case
+                                (Case
+                                   (AddCexp
+                                      (And (Qual (Id "enable"))
+                                           (Equal (Qual (Id "hour"))
+                                                  (SConst "6")))
+                                      (SConst "1")
                                       (AddCexp
-                                         (And (Qual (Id "enable"))
-                                              (Equal (Qual (Id "hour"))
-                                                     (SConst "6")))
-                                         (SConst "1")
-                                         (AddCexp
-                                            (Qual (Id "enable"))
-                                            (Sum (Qual (Id "hour"))
-                                                 (SConst "1"))
-                                            (Cexp
-                                               (BConst smvT)
-                                               (Qual (Id "hour")))))))))))).
+                                         (Qual (Id "enable"))
+                                         (Sum (Qual (Id "hour"))
+                                              (SConst "1"))
+                                         (Cexp
+                                            (BConst smvT)
+                                            (Qual (Id "hour"))))))))))).
 
 Compute make_state_space clock.
 

@@ -45,12 +45,6 @@ with translate_cexp (c: scexp): string :=
                           ++ ";" ++ newline ++ translate_cexp rest
   end.
 
-Definition translate_nexp (e: nexp) :=
-  match e with
-  | Simple e' => translate_sexp e'
-  | Basic e' => "next(" ++ translate_sexp e' ++ ")"
-  end.
-
 Definition translate_simp_type_spec (t: simp_type_spec) :=
   match t with
   | TBool => "boolean"
@@ -59,8 +53,8 @@ Definition translate_simp_type_spec (t: simp_type_spec) :=
 
 Fixpoint translate_param_list (pl: param_list) :=
   match pl with
-  | LastP e => translate_nexp e
-  | AddP e pl' => translate_nexp e ++ ", " ++ translate_param_list pl'
+  | LastP e => translate_sexp e
+  | AddP e pl' => translate_sexp e ++ ", " ++ translate_param_list pl'
   end.
 
 Fixpoint translate_mod_type_spec (m: mod_type_spec) :=
@@ -100,7 +94,7 @@ Definition translate_assign_cons (c: assign_cons) :=
   match c with
   | invar q e => translate_qualid q ++ " := " ++ translate_sexp e ++ ";" ++ newline
   | init q e => "init(" ++ translate_qualid q ++ ") := " ++ translate_sexp e ++ ";" ++ newline
-  | next q ne => "next(" ++ translate_qualid q ++ ") := " ++ translate_nexp ne ++ ";" ++ newline
+  | next q ne => "next(" ++ translate_qualid q ++ ") := " ++ translate_sexp ne ++ ";" ++ newline
   end.
 
 Fixpoint translate_asslist (al: asslist) :=
