@@ -201,6 +201,10 @@ val empty_set : 'a1 set
 
 val set_add : ('a1 -> 'a1 -> bool) -> 'a1 -> 'a1 set -> 'a1 set
 
+val string_of_digit : int -> char list
+
+val string_of_nat : int -> char list
+
 val bt_output_type : simp_type_spec
 
 val bt_action_type : simp_type_spec
@@ -282,10 +286,6 @@ module BT_gen_spec :
   val normalize_forest : btforest -> btforest
 
   val rootName : btree -> char list
-
-  val string_of_digit : int -> char list
-
-  val string_of_nat : int -> char list
 
   val nodeName : nodeKind -> int -> char list
 

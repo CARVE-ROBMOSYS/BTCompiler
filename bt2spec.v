@@ -1,8 +1,50 @@
 Require Import bt micro_smv spec_extr.
 Require Import Arith List ListSet String.
-Require Coq.Program.Tactics.
-Require Coq.Program.Wf.
 Open Scope string_scope.
+
+(* Utility functions to convert between nat and string *)
+
+Definition string_of_digit (n: nat) :=
+  (String (Ascii.ascii_of_nat (n + 48)) EmptyString).
+
+Definition string_of_nat (n: nat) :=
+  (fix rec_string_of_nat (i n: nat) (acc: string): string :=
+     let d := string_of_digit (n mod 10) in
+     let acc' := d ++ acc in
+     match i with
+     | 0 => acc'
+     | S p => match n / 10 with
+              | 0 => acc'
+              | n' => rec_string_of_nat p n' acc'
+              end
+     end) n n "".
+
+Fixpoint dlist_of_string (s: string): list (option nat) :=
+  match s with
+  | EmptyString => nil
+  | String a rest =>
+    let v := Ascii.nat_of_ascii a in
+    (if andb (48 <=? v) (v <=? 57) then (Some (v - 48)) else None)
+      :: (dlist_of_string rest)
+  end.
+
+Definition nat_of_dlist (dl: list (option nat)): option nat :=
+  match dl with
+  | nil => None
+  | l' => (fix loop (l: list (option nat)) (i acc: nat): option nat :=
+             match l with
+             | nil => Some acc
+             | maybe_digit :: rest =>
+               match maybe_digit with
+               | None => None
+               | Some d => loop rest (i - 1) (acc + d * (10 ^ i))
+               end
+             end) l' ((List.length l') - 1) 0
+  end.
+
+Definition nat_of_string (s: string) := nat_of_dlist (dlist_of_string s).
+
+(* Some micro-SMV types *)
 
 Definition bt_input_type :=
   (TEnum ("Runn"::"Fail"::"Succ"::nil)).
@@ -461,21 +503,6 @@ Module BT_gen_spec (X: BT_SIG).
     | Node _ n _ => n
     | Dec _ n _ => n
     end.
-
-  Definition string_of_digit (n: nat) :=
-    (String (Ascii.ascii_of_nat (n + 48)) EmptyString).
-
-  Definition string_of_nat (n: nat) :=
-    (fix rec_string_of_nat (i n: nat) (acc: string): string :=
-       let d := string_of_digit (n mod 10) in
-       let acc' := d ++ acc in
-       match i with
-       | 0 => acc'
-       | S p => match n / 10 with
-                | 0 => acc'
-                | n' => rec_string_of_nat p n' acc'
-                end
-       end) n n "".
 
   Definition nodeName (k: nodeKind) (n: nat) :=
     match k with
