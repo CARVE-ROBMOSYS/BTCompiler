@@ -339,6 +339,12 @@ let rec translate_spec = function
 | [] -> []
 | m :: rest -> append (translate m) (translate_spec rest)
 
+(** val bt_input_type : simp_type_spec **)
+
+let bt_input_type =
+  TEnum
+    (('R'::('u'::('n'::('n'::[])))) :: (('F'::('a'::('i'::('l'::[])))) :: (('S'::('u'::('c'::('c'::[])))) :: [])))
+
 (** val bt_output_type : simp_type_spec **)
 
 let bt_output_type =
@@ -369,6 +375,30 @@ let bp_tick_generator =
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))),
     (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
     ('n'::('o'::('n'::('e'::[])))))))))))))) }
+
+(** val bp_skill_autonomous : smv_module **)
+
+let bp_skill_autonomous =
+  { name = ('b'::('t'::('_'::('s'::('k'::('i'::('l'::('l'::[]))))))));
+    params = []; vars = (Some (AddV
+    (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (TSimp bt_output_type),
+    (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp TBool))))));
+    ivars = (Some (LastI (('i'::('n'::('p'::('u'::('t'::[]))))),
+    bt_input_type))); defs = None; assigns = (Some (AddA ((Init ((Id
+    ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))), (SConst
+    ('n'::('o'::('n'::('e'::[]))))))), (LastA (Next ((Id
+    ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))), (Case (AddCexp ((Neg (Qual
+    (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (SConst
+    ('n'::('o'::('n'::('e'::[]))))), (AddCexp ((Equal ((Qual (Id
+    ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('R'::('u'::('n'::('n'::[]))))))), (SConst
+    ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[])))))))), (AddCexp ((Equal
+    ((Qual (Id ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('F'::('a'::('i'::('l'::[]))))))), (SConst
+    ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))), (Cexp ((Equal ((Qual (Id
+    ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('S'::('u'::('c'::('c'::[]))))))), (SConst
+    ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))))))))))))))))))) }
 
 (** val bp_skill : smv_module **)
 
@@ -721,7 +751,7 @@ module BT_bin_spec =
   (** val make_spec : btree -> smv_module list **)
 
   let make_spec t =
-    bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
+    bp_skill_autonomous :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
       (make_main t ('m'::('a'::('i'::('n'::[]))))) :: [])))))))))
 
   (** val mkop : X.skillSet list -> char list list **)

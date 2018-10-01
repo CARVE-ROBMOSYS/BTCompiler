@@ -199,11 +199,15 @@ val string_of_digit : int -> char list
 
 val string_of_nat : int -> char list
 
+val bt_input_type : simp_type_spec
+
 val bt_output_type : simp_type_spec
 
 val bt_action_type : simp_type_spec
 
 val bp_tick_generator : smv_module
+
+val bp_skill_autonomous : smv_module
 
 val bp_skill : smv_module
 
@@ -309,9 +313,9 @@ module BT_gen_spec :
 
   val make_parallel : int -> int -> smv_module
 
-  val make_mod : modtype -> smv_module
+  val make_mod : modtype -> bool -> smv_module
 
-  val make_mod_list : modtype list -> smv_module list
+  val make_mod_list : modtype list -> bool -> smv_module list
 
   val make_paramlist : btforest -> param_list
 

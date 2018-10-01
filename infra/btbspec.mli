@@ -135,11 +135,15 @@ val translate : smv_module -> char list
 
 val translate_spec : smv_spec -> char list
 
+val bt_input_type : simp_type_spec
+
 val bt_output_type : simp_type_spec
 
 val bt_action_type : simp_type_spec
 
 val bp_tick_generator : smv_module
+
+val bp_skill_autonomous : smv_module
 
 val bp_skill : smv_module
 

@@ -1,7 +1,7 @@
 (* Definition of the FSM data type *)
 
 Require Import String ListSet List Arith Bool.
-Require Import bt micro_smv spec_extr bt2spec.
+Require Import bt basic micro_smv spec_extr bt2spec.
 Open Scope string_scope.
 
 (* These functions are (inexplicably) missing from Coq's standard libraries, so
@@ -207,7 +207,8 @@ Section Microsmv_execution.
                   end
     (* recursive cases *)
     | Paren s' => eval s' x
-    (* for Neg, And, Or we assume that the results are boolean values *)
+
+    (* for Neg, And, Or, Count we assume that the results are boolean values *)
     | Neg s' => match eval s' x with
                 | Some sc => sc_neg sc
                 | None => None
@@ -225,6 +226,22 @@ Section Microsmv_execution.
                        if string_equal a b then Some "TRUE" else Some "FALSE"
                      | _, _ => None
                      end
+    | Count slist =>
+      let reslist := eval_all slist x in
+      (fix rec_count (l: list (option symbolic_constant)) (acc: nat) :=
+         match l with
+         | nil => Some (string_of_nat acc)
+         | maybe_sc :: rest =>
+           match maybe_sc with
+           | None => None
+           | Some sc => match sc with
+                        | "TRUE" => rec_count rest (acc + 1)
+                        | "FALSE" => rec_count rest acc
+                        | _ => None
+                        end
+           end
+         end) reslist 0
+
     (* for Less, Sum we assume that the results are strings representing
        positive integer values *)
     | Less s1 s2 =>
@@ -249,28 +266,27 @@ Section Microsmv_execution.
         end
       | _, _ => None
       end
-    | Count slist =>
-      let reslist := eval_all slist x in
-      (fix rec_count (l: list (option symbolic_constant)) (acc: nat) :=
-         match l with
-         | nil => Some (string_of_nat acc)
-         | maybe_sc :: rest =>
-           match maybe_sc with
-           | None => None
-           | Some sc => match sc with
-                        | "TRUE" => rec_count rest (acc + 1)
-                        | "FALSE" => rec_count rest acc
-                        | _ => None
-                        end
-           end
-         end) reslist 0
-    | Case scp => None     (* TBI *)
+
+    | Case scp => eval_cases scp x
     end
   with
   eval_all (sl: sexplist) (x: state): list (option symbolic_constant) :=
     match sl with
     | Sexp s => (eval s x) :: nil
     | AddSexp s rest => (eval s x) :: eval_all rest x
+    end
+  with
+  eval_cases (sc: scexp) (x: state): option symbolic_constant :=
+    match sc with
+    | Cexp s1 s2 => match eval s1 x with
+                    | Some "TRUE" => eval s2 x
+                    | _ => None   (* a non-exhaustive case is an error in SMV *)
+                    end
+    | AddCexp s1 s2 rest => match eval s1 x with
+                            | Some "TRUE" => eval s2 x
+                            | Some "FALSE" => eval_cases rest x
+                            | _ => None
+                            end
     end.
 
 (* some tests:
@@ -288,8 +304,14 @@ Section Microsmv_execution.
   Compute eval (Sum (BConst smvT) (SConst "1")) nil.
   Compute eval (Count (AddSexp (BConst smvF) (Sexp (BConst smvT)))) nil.
   Compute eval (Count (AddSexp (BConst smvT) (AddSexp (SConst "a") (Sexp (BConst smvT))))) nil.
+  Compute eval (Case (AddCexp (Equal (SConst "succ")
+                                     (SConst "succ"))
+                              (SConst "output")
+                              (Cexp (BConst smvT)
+                                    (SConst "input")))) nil.
 *)
 
+  
   (* Predicate defining initial states *)
 
   Definition is_initial (x: state): bool :=
@@ -336,10 +358,31 @@ Section Microsmv_execution.
 
 
 
-  (* An execution of the fsm z is ... *)
+  (* A fsm derived from a BT is executed as follows:
+     - initial_states is supposed to have only one element
+     - look for available transitions, consume an input symbol
+     - stop as soon as "root.output" is assigned a value(?)
+     - perhaps one step is enough? *)
 
+  Definition exec_bt (i: inputs) :=
+    let ss := make_state_space in
+    let ia := make_input_alphabet in
+    let initial_states := filter is_initial ss in
+    match initial_states with
+    | s::nil => true
+    | _ => false
+    end.
 
 End Microsmv_execution.
+
+
+(* Constraints:
+   - set of initial states is not empty
+   - transition relation is total
+   - ...
+*)
+
+
 
 (*** Examples ***)
 
@@ -362,6 +405,7 @@ Compute make_state_space inverter.
 Compute idlist inverter.
 Compute is_initial inverter ("FALSE"::nil).
 Compute extract_next inverter.  
+Compute exec_bt inverter nil.
 
 (* Example of non-deterministic dynamics, from the NuSMV manual *)
 Definition ex1 :=
@@ -478,14 +522,6 @@ Fixpoint make_ss_ivar (il: ivarlist) :=
 
 
 
-Definition make_state_space (m: smv_module) :=
-  match vars m with
-  | None => nil
-  | Some vl => make_ss vl
-  end.
 
-Compute make_state_space inverter.
-Compute make_state_space ex1.
-Compute make_state_space clock.
 
 *)

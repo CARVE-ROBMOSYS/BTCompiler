@@ -335,8 +335,8 @@ Module BT_bin_spec (X: BT_SIG).
       None.
 
   Definition make_spec (t: btree): list smv_module :=
-    bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2 ::
-    bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
+    bp_skill_autonomous :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
+    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
 
 
   (* Modules for OCRA inteface *)
@@ -715,9 +715,9 @@ Module BT_gen_spec (X: BT_SIG).
         (Some (mk_par_invar (S p)))
     end.
 
-  Definition make_mod (t: modtype): smv_module :=
+  Definition make_mod (t: modtype) (aut: bool): smv_module :=
     match t with
-    | Skmod => bp_skill
+    | Skmod => if aut then bp_skill_autonomous else bp_skill
     | TRUEmod => bp_TRUE
     | Seqmod l => make_sequence l
     | Fbmod l => make_fallback l
@@ -728,10 +728,10 @@ Module BT_gen_spec (X: BT_SIG).
 
   (* Functions to generate the main module *)
 
-  Fixpoint make_mod_list (l: list modtype): list smv_module :=
+  Fixpoint make_mod_list (l: list modtype) (aut: bool): list smv_module :=
     match l with
     | nil => nil
-    | m :: rest => cons (make_mod m) (make_mod_list rest)
+    | m :: rest => cons (make_mod m aut) (make_mod_list rest aut)
     end.
 
   Fixpoint make_paramlist (f: btforest) :=
@@ -779,7 +779,7 @@ Module BT_gen_spec (X: BT_SIG).
 
   Definition make_spec (t: btree): list smv_module :=
     let needed := addmod t (empty_set modtype) in
-    let modlist := make_mod_list needed in
+    let modlist := make_mod_list needed true in
     app modlist (bp_tick_generator :: (make_main t "main") :: nil).
 
 
@@ -903,7 +903,7 @@ Module BT_gen_spec (X: BT_SIG).
   
   Definition make_spec_ocra (t: btree): list smv_module :=
     let needed := addmod t (empty_set modtype) in
-    let modlist := make_mod_list needed in
+    let modlist := make_mod_list needed false in
     app modlist (bp_tick_generator :: (make_main t "bt_main")
                  :: (ocra_bt_fsm t) :: (ocra_main t) :: nil).
 
