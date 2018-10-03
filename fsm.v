@@ -34,8 +34,8 @@ Definition poss_val (ty: simp_type_spec): list symbolic_constant :=
   | TEnum scl => scl
   end.
 
-(* This function produces a list containing all the variable identifiers
-   used in a smv_module *)
+(* Functions to produce a list containing all the identifiers used in a
+   smv_module (variables / input variables) *)
 Definition idlist (m: smv_module): list identifier :=
   match vars m with
   | None => nil
@@ -45,6 +45,17 @@ Definition idlist (m: smv_module): list identifier :=
        | LastV id ty => cons id nil
        | AddV id ty rest => cons id (scan rest)
        end) vl
+  end.
+
+Definition ivlist (m: smv_module): list identifier :=
+  match ivars m with
+  | None => nil
+  | Some il =>
+    (fix scan (i: ivarlist) :=
+       match i with
+       | LastI id sty => cons id nil
+       | AddI id sty rest => cons id (scan rest)
+       end) il
   end.
 
 Section Microsmv_execution.
@@ -78,19 +89,14 @@ Section Microsmv_execution.
       end
     end.
 
-  (*Compute make_ss (AddV "v1" (TSimp TBool)
-    (AddV "v2" (TSimp (TEnum ("a"::"b"::nil)))
-    (LastV "v3" (TSimp (TEnum ("1"::"2"::"3"::nil)))))).*)
-
   Definition make_state_space: set state :=
     match vars m with
     | None => nil
     | Some vl => make_ss vl
     end.
 
-  (* The input alphabet of the FSM is derived from the possible values of
-     input variables, plus the special string "epsilon" (we assume that
-     this particular string does not appear as a symbolic constant). *)
+  (* The input alphabet of the FSM is derived in the same manner from
+     the possible values of input variables. *)
 
   Definition inputs := list symbolic_constant.  (* of length = #ivars *)
 
@@ -105,65 +111,79 @@ Section Microsmv_execution.
                                  (make_is rest)
     end.
 
-  Definition make_input_alphabet :=
+  Definition make_input_alphabet: set inputs :=
     match ivars m with
     | None => nil
     | Some il => make_is il
     end.
 
-(*  Compute make_is (LastI "input" bt_input_type).
-  Compute make_is (AddI "enable" TBool (LastI "input" bt_input_type)).*)
+  (* Extraction of init, next and invar constraints *)
 
-  (* Extraction of invariants, init and next constraints *)
-
-  (* invariants TBD *)
-  
-  Definition add_init_cons (c: assign_cons) (res: list (identifier * sexp)) :=
+  Definition add_init_cons (c: assign_cons) (l: list (identifier * sexp)) :=
     match c with
     | init qid exp =>
       match qid with
-      | Id id => cons (pair id exp) res
-      | Mod id1 id2 => cons (pair id1 exp) res (* to be fixed later... *)
+      | Id id => cons (pair id exp) l
+      | Mod id1 id2 => cons (pair id1 exp) l (* to be fixed later... *)
       end
-    | _ => res
+    | _ => l
     end.
 
   Definition extract_init: list (identifier * sexp) :=
     match assigns m with
     | None => nil
     | Some acl =>
-      (fix scan_for_init (al: asslist) :=
+      (fix scan (al: asslist) :=
          match al with
          | LastA x => add_init_cons x nil
-         | AddA x rest => add_init_cons x (scan_for_init rest)
+         | AddA x rest => add_init_cons x (scan rest)
          end) acl
     end.
 
-  Definition add_next_cons (c: assign_cons) (res: list (identifier * sexp)) :=
+  Definition add_next_cons (c: assign_cons) (l: list (identifier * sexp)) :=
     match c with
     | next qid exp =>
       match qid with
-      | Id id => cons (pair id exp) res
-      | Mod id1 id2 => cons (pair id1 exp) res (* to be fixed later... *)
+      | Id id => cons (pair id exp) l
+      | Mod id1 id2 => cons (pair id1 exp) l (* to be fixed later... *)
       end
-    | _ => res
+    | _ => l
     end.
 
   Definition extract_next: list (identifier * sexp) :=
     match assigns m with
     | None => nil
     | Some acl =>
-      (fix scan_for_next (al: asslist) :=
+      (fix scan (al: asslist) :=
          match al with
          | LastA x => add_next_cons x nil
-         | AddA x rest => add_next_cons x (scan_for_next rest)
+         | AddA x rest => add_next_cons x (scan rest)
          end) acl
     end.
-  
-  (* The next function evaluates a simple expression on a state.
-     Returns None in case of an error (e.g. the given state is ill-formed,
-     type mismatch, etc) *)
 
+  Definition add_invar_cons (c: assign_cons) (l: list (identifier * sexp)) :=
+    match c with
+    | invar qid exp =>
+      match qid with
+      | Id id => cons (pair id exp) l
+      | Mod id1 id2 => cons (pair id1 exp) l (* to be fixed later... *)
+      end
+    | _ => l
+    end.
+
+  Definition extract_invar: list (identifier * sexp) :=
+    match assigns m with
+    | None => nil
+    | Some acl =>
+      (fix scan (al: asslist) :=
+         match al with
+         | LastA x => add_invar_cons x nil
+         | AddA x rest => add_invar_cons x (scan rest)
+         end) acl
+    end.
+
+  (* Boolean functions on symbolic constants *)
+  
   Definition sc_neg (a: symbolic_constant) :=
     match a with
     | "TRUE" => (Some "FALSE")
@@ -189,8 +209,13 @@ Section Microsmv_execution.
     | _,_ => None
     end.
 
-  Fixpoint eval (s: sexp) (x: state): option symbolic_constant :=
+  (* The next function evaluates a simple expression on a state,
+     returns None in case of an error (e.g. the given state is ill-formed,
+     type mismatch, etc) *)
+
+  Fixpoint eval (s: sexp) (x: state) (i: inputs): option symbolic_constant :=
     let vars := idlist m in
+    let ivars := ivlist m in
     match s with
     (* base cases *)
     | BConst bc => match bc with
@@ -199,35 +224,42 @@ Section Microsmv_execution.
                    end
     | SConst sc => Some sc
     | Qual qid => match qid with
-                  | Id id => match list_index string_dec vars id with
-                             | None => None
-                             | Some i => nth_error x i
-                             end
+                  | Id id =>
+                    (* is it a state variable? *)
+                    match list_index string_dec vars id with
+                    | Some z => nth_error x z
+                    | None =>
+                      (* is it an input variable? *)
+                      match list_index string_dec ivars id with
+                      | Some z => nth_error i z
+                      | None => None (* identifier is unknown *)
+                      end
+                    end
                   | Mod modname id => None (* to be implemented *)
                   end
     (* recursive cases *)
-    | Paren s' => eval s' x
+    | Paren s' => eval s' x i
 
     (* for Neg, And, Or, Count we assume that the results are boolean values *)
-    | Neg s' => match eval s' x with
+    | Neg s' => match eval s' x i with
                 | Some sc => sc_neg sc
                 | None => None
                 end
-    | And s1 s2 => match eval s1 x, eval s2 x with
+    | And s1 s2 => match eval s1 x i, eval s2 x i with
                    | Some a, Some b => sc_and a b
                    | _, _ => None
                    end
-    | Or s1 s2 => match eval s1 x, eval s2 x with
+    | Or s1 s2 => match eval s1 x i, eval s2 x i with
                   | Some a, Some b => sc_or a b
                   | _, _ => None
                   end
-    | Equal s1 s2 => match eval s1 x, eval s2 x with
+    | Equal s1 s2 => match eval s1 x i, eval s2 x i with
                      | Some a, Some b =>
                        if string_equal a b then Some "TRUE" else Some "FALSE"
                      | _, _ => None
                      end
     | Count slist =>
-      let reslist := eval_all slist x in
+      let reslist := eval_all slist x i in
       (fix rec_count (l: list (option symbolic_constant)) (acc: nat) :=
          match l with
          | nil => Some (string_of_nat acc)
@@ -245,7 +277,7 @@ Section Microsmv_execution.
     (* for Less, Sum we assume that the results are strings representing
        positive integer values *)
     | Less s1 s2 =>
-      match eval s1 x, eval s2 x with
+      match eval s1 x i, eval s2 x i with
       | Some a, Some b =>
         let val_a := nat_of_string a in
         let val_b := nat_of_string b in
@@ -256,7 +288,7 @@ Section Microsmv_execution.
       | _, _ => None
       end
     | Sum s1 s2 =>
-      match eval s1 x, eval s2 x with
+      match eval s1 x i, eval s2 x i with
       | Some a, Some b =>
         let val_a := nat_of_string a in
         let val_b := nat_of_string b in
@@ -267,56 +299,54 @@ Section Microsmv_execution.
       | _, _ => None
       end
 
-    | Case scp => eval_cases scp x
+    | Case scp => eval_cases scp x i
     end
   with
-  eval_all (sl: sexplist) (x: state): list (option symbolic_constant) :=
+  eval_all (sl: sexplist) (x: state) (i: inputs): list (option symbolic_constant) :=
     match sl with
-    | Sexp s => (eval s x) :: nil
-    | AddSexp s rest => (eval s x) :: eval_all rest x
+    | Sexp s => (eval s x i) :: nil
+    | AddSexp s rest => (eval s x i) :: eval_all rest x i
     end
   with
-  eval_cases (sc: scexp) (x: state): option symbolic_constant :=
+  eval_cases (sc: scexp) (x: state) (i: inputs): option symbolic_constant :=
     match sc with
-    | Cexp s1 s2 => match eval s1 x with
-                    | Some "TRUE" => eval s2 x
+    | Cexp s1 s2 => match eval s1 x i with
+                    | Some "TRUE" => eval s2 x i
                     | _ => None   (* a non-exhaustive case is an error in SMV *)
                     end
-    | AddCexp s1 s2 rest => match eval s1 x with
-                            | Some "TRUE" => eval s2 x
-                            | Some "FALSE" => eval_cases rest x
+    | AddCexp s1 s2 rest => match eval s1 x i with
+                            | Some "TRUE" => eval s2 x i
+                            | Some "FALSE" => eval_cases rest x i
                             | _ => None
                             end
     end.
 
 (* some tests:
-  Compute eval (Neg (BConst smvF)) nil.
-  Compute eval (And (BConst smvT) (BConst smvT)) nil.
-  Compute eval (And (BConst smvT) (BConst smvF)) nil.
-  Compute eval (Or (BConst smvT) (BConst smvT)) nil.
-  Compute eval (Or (BConst smvT) (BConst smvF)) nil.
-  Compute eval (Equal (SConst "ready") (SConst "ready")) nil.
-  Compute eval (Equal (SConst "ready") (BConst smvT)) nil.
-  Compute eval (Less (SConst "ready") (SConst "0")) nil.
-  Compute eval (Less (SConst "10") (SConst "7")) nil.
-  Compute eval (Less (SConst "0") (SConst "1")) nil.
-  Compute eval (Sum (SConst "2") (SConst "2")) nil.
-  Compute eval (Sum (BConst smvT) (SConst "1")) nil.
-  Compute eval (Count (AddSexp (BConst smvF) (Sexp (BConst smvT)))) nil.
-  Compute eval (Count (AddSexp (BConst smvT) (AddSexp (SConst "a") (Sexp (BConst smvT))))) nil.
-  Compute eval (Case (AddCexp (Equal (SConst "succ")
-                                     (SConst "succ"))
-                              (SConst "output")
-                              (Cexp (BConst smvT)
-                                    (SConst "input")))) nil.
+  Compute eval (Neg (BConst smvF)) nil nil.
+  Compute eval (And (BConst smvT) (BConst smvT)) nil nil.
+  Compute eval (And (BConst smvT) (BConst smvF)) nil nil.
+  Compute eval (Or (BConst smvT) (BConst smvT)) nil nil.
+  Compute eval (Or (BConst smvT) (BConst smvF)) nil nil.
+  Compute eval (Equal (SConst "ready") (SConst "ready")) nil nil.
+  Compute eval (Equal (SConst "ready") (BConst smvT)) nil nil.
+  Compute eval (Less (SConst "ready") (SConst "0")) nil nil.
+  Compute eval (Less (SConst "10") (SConst "7")) nil nil.
+  Compute eval (Less (SConst "0") (SConst "1")) nil nil.
+  Compute eval (Sum (SConst "2") (SConst "2")) nil nil.
+  Compute eval (Sum (BConst smvT) (SConst "1")) nil nil.
+  Compute eval (Count (AddSexp (BConst smvF) (Sexp (BConst smvT)))) nil nil.
+  Compute eval (Count (AddSexp (BConst smvT) (AddSexp (SConst "a") (Sexp (BConst smvT))))) nil nil.
 *)
 
   
-  (* Predicate defining initial states *)
+  (* Predicate satisfying the init constraints *)
 
-  Definition is_initial (x: state): bool :=
-    let init_cons := extract_init in   (* list (identifier * sexp) *)
+  Definition is_initial (x: state) (i: inputs): bool :=
+    let init_cons := extract_init in
     let exps :=
+        (* this function scans the list of variables replacing each of them with:
+           - its init constraint (which is a simple expression) if given, or
+           - None otherwise *)
         (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
            match idl with
            | nil => rev acc
@@ -326,14 +356,16 @@ Section Microsmv_execution.
                            | Some a => iter rest (Some (snd a) :: acc)
                            end
            end) (idlist m) nil in
+    (* Verifies the init constraints on the given state *)
     (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
        match conditions, values with
        | nil, nil => true
        | maybe_cond :: rest_of_conds, value :: rest_of_values =>
          match maybe_cond with
          | None => iter2 rest_of_conds rest_of_values
-         | Some cond => match eval cond x with
-                        | None => false   (* not clear what to do here... *)
+         | Some cond => match eval cond x i with
+                        | None => false (* not clear what to do here: 
+                                        perhaps we should propagate the error *)
                         | Some v => if string_equal v value then
                                       iter2 rest_of_conds rest_of_values
                                     else
@@ -342,45 +374,100 @@ Section Microsmv_execution.
          end
        | _ , _ => false   (* will never happen *)
        end) exps x.
-  
-  (* Predicate defining transitions *)
 
-  Definition there_is_transition (x1: state) (i: inputs) (x2: state): bool :=
+  (* Predicate satisfying the invar constraints *)
+
+  Definition respects_invar (x: state) (i: inputs): bool :=
+    let invar_cons := extract_invar in
+    let exps :=
+        (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
+           match idl with
+           | nil => rev acc
+           | id :: rest => match find (fun z => string_equal (fst z) id)
+                                      invar_cons with
+                           | None => iter rest (None :: acc)
+                           | Some a => iter rest (Some (snd a) :: acc)
+                           end
+           end) (idlist m) nil in
+    (* Verifies the invar constraints on the given state *)
+    (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
+       match conditions, values with
+       | nil, nil => true
+       | maybe_cond :: rest_of_conds, value :: rest_of_values =>
+         match maybe_cond with
+         | None => iter2 rest_of_conds rest_of_values
+         | Some cond => match eval cond x i with
+                        | None => false
+                        | Some v => if string_equal v value then
+                                      iter2 rest_of_conds rest_of_values
+                                    else
+                                      false
+                        end
+         end
+       | _ , _ => false   (* will never happen *)
+       end) exps x.
+
+  (* Predicate satisfying the next constraints *)
+
+  Definition is_next_of (x1: state) (i: inputs) (x2: state): bool :=
     let next_cons := extract_next in
-    true.
+    let exps :=
+        (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
+           match idl with
+           | nil => rev acc
+           | id :: rest => match find (fun z => string_equal (fst z) id)
+                                      next_cons with
+                           | None => iter rest (None :: acc)
+                           | Some a => iter rest (Some (snd a) :: acc)
+                           end
+           end) (idlist m) nil in
+    (* Evaluates each sexp on the first state, checks if the second state
+       has the obtained value. *)
+    (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
+       match conditions, values with
+       | nil, nil => true
+       | maybe_cond :: rest_of_conds, value :: rest_of_values =>
+         match maybe_cond with
+         | None => iter2 rest_of_conds rest_of_values
+         | Some cond => match eval cond x1 i with
+                        | None => false   (* propagate? *)
+                        | Some v => if string_equal v value then
+                                      iter2 rest_of_conds rest_of_values
+                                    else
+                                      false
+                        end
+         end
+       | _ , _ => false   (* will never happen *)
+       end) exps x2.
 
-
-
-
-  (* The FSM corresponding to the module m is ... *)
-
-
-
-
-
-  (* A fsm derived from a BT is executed as follows:
-     - initial_states is supposed to have only one element
-     - look for available transitions, consume an input symbol
-     - stop as soon as "root.output" is assigned a value(?)
-     - perhaps one step is enough? *)
-
-  Definition exec_bt (i: inputs) :=
+  Definition next_states (x: state) (i: inputs): set state :=
     let ss := make_state_space in
-    let ia := make_input_alphabet in
-    let initial_states := filter is_initial ss in
+    (* first step: next values are ok *)
+    let s' := filter (fun z => is_next_of x i z) ss in
+    (* second step: check invariants *)
+    filter (fun z => respects_invar z i) s'.
+
+  (* In a fsm derived from a BT:
+     - initial_states is supposed to have only one element
+     - a single step is enough to get to a "final" state *)
+
+  Definition exec_determ (i: inputs): option state :=
+    let ss := make_state_space in
+    let initial_states := filter (fun x => is_initial x i) ss in
     match initial_states with
-    | s::nil => true
-    | _ => false
+    | s::nil => match next_states s i with
+                | s'::nil => Some s'  (* need single evolved state *)
+                | _ => None
+                end
+    | _ => None    (* need single initial state *)
     end.
 
 End Microsmv_execution.
 
 
-(* Constraints:
+(* NuSMV assumes:
    - set of initial states is not empty
-   - transition relation is total
-   - ...
-*)
+   - transition relation is total *)
 
 
 
@@ -399,14 +486,16 @@ Definition inverter :=
                 (LastA (next (Id "b0")
                              (Neg (Qual (Id "b0"))))))).
 
-Compute translate inverter.
 Compute make_state_space inverter.
 (* ("TRUE" :: nil) :: ("FALSE" :: nil) :: nil *)
-Compute idlist inverter.
-Compute is_initial inverter ("FALSE"::nil).
+Compute is_initial inverter ("TRUE"::nil) nil.
+Compute is_initial inverter ("FALSE"::nil) nil.
 Compute extract_next inverter.  
-Compute exec_bt inverter nil.
+Compute next_states inverter ("TRUE"::nil) nil.
+Compute next_states inverter ("FALSE"::nil) nil.
+Compute exec_determ inverter nil.
 
+                                                 
 (* Example of non-deterministic dynamics, from the NuSMV manual *)
 Definition ex1 :=
   Build_smv_module
@@ -425,8 +514,15 @@ Definition ex1 :=
                                          (Cexp (BConst smvT)
                                                (SConst "ready")))))))).
 
-Compute translate ex1.
 Compute make_state_space ex1.
+(* ("ready" :: "TRUE" :: nil)
+       :: ("busy" :: "TRUE" :: nil)
+          :: ("ready" :: "FALSE" :: nil) :: ("busy" :: "FALSE" :: nil) :: nil*)
+Compute is_initial ex1 ("ready"::"FALSE"::nil) nil.
+Compute extract_next ex1.
+Compute next_states ex1 ("ready"::"TRUE"::nil) nil.
+Compute next_states ex1 ("ready"::"FALSE"::nil) nil.
+Compute next_states ex1 ("busy"::"TRUE"::nil) nil.
 
 
 (* A 6-hour clock *)
@@ -440,26 +536,31 @@ Definition clock :=
     (Some (LastI "enable" TBool))
     None
     (Some
-       (AddA (init (Id "enable")
-                   (BConst smvT))
-             (AddA (init (Id "hour")
-                         (SConst "6"))
-                   (LastA (next (Id "hour")
-                                (Case
-                                   (AddCexp
-                                      (And (Qual (Id "enable"))
-                                           (Equal (Qual (Id "hour"))
-                                                  (SConst "6")))
-                                      (SConst "1")
-                                      (AddCexp
-                                         (Qual (Id "enable"))
-                                         (Sum (Qual (Id "hour"))
-                                              (SConst "1"))
-                                         (Cexp
-                                            (BConst smvT)
-                                            (Qual (Id "hour"))))))))))).
+       (AddA (init (Id "hour")
+                   (SConst "6"))
+             (LastA (next (Id "hour")
+                          (Case
+                             (AddCexp
+                                (And (Qual (Id "enable"))
+                                     (Equal (Qual (Id "hour"))
+                                            (SConst "6")))
+                                (SConst "1")
+                                (AddCexp
+                                   (Qual (Id "enable"))
+                                   (Sum (Qual (Id "hour"))
+                                        (SConst "1"))
+                                   (Cexp
+                                      (BConst smvT)
+                                      (Qual (Id "hour")))))))))).
 
 Compute make_state_space clock.
+(* ("1" :: nil)
+       :: ("2" :: nil)
+          :: ("3" :: nil) :: ("4" :: nil) :: ("5" :: nil) :: ("6" :: nil) :: nil*)
+Compute make_input_alphabet clock.
+Compute is_initial clock ("6"::nil) ("FALSE"::nil).
+Compute extract_next clock.
+Compute next_states clock ("1"::nil) ("FALSE"::nil).
 
 
 
@@ -498,9 +599,6 @@ Definition sspace_of_single_var (id: identifier) (ty: type_spec): set zex :=
   | TComp _ => empty_set zex (* to be handled later... *)
   end.
 
-Compute sspace_of_single_var "b0" (TSimp TBool).
-(* ("TRUE" :: nil) :: ("FALSE" :: nil) :: nil *)
-
 Fixpoint make_ss (vl: varlist): set zex :=
   match vl with
   | LastV id ty => (sspace_of_single_var id ty)
@@ -519,9 +617,6 @@ Fixpoint make_ss_ivar (il: ivarlist) :=
   | AddI id st rest => cons (pair id (pv st))
                             (make_ss_ivar rest)
   end.
-
-
-
 
 
 *)
