@@ -67,9 +67,9 @@ Definition bp_tick_generator :=
     (Some (AddA (init (Mod "top_level_bt" (Id "enable"))
                       (BConst smvT))
                 (LastA (next (Mod "top_level_bt" (Id "enable"))
-                             (Simple (Neg (Equal (Qual (Mod "top_level_bt"
-                                                            (Id "output")))
-                                                 (SConst "none")))))))).
+                             (Neg (Equal (Qual (Mod "top_level_bt"
+                                                    (Id "output")))
+                                         (SConst "none"))))))).
 
 Definition bp_skill_autonomous :=
   (* This module is useful for autonomous generation of an SMV specification.
@@ -85,19 +85,18 @@ Definition bp_skill_autonomous :=
     (Some (AddA (init (Id "output") (SConst "none"))
                 (LastA
                    (next (Id "output")
-                         (Simple
-                            (Case
-                               (AddCexp (Neg (Qual (Id "enable")))
-                                        (SConst "none")
-                                        (AddCexp (Equal (Qual (Id "input"))
-                                                        (SConst "Runn"))
-                                                 (SConst "running")
-                                                 (AddCexp (Equal (Qual (Id "input"))
-                                                                 (SConst "Fail"))
-                                                          (SConst "failed")
-                                                          (Cexp (Equal (Qual (Id "input"))
-                                                                       (SConst "Succ"))
-                                                                (SConst "succeeded"))))))))))).
+                         (Case
+                            (AddCexp (Neg (Qual (Id "enable")))
+                                     (SConst "none")
+                                     (AddCexp (Equal (Qual (Id "input"))
+                                                     (SConst "Runn"))
+                                              (SConst "running")
+                                              (AddCexp (Equal (Qual (Id "input"))
+                                                              (SConst "Fail"))
+                                                       (SConst "failed")
+                                                       (Cexp (Equal (Qual (Id "input"))
+                                                                    (SConst "Succ"))
+                                                             (SConst "succeeded")))))))))).
 
 Definition bp_skill :=
   Build_smv_module
@@ -311,14 +310,14 @@ Module BT_bin_spec (X: BT_SIG).
       let x := varlist_app (make_vars t1) (make_vars t2) in
       AddV name
            (TComp (TModPar (nodeName k)
-                           (AddP (Simple (Qual (Id (rootName t1))))
-                                 (LastP (Simple (Qual (Id (rootName t2))))))))
+                           (AddP (Qual (Id (rootName t1)))
+                                 (LastP (Qual (Id (rootName t2)))))))
            x
     | Dec d name t =>
       let x := make_vars t in
       AddV name
            (TComp (TModPar (decName d)
-                           (LastP (Simple (Qual (Id (rootName t)))))))
+                           (LastP (Qual (Id (rootName t))))))
            x
     end.
 
@@ -329,15 +328,15 @@ Module BT_bin_spec (X: BT_SIG).
       (Some (varlist_rev
                (AddV "tick_generator"
                      (TComp (TModPar "bt_tick_generator"
-                                     (LastP (Simple (Qual (Id (rootName t)))))))
+                                     (LastP (Qual (Id (rootName t))))))
                      (make_vars t))))
       None
       None
       None.
 
   Definition make_spec (t: btree): list smv_module :=
-    bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2 ::
-    bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
+    bp_skill_autonomous :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
+    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
 
 
   (* Modules for OCRA inteface *)
@@ -411,11 +410,11 @@ Module BT_bin_spec (X: BT_SIG).
   Fixpoint mkparomain (l: list X.skillSet) :=
     match l with
     | nil => (* will never happen *)
-      LastP (Simple (Qual (Id "")))
+      LastP (Qual (Id ""))
     | s :: nil =>
-      LastP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+      LastP (Qual (Id ("from_" ++ (X.skillName s))))
     | s :: rest =>
-      AddP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+      AddP (Qual (Id ("from_" ++ (X.skillName s))))
            (mkparomain rest)
     end.
 
@@ -716,9 +715,9 @@ Module BT_gen_spec (X: BT_SIG).
         (Some (mk_par_invar (S p)))
     end.
 
-  Definition make_mod (t: modtype): smv_module :=
+  Definition make_mod (t: modtype) (aut: bool): smv_module :=
     match t with
-    | Skmod => bp_skill
+    | Skmod => if aut then bp_skill_autonomous else bp_skill
     | TRUEmod => bp_TRUE
     | Seqmod l => make_sequence l
     | Fbmod l => make_fallback l
@@ -729,16 +728,16 @@ Module BT_gen_spec (X: BT_SIG).
 
   (* Functions to generate the main module *)
 
-  Fixpoint make_mod_list (l: list modtype): list smv_module :=
+  Fixpoint make_mod_list (l: list modtype) (aut: bool): list smv_module :=
     match l with
     | nil => nil
-    | m :: rest => cons (make_mod m) (make_mod_list rest)
+    | m :: rest => cons (make_mod m aut) (make_mod_list rest aut)
     end.
 
   Fixpoint make_paramlist (f: btforest) :=
     match f with
-    | Child t => (LastP (Simple (Qual (Id (rootName t)))))
-    | Add t1 rest => (AddP (Simple (Qual (Id (rootName t1))))
+    | Child t => (LastP (Qual (Id (rootName t))))
+    | Add t1 rest => (AddP (Qual (Id (rootName t1)))
                            (make_paramlist rest))
     end.
 
@@ -756,7 +755,7 @@ Module BT_gen_spec (X: BT_SIG).
       let vars := make_vars t in
       AddV name
            (TComp (TModPar (decName d)
-                           (LastP (Simple (Qual (Id (rootName t)))))))
+                           (LastP (Qual (Id (rootName t))))))
            vars
     end
   with make_vars_f (f: btforest) :=
@@ -772,7 +771,7 @@ Module BT_gen_spec (X: BT_SIG).
       (Some (varlist_rev
                (AddV "tick_generator"
                      (TComp (TModPar "bt_tick_generator"
-                                     (LastP (Simple (Qual (Id (rootName t)))))))
+                                     (LastP (Qual (Id (rootName t))))))
                      (make_vars t))))
       None
       None
@@ -780,7 +779,7 @@ Module BT_gen_spec (X: BT_SIG).
 
   Definition make_spec (t: btree): list smv_module :=
     let needed := addmod t (empty_set modtype) in
-    let modlist := make_mod_list needed in
+    let modlist := make_mod_list needed true in
     app modlist (bp_tick_generator :: (make_main t "main") :: nil).
 
 
@@ -855,11 +854,11 @@ Module BT_gen_spec (X: BT_SIG).
   Fixpoint mkparomain (l: list X.skillSet) :=
     match l with
     | nil => (* will never happen *)
-      LastP (Simple (Qual (Id "")))
+      LastP (Qual (Id ""))
     | s :: nil =>
-      LastP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+      LastP (Qual (Id ("from_" ++ (X.skillName s))))
     | s :: rest =>
-      AddP (Simple (Qual (Id ("from_" ++ (X.skillName s)))))
+      AddP (Qual (Id ("from_" ++ (X.skillName s))))
            (mkparomain rest)
     end.
 
@@ -904,7 +903,7 @@ Module BT_gen_spec (X: BT_SIG).
   
   Definition make_spec_ocra (t: btree): list smv_module :=
     let needed := addmod t (empty_set modtype) in
-    let modlist := make_mod_list needed in
+    let modlist := make_mod_list needed false in
     app modlist (bp_tick_generator :: (make_main t "bt_main")
                  :: (ocra_bt_fsm t) :: (ocra_main t) :: nil).
 

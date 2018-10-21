@@ -98,17 +98,13 @@ and scexp =
 | Cexp of sexp * sexp
 | AddCexp of sexp * sexp * scexp
 
-type nexp =
-| Simple of sexp
-| Basic of sexp
-
 type simp_type_spec =
 | TBool
 | TEnum of symbolic_constant list
 
 type param_list =
-| LastP of nexp
-| AddP of nexp * param_list
+| LastP of sexp
+| AddP of sexp * param_list
 
 type mod_type_spec =
 | TMod of identifier
@@ -133,7 +129,7 @@ type deflist =
 type assign_cons =
 | Invar of qualid * sexp
 | Init of qualid * sexp
-| Next of qualid * nexp
+| Next of qualid * sexp
 
 type asslist =
 | LastA of assign_cons
@@ -171,8 +167,6 @@ val translate_sexplist : sexplist -> char list
 
 val translate_cexp : scexp -> char list
 
-val translate_nexp : nexp -> char list
-
 val translate_simp_type_spec : simp_type_spec -> char list
 
 val translate_param_list : param_list -> char list
@@ -205,11 +199,15 @@ val string_of_digit : int -> char list
 
 val string_of_nat : int -> char list
 
+val bt_input_type : simp_type_spec
+
 val bt_output_type : simp_type_spec
 
 val bt_action_type : simp_type_spec
 
 val bp_tick_generator : smv_module
+
+val bp_skill_autonomous : smv_module
 
 val bp_skill : smv_module
 
@@ -315,9 +313,9 @@ module BT_gen_spec :
 
   val make_parallel : int -> int -> smv_module
 
-  val make_mod : modtype -> smv_module
+  val make_mod : modtype -> bool -> smv_module
 
-  val make_mod_list : modtype list -> smv_module list
+  val make_mod_list : modtype list -> bool -> smv_module list
 
   val make_paramlist : btforest -> param_list
 

@@ -33,20 +33,14 @@ with scexp :=
      | Cexp: sexp -> sexp -> scexp
      | AddCexp: sexp -> sexp -> scexp -> scexp.
 
-(* for simplicity, next expressions are constrained to a single application
-   of the next operator ("basic next expression") to a simple expression *)
-Inductive nexp :=
-| Simple: sexp -> nexp
-| Basic: sexp -> nexp.
-
 (* type specifiers; we only model booleans and symbolic enums *)
 Inductive simp_type_spec :=
 | TBool: simp_type_spec
 | TEnum: list symbolic_constant -> simp_type_spec.
 
 Inductive param_list :=
-| LastP: nexp -> param_list
-| AddP: nexp -> param_list -> param_list.
+| LastP: sexp -> param_list
+| AddP: sexp -> param_list -> param_list.
 
 Inductive mod_type_spec :=
 | TMod: identifier -> mod_type_spec
@@ -74,7 +68,7 @@ Inductive deflist :=
 Inductive assign_cons :=
 | invar: qualid -> sexp -> assign_cons
 | init: qualid -> sexp -> assign_cons
-| next: qualid -> nexp -> assign_cons.
+| next: qualid -> sexp -> assign_cons.
 
 Inductive asslist :=
 | LastA: assign_cons -> asslist

@@ -7,3 +7,4 @@ stream.v
 micro_smv.v
 spec_extr.v
 bt2spec.v
+fsm.v

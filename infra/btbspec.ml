@@ -61,17 +61,13 @@ and scexp =
 | Cexp of sexp * sexp
 | AddCexp of sexp * sexp * scexp
 
-type nexp =
-| Simple of sexp
-| Basic of sexp
-
 type simp_type_spec =
 | TBool
 | TEnum of symbolic_constant list
 
 type param_list =
-| LastP of nexp
-| AddP of nexp * param_list
+| LastP of sexp
+| AddP of sexp * param_list
 
 type mod_type_spec =
 | TMod of identifier
@@ -96,7 +92,7 @@ type deflist =
 type assign_cons =
 | Invar of qualid * sexp
 | Init of qualid * sexp
-| Next of qualid * nexp
+| Next of qualid * sexp
 
 type asslist =
 | LastA of assign_cons
@@ -211,14 +207,6 @@ and translate_cexp = function
       (append (translate_sexp e2)
         (append (';'::[]) (append newline (translate_cexp rest)))))
 
-(** val translate_nexp : nexp -> char list **)
-
-let translate_nexp = function
-| Simple e' -> translate_sexp e'
-| Basic e' ->
-  append ('n'::('e'::('x'::('t'::('('::[])))))
-    (append (translate_sexp e') (')'::[]))
-
 (** val translate_simp_type_spec : simp_type_spec -> char list **)
 
 let translate_simp_type_spec = function
@@ -230,9 +218,9 @@ let translate_simp_type_spec = function
 (** val translate_param_list : param_list -> char list **)
 
 let rec translate_param_list = function
-| LastP e -> translate_nexp e
+| LastP e -> translate_sexp e
 | AddP (e, pl') ->
-  append (translate_nexp e)
+  append (translate_sexp e)
     (append (','::(' '::[])) (translate_param_list pl'))
 
 (** val translate_mod_type_spec : mod_type_spec -> identifier **)
@@ -303,7 +291,7 @@ let translate_assign_cons = function
   append ('n'::('e'::('x'::('t'::('('::[])))))
     (append (translate_qualid q)
       (append (')'::(' '::(':'::('='::(' '::[])))))
-        (append (translate_nexp ne) (append (';'::[]) newline))))
+        (append (translate_sexp ne) (append (';'::[]) newline))))
 
 (** val translate_asslist : asslist -> char list **)
 
@@ -351,6 +339,12 @@ let rec translate_spec = function
 | [] -> []
 | m :: rest -> append (translate m) (translate_spec rest)
 
+(** val bt_input_type : simp_type_spec **)
+
+let bt_input_type =
+  TEnum
+    (('R'::('u'::('n'::('n'::[])))) :: (('F'::('a'::('i'::('l'::[])))) :: (('S'::('u'::('c'::('c'::[])))) :: [])))
+
 (** val bt_output_type : simp_type_spec **)
 
 let bt_output_type =
@@ -376,11 +370,35 @@ let bp_tick_generator =
     (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (BConst SmvT))),
     (LastA (Next ((Mod
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))),
-    (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Simple (Neg (Equal
-    ((Qual (Mod
+    (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Neg (Equal ((Qual
+    (Mod
     (('t'::('o'::('p'::('_'::('l'::('e'::('v'::('e'::('l'::('_'::('b'::('t'::[])))))))))))),
     (Id ('o'::('u'::('t'::('p'::('u'::('t'::[])))))))))), (SConst
-    ('n'::('o'::('n'::('e'::[]))))))))))))))) }
+    ('n'::('o'::('n'::('e'::[])))))))))))))) }
+
+(** val bp_skill_autonomous : smv_module **)
+
+let bp_skill_autonomous =
+  { name = ('b'::('t'::('_'::('s'::('k'::('i'::('l'::('l'::[]))))))));
+    params = []; vars = (Some (AddV
+    (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (TSimp bt_output_type),
+    (LastV (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp TBool))))));
+    ivars = (Some (LastI (('i'::('n'::('p'::('u'::('t'::[]))))),
+    bt_input_type))); defs = None; assigns = (Some (AddA ((Init ((Id
+    ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))), (SConst
+    ('n'::('o'::('n'::('e'::[]))))))), (LastA (Next ((Id
+    ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))), (Case (AddCexp ((Neg (Qual
+    (Id ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (SConst
+    ('n'::('o'::('n'::('e'::[]))))), (AddCexp ((Equal ((Qual (Id
+    ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('R'::('u'::('n'::('n'::[]))))))), (SConst
+    ('r'::('u'::('n'::('n'::('i'::('n'::('g'::[])))))))), (AddCexp ((Equal
+    ((Qual (Id ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('F'::('a'::('i'::('l'::[]))))))), (SConst
+    ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))), (Cexp ((Equal ((Qual (Id
+    ('i'::('n'::('p'::('u'::('t'::[]))))))), (SConst
+    ('S'::('u'::('c'::('c'::[]))))))), (SConst
+    ('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))))))))))))))))))) }
 
 (** val bp_skill : smv_module **)
 
@@ -712,12 +730,12 @@ module BT_bin_spec =
       ('b'::('t'::('_'::('T'::('R'::('U'::('E'::[]))))))))))
   | Node (k, name0, t1, t2) ->
     let x = varlist_app (make_vars t1) (make_vars t2) in
-    AddV (name0, (TComp (TModPar ((nodeName k), (AddP ((Simple (Qual (Id
-    (rootName t1)))), (LastP (Simple (Qual (Id (rootName t2)))))))))), x)
+    AddV (name0, (TComp (TModPar ((nodeName k), (AddP ((Qual (Id
+    (rootName t1))), (LastP (Qual (Id (rootName t2))))))))), x)
   | Dec (d, name0, t0) ->
     let x = make_vars t0 in
-    AddV (name0, (TComp (TModPar ((decName d), (LastP (Simple (Qual (Id
-    (rootName t0)))))))), x)
+    AddV (name0, (TComp (TModPar ((decName d), (LastP (Qual (Id
+    (rootName t0))))))), x)
 
   (** val make_main : btree -> char list -> smv_module **)
 
@@ -727,13 +745,13 @@ module BT_bin_spec =
         (('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[])))))))))))))),
         (TComp (TModPar
         (('b'::('t'::('_'::('t'::('i'::('c'::('k'::('_'::('g'::('e'::('n'::('e'::('r'::('a'::('t'::('o'::('r'::[]))))))))))))))))),
-        (LastP (Simple (Qual (Id (rootName t)))))))), (make_vars t)))));
-      ivars = None; defs = None; assigns = None }
+        (LastP (Qual (Id (rootName t))))))), (make_vars t))))); ivars = None;
+      defs = None; assigns = None }
 
   (** val make_spec : btree -> smv_module list **)
 
   let make_spec t =
-    bp_skill :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
+    bp_skill_autonomous :: (bp_TRUE :: (bp_bin_seq :: (bp_bin_fb :: (bp_par1 :: (bp_par2 :: (bp_not :: (bp_isRunning :: (bp_tick_generator :: (
       (make_main t ('m'::('a'::('i'::('n'::[]))))) :: [])))))))))
 
   (** val mkop : X.skillSet list -> char list list **)
@@ -811,15 +829,15 @@ module BT_bin_spec =
   (** val mkparomain : X.skillSet list -> param_list **)
 
   let rec mkparomain = function
-  | [] -> LastP (Simple (Qual (Id [])))
+  | [] -> LastP (Qual (Id []))
   | s :: rest ->
     (match rest with
      | [] ->
-       LastP (Simple (Qual (Id
-         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))))
+       LastP (Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s))))
      | _ :: _ ->
-       AddP ((Simple (Qual (Id
-         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s))))),
+       AddP ((Qual (Id
+         (append ('f'::('r'::('o'::('m'::('_'::[]))))) (X.skillName s)))),
          (mkparomain rest)))
 
   (** val mkvaromain : X.skillSet list -> varlist **)
