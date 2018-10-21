@@ -7,7 +7,7 @@ This repository contains the software for the verified execution of Behavior Tre
 To build from source you will need:
 
 * the [Coq](https://coq.inria.fr/) compiler (version >= 8.7 will work out of the box; previous versions will complain about a missing `Extraction` library, in which case you need to comment all lines `Require Import Extraction` in the source files)
-* a working [ocaml](https://ocaml.org/) system with `findlib`, `ocamlbuild` and the [Xmlm library](http://erratique.ch/software/xmlm) (`opam install xmlm`)
+* a working [ocaml](https://ocaml.org/) system (version >= 4.03) with `findlib`, `ocamlbuild` and the [Xmlm library](http://erratique.ch/software/xmlm) (`opam install xmlm`)
 * your favorite C compiler.
 
 Before building the interpreter you need to write an XML file (as in [this example](https://github.com/CARVE-ROBMOSYS/BTCompiler/blob/master/infra/sklist.xml)) containing a list of all the basic skills (= `Action` or `Condition` nodes in BT jargon) that will be allowed as leaves in your Behavior Trees. Each skill will be identified by a string, which (for obvious reasons) **must** be unique. Once you have created this file, type:
