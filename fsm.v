@@ -19,12 +19,17 @@ Definition list_index (A: Type) (Aeq_dec: forall (x y : A), {x = y} + {x <> y})
         | right _ => scan_list rest (S i)
         end
     end) l 0.
-Definition string_equal (s1 s2: string) :=
+
+(* boolean version of string_dec *)
+(* Scheme Equality for string. *)
+Definition string_beq (s1 s2: string): bool :=
   match string_dec s1 s2 with
   | left _ => true
   | right _ => false
   end.
 Unset Implicit Arguments.
+
+
 
 (* This function produces a list of all the possible values for a variable
    of the given (simple) type. *)
@@ -255,7 +260,7 @@ Section Microsmv_execution.
                   end
     | Equal s1 s2 => match eval s1 x i, eval s2 x i with
                      | Some a, Some b =>
-                       if string_equal a b then Some "TRUE" else Some "FALSE"
+                       if string_beq a b then Some "TRUE" else Some "FALSE"
                      | _, _ => None
                      end
     | Count slist =>
@@ -338,36 +343,40 @@ Section Microsmv_execution.
   Compute eval (Count (AddSexp (BConst smvT) (AddSexp (SConst "a") (Sexp (BConst smvT))))) nil nil.
 *)
 
+  (* This function scans the provided list of variable identifiers replacing
+     each of them with:
+     - the corresponding constraint if there exist one in clist, or
+     - None otherwise. *)
+  Fixpoint scan_constr (idl: list identifier) (clist: list (identifier * sexp))
+           (acc: list (option sexp)): list (option sexp) :=
+    match idl with
+    | nil => rev acc
+    | id :: rest => match find (fun z => string_beq (fst z) id)
+                               clist with
+                    | None => scan_constr rest clist (None :: acc)
+                    | Some a => scan_constr rest clist (Some (snd a) :: acc)
+                    end
+    end.
   
   (* Predicate satisfying the init constraints *)
 
-  Definition is_initial (x: state) (i: inputs): bool :=
+  Definition is_initial (x: state): bool :=
     let init_cons := extract_init in
-    let exps :=
-        (* this function scans the list of variables replacing each of them with:
-           - its init constraint (which is a simple expression) if given, or
-           - None otherwise *)
-        (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
-           match idl with
-           | nil => rev acc
-           | id :: rest => match find (fun z => string_equal (fst z) id)
-                                      init_cons with
-                           | None => iter rest (None :: acc)
-                           | Some a => iter rest (Some (snd a) :: acc)
-                           end
-           end) (idlist m) nil in
+    let exps := scan_constr (idlist m) init_cons nil in
+
     (* Verifies the init constraints on the given state *)
-    (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
+    (fix iter (conditions: list (option sexp)) (values: state): bool :=
        match conditions, values with
        | nil, nil => true
        | maybe_cond :: rest_of_conds, value :: rest_of_values =>
          match maybe_cond with
-         | None => iter2 rest_of_conds rest_of_values
-         | Some cond => match eval cond x i with
+         | None => iter rest_of_conds rest_of_values
+         | Some cond => match eval cond x nil with
+                                      (* discarding ivars; is it justified??? *)
                         | None => false (* not clear what to do here: 
                                         perhaps we should propagate the error *)
-                        | Some v => if string_equal v value then
-                                      iter2 rest_of_conds rest_of_values
+                        | Some v => if string_beq v value then
+                                      iter rest_of_conds rest_of_values
                                     else
                                       false
                         end
@@ -379,27 +388,19 @@ Section Microsmv_execution.
 
   Definition respects_invar (x: state) (i: inputs): bool :=
     let invar_cons := extract_invar in
-    let exps :=
-        (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
-           match idl with
-           | nil => rev acc
-           | id :: rest => match find (fun z => string_equal (fst z) id)
-                                      invar_cons with
-                           | None => iter rest (None :: acc)
-                           | Some a => iter rest (Some (snd a) :: acc)
-                           end
-           end) (idlist m) nil in
+    let exps := scan_constr (idlist m) invar_cons nil in
+
     (* Verifies the invar constraints on the given state *)
-    (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
+    (fix iter (conditions: list (option sexp)) (values: state): bool :=
        match conditions, values with
        | nil, nil => true
        | maybe_cond :: rest_of_conds, value :: rest_of_values =>
          match maybe_cond with
-         | None => iter2 rest_of_conds rest_of_values
+         | None => iter rest_of_conds rest_of_values
          | Some cond => match eval cond x i with
                         | None => false
-                        | Some v => if string_equal v value then
-                                      iter2 rest_of_conds rest_of_values
+                        | Some v => if string_beq v value then
+                                      iter rest_of_conds rest_of_values
                                     else
                                       false
                         end
@@ -411,28 +412,20 @@ Section Microsmv_execution.
 
   Definition is_next_of (x1: state) (i: inputs) (x2: state): bool :=
     let next_cons := extract_next in
-    let exps :=
-        (fix iter (idl: list identifier) (acc: list (option sexp)): list (option sexp) :=
-           match idl with
-           | nil => rev acc
-           | id :: rest => match find (fun z => string_equal (fst z) id)
-                                      next_cons with
-                           | None => iter rest (None :: acc)
-                           | Some a => iter rest (Some (snd a) :: acc)
-                           end
-           end) (idlist m) nil in
-    (* Evaluates each sexp on the first state, checks if the second state
-       has the obtained value. *)
-    (fix iter2 (conditions: list (option sexp)) (values: state): bool :=
+    let exps := scan_constr (idlist m) next_cons nil in
+
+    (* Evaluates each sexp on the first state and checks if the second state
+       has the obtained value *)
+    (fix iter (conditions: list (option sexp)) (values: state): bool :=
        match conditions, values with
        | nil, nil => true
        | maybe_cond :: rest_of_conds, value :: rest_of_values =>
          match maybe_cond with
-         | None => iter2 rest_of_conds rest_of_values
+         | None => iter rest_of_conds rest_of_values
          | Some cond => match eval cond x1 i with
                         | None => false   (* propagate? *)
-                        | Some v => if string_equal v value then
-                                      iter2 rest_of_conds rest_of_values
+                        | Some v => if string_beq v value then
+                                      iter rest_of_conds rest_of_values
                                     else
                                       false
                         end
@@ -442,7 +435,7 @@ Section Microsmv_execution.
 
   Definition next_states (x: state) (i: inputs): set state :=
     let ss := make_state_space in
-    (* first step: next values are ok *)
+    (* first step: select states where next values are ok *)
     let s' := filter (fun z => is_next_of x i z) ss in
     (* second step: check invariants *)
     filter (fun z => respects_invar z i) s'.
@@ -453,7 +446,7 @@ Section Microsmv_execution.
 
   Definition exec_determ (i: inputs): option state :=
     let ss := make_state_space in
-    let initial_states := filter (fun x => is_initial x i) ss in
+    let initial_states := filter (fun x => is_initial x) ss in
     match initial_states with
     | s::nil => match next_states s i with
                 | s'::nil => Some s'  (* need single evolved state *)
@@ -471,7 +464,7 @@ End Microsmv_execution.
 
 
 
-(*** Examples ***)
+(*** Examples
 
 (* The easiest possible FSM: one bit state, single transition *)
 Definition inverter :=
@@ -488,8 +481,8 @@ Definition inverter :=
 
 Compute make_state_space inverter.
 (* ("TRUE" :: nil) :: ("FALSE" :: nil) :: nil *)
-Compute is_initial inverter ("TRUE"::nil) nil.
-Compute is_initial inverter ("FALSE"::nil) nil.
+Compute is_initial inverter ("TRUE"::nil).
+Compute is_initial inverter ("FALSE"::nil).
 Compute extract_next inverter.  
 Compute next_states inverter ("TRUE"::nil) nil.
 Compute next_states inverter ("FALSE"::nil) nil.
@@ -518,12 +511,12 @@ Compute make_state_space ex1.
 (* ("ready" :: "TRUE" :: nil)
        :: ("busy" :: "TRUE" :: nil)
           :: ("ready" :: "FALSE" :: nil) :: ("busy" :: "FALSE" :: nil) :: nil*)
-Compute is_initial ex1 ("ready"::"FALSE"::nil) nil.
+Compute is_initial ex1 ("ready"::"FALSE"::nil).
 Compute extract_next ex1.
 Compute next_states ex1 ("ready"::"TRUE"::nil) nil.
 Compute next_states ex1 ("ready"::"FALSE"::nil) nil.
 Compute next_states ex1 ("busy"::"TRUE"::nil) nil.
-
+Compute exec_determ ex1 nil.  (* None *)
 
 (* A 6-hour clock *)
 Definition clock :=
@@ -558,15 +551,54 @@ Compute make_state_space clock.
        :: ("2" :: nil)
           :: ("3" :: nil) :: ("4" :: nil) :: ("5" :: nil) :: ("6" :: nil) :: nil*)
 Compute make_input_alphabet clock.
-Compute is_initial clock ("6"::nil) ("FALSE"::nil).
+Compute is_initial clock ("6"::nil).
 Compute extract_next clock.
 Compute next_states clock ("1"::nil) ("FALSE"::nil).
+Compute next_states clock ("1"::nil) ("TRUE"::nil).
+Compute exec_determ clock ("TRUE"::nil).
 
 
+Definition single_leaf :=
+  Build_smv_module
+    "main"
+    nil
+    (Some (AddV "Go_to_kitchen.output" (TSimp bt_output_type)
+                (LastV "Go_to_kitchen.enable" (TSimp TBool))))
+    (Some (LastI "Go_to_kitchen.input" bt_input_type))
+    None
+    (Some (AddA (init (Id "Go_to_kitchen.output") (SConst "none"))
+                (AddA
+                   (next (Id "Go_to_kitchen.output")
+                         (Case
+                            (AddCexp (Neg (Qual (Id "Go_to_kitchen.enable")))
+                                     (SConst "none")
+                                     (AddCexp (Equal (Qual (Id "Go_to_kitchen.input"))
+                                                     (SConst "Runn"))
+                                              (SConst "running")
+                                              (AddCexp (Equal (Qual (Id "Go_to_kitchen.input"))
+                                                              (SConst "Fail"))
+                                                       (SConst "failed")
+                                                       (Cexp (Equal (Qual (Id "Go_to_kitchen.input"))
+                                                                    (SConst "Succ"))
+                                                             (SConst "succeeded")))))))
+                   (AddA (init (Id "Go_to_kitchen.enable") (BConst smvT))
+                         (LastA
+                            (next (Id "Go_to_kitchen.enable")
+                                  (Neg (Equal (Qual (Id "Go_to_kitchen.output"))
+                                              (SConst "none"))))))))).
 
+Compute make_state_space single_leaf.
+Compute make_input_alphabet single_leaf.
+Compute is_initial single_leaf ("none"::"TRUE"::nil).
+Compute is_initial single_leaf ("succeeded"::"TRUE"::nil).
+Compute extract_next single_leaf.
+Compute next_states single_leaf ("none"::"TRUE"::nil) ("Succ"::nil).
 
+Compute exec_determ single_leaf ("Runn"::nil).
 
+***)
 
+        
 (* dead code
 
 (* adds every element of l to the set s *)
