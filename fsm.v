@@ -19,16 +19,21 @@ Definition list_index (A: Type) (Aeq_dec: forall (x y : A), {x = y} + {x <> y})
         | right _ => scan_list rest (S i)
         end
     end) l 0.
-
-(* boolean version of string_dec *)
-(* Scheme Equality for string. *)
-Definition string_beq (s1 s2: string): bool :=
-  match string_dec s1 s2 with
-  | left _ => true
-  | right _ => false
-  end.
 Unset Implicit Arguments.
 
+(* boolean version of string equality *)
+Scheme Equality for string.
+Lemma string_beq_correct1: forall s1 s2: string, string_beq s1 s2 = true -> s1 = s2.
+Proof.
+  intros.
+  exact (internal_string_dec_bl s1 s2 H).
+Qed.
+
+Lemma string_beq_correct2: forall s1 s2: string, s1 = s2 -> string_beq s1 s2 = true.
+Proof.
+  intros.
+  exact (internal_string_dec_lb s1 s2 H).
+Qed.
 
 
 (* This function produces a list of all the possible values for a variable
@@ -464,7 +469,7 @@ End Microsmv_execution.
 
 
 
-(*** Examples
+(*** Examples ***)
 
 (* The easiest possible FSM: one bit state, single transition *)
 Definition inverter :=
@@ -518,6 +523,7 @@ Compute next_states ex1 ("ready"::"FALSE"::nil) nil.
 Compute next_states ex1 ("busy"::"TRUE"::nil) nil.
 Compute exec_determ ex1 nil.  (* None *)
 
+
 (* A 6-hour clock *)
 Definition clock :=
   Build_smv_module
@@ -558,6 +564,7 @@ Compute next_states clock ("1"::nil) ("TRUE"::nil).
 Compute exec_determ clock ("TRUE"::nil).
 
 
+(* A trivial BT (single leaf), flattened by hand *)
 Definition single_leaf :=
   Build_smv_module
     "main"
@@ -596,59 +603,3 @@ Compute next_states single_leaf ("none"::"TRUE"::nil) ("Succ"::nil).
 
 Compute exec_determ single_leaf ("Runn"::nil).
 
-***)
-
-        
-(* dead code
-
-(* adds every element of l to the set s *)
-Fixpoint add_all (l: list string) (s: set string): set string :=
-  match l with
-  | nil => s
-  | cons x l' => set_add string_dec x (add_all l' s)
-  end.
-
-(* produces the set of all possible values of a variable of type ty *)
-Fixpoint pv (ty: simp_type_spec): set string :=
-  match ty with
-  | TBool => set_add string_dec "TRUE"
-                     (set_add string_dec "FALSE"
-                              (empty_set string))
-  | TEnum scl => add_all scl (empty_set string)
-  end.
-
-
-Definition zex := list string.
-Definition zex_dec : forall (a b: zex), {a = b} + {a <> b}.
-  repeat decide equality. 
-Defined.
-
-Definition sspace_of_single_var (id: identifier) (ty: type_spec): set zex :=
-  match ty with
-  | TSimp s => set_map zex_dec
-                       (fun st => cons st nil)
-                       (pv s)
-  | TComp _ => empty_set zex (* to be handled later... *)
-  end.
-
-Fixpoint make_ss (vl: varlist): set zex :=
-  match vl with
-  | LastV id ty => (sspace_of_single_var id ty)
-  | AddV id ty rest =>
-    match ty with
-    | TSimp s => set_map
-
-      (pv s)
-    | TComp _ => empty_set zex (* to be handled later... *)
-    end        
-  end.
-
-Fixpoint make_ss_ivar (il: ivarlist) :=
-  match il with
-  | LastI id st => cons (pair id (pv st)) nil
-  | AddI id st rest => cons (pair id (pv st))
-                            (make_ss_ivar rest)
-  end.
-
-
-*)
