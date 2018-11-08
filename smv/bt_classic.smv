@@ -98,11 +98,7 @@ MODULE bt_sequence_with_memory(left_bt, right_bt)
         left_bt.output = bt_output_true : TRUE; -- Engage.
         TRUE : has_left_bt_succeded;
       esac;
-    left_bt.enable :=
-      case
-        has_left_bt_succeded : FALSE;
-        TRUE : enable;
-      esac;
+    left_bt.enable := enable & !has_left_bt_succeded;
     right_bt.enable := (left_bt.output = bt_output_true)
       | (enable & has_left_bt_succeded);
   DEFINE
@@ -129,11 +125,7 @@ MODULE bt_fallback_with_memory(left_bt, right_bt)
         left_bt.output = bt_output_false : TRUE; -- Engage.
         TRUE : has_left_bt_failed;
       esac;
-    left_bt.enable :=
-      case
-        has_left_bt_failed : FALSE;
-        TRUE : enable;
-      esac;
+    left_bt.enable := enable & !has_left_bt_failed;
     right_bt.enable := (left_bt.output = bt_output_false)
       | (enable & has_left_bt_failed);
   DEFINE

@@ -14,6 +14,9 @@ class RunBTPropertiesVerification(unittest.TestCase):
         return line.startswith('-- ') and (line.endswith('true') or
                                            line.endswith('false'))
 
+    def _is_parse_error_line(self, line):
+        return line.endswith(': Parser error')
+
     def _run_nusmv(self, smv_file):
         # use 'universal_newlines' to create pipes in text mode.
         process = subprocess.Popen(['nuXmv', '-cpp', smv_file],
@@ -21,32 +24,56 @@ class RunBTPropertiesVerification(unittest.TestCase):
                                    stderr=subprocess.PIPE,
                                    universal_newlines=True)
         out, err = process.communicate()
-        process.wait()
-        # NuSMV does not seem to use its exit code to signal a failure in the
-        # verificaiton of the properties.
-        # We have to parse its output.
         print(smv_file + ':')
+        process.wait()
+        return out, err
+
+    def _check_nuxmv_output_line(self, line):
+        line = line.strip()
+        if self._is_property_line(line):
+            print(line)
+            self.assertTrue(line.endswith('true'))
+
+    def _parse_nuxmv_output(self, out):
+        # NuSMV does not seem to use its exit code to signal a failure in the
+        # verificaiton of the properties.  We have to parse its output.
         for line in out.splitlines():
-            if self._is_property_line(line):
-                print('\t' + line)
-                self.assertTrue(line.endswith('true'))
+            self._check_nuxmv_output_line(line)
+
+    def _look_for_nuxmv_parse_errors(self, err):
+        for line in err.splitlines():
+            self.assertFalse(self._is_parse_error_line(line))
+
+    def _run_smv_test(self, smv_file):
+        out, err = self._run_nusmv(smv_file)
+        # Parse errors are dumped to stderr instead of stdout.
+        self._look_for_nuxmv_parse_errors(err)
+        self._parse_nuxmv_output(out)
 
     def test_uc1_tick_props(self):
-        self._run_nusmv('skill_test.smv')
-        self._run_nusmv('skill_loop_test.smv')
-        self._run_nusmv('sequence_test.smv')
-        self._run_nusmv('sequence_loop_test.smv')
-        self._run_nusmv('parallel_test.smv')
-        self._run_nusmv('parallel_loop_test.smv')
-        self._run_nusmv('uc1_single_tick.smv')
-        self._run_nusmv('uc1.smv')
-        self._run_nusmv('uc1_parallel.smv')
-        self._run_nusmv('uc1_single_tick_ext.smv')
-        self._run_nusmv('uc1_ext.smv')
-        self._run_nusmv('uc1_parallel_ext.smv')
-        self._run_nusmv('uc1_contract.smv')
-        self._run_nusmv('with_memory.smv')
-        self._run_nusmv('without_memory.smv')
+        self._run_smv_test('skill_test.smv')
+        self._run_smv_test('skill_loop_test.smv')
+        self._run_smv_test('sequence_test.smv')
+        self._run_smv_test('sequence_loop_test.smv')
+        self._run_smv_test('parallel_test.smv')
+        self._run_smv_test('parallel_loop_test.smv')
+        self._run_smv_test('uc1_single_tick.smv')
+        self._run_smv_test('uc1.smv')
+        self._run_smv_test('uc1_parallel.smv')
+        self._run_smv_test('uc1_single_tick_ext.smv')
+        self._run_smv_test('uc1_ext.smv')
+        self._run_smv_test('uc1_parallel_ext.smv')
+        self._run_smv_test('uc1_contract.smv')
+        self._run_smv_test('with_memory.smv')
+        self._run_smv_test('without_memory.smv')
+
+    def test_bt_sequence(self):
+        self._run_smv_test('test_bt_sequence.smv')
+        self._run_smv_test('test_bt_sequence_with_memory.smv')
+
+    def test_bt_fallback(self):
+        self._run_smv_test('test_bt_fallback.smv')
+        self._run_smv_test('test_bt_fallback_with_memory.smv')
 
 
 if __name__ == '__main__':
