@@ -188,6 +188,9 @@ MODULE bt_sequence(left_bt, right_bt)
         TRUE : right_bt.output;
       esac;
 
+--MODULE bt_sequence_with_memory(left_bt, right_bt)
+
+
 /--
   Binary parallel constructor.
   The `left_bt` and `right_bt` parameters represent the left and right child,
