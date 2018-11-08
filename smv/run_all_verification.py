@@ -71,11 +71,13 @@ class RunBTPropertiesVerification(unittest.TestCase):
         self._run_smv_test('test_bt_sequence.smv')
         self._run_smv_test('test_bt_with_reset_sequence.smv')
         self._run_smv_test('test_bt_sequence_with_memory.smv')
+        self._run_smv_test('test_bt_with_reset_sequence_with_memory.smv')
 
     def test_bt_fallback(self):
         self._run_smv_test('test_bt_fallback.smv')
         self._run_smv_test('test_bt_with_reset_fallback.smv')
         self._run_smv_test('test_bt_fallback_with_memory.smv')
+        self._run_smv_test('test_bt_with_reset_fallback_with_memory.smv')
 
 
 if __name__ == '__main__':

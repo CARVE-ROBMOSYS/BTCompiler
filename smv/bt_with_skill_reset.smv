@@ -147,6 +147,48 @@ MODULE bt_fallback(left_bt, right_bt)
         TRUE : right_bt.output;
       esac;
 
+
+MODULE bt_fallback_with_memory(left_bt, right_bt)
+  VAR
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    cached_left_bt_output : { bt_output_none,
+                              bt_output_disable,
+                              bt_output_running,
+                              bt_output_false,
+                              bt_output_true };
+  ASSIGN
+    left_bt.visit :=
+      case
+        visit = bt_visit_disable : bt_visit_disable;
+        cached_left_bt_output = bt_output_false : bt_visit_no;
+        TRUE : visit;
+      esac;
+    right_bt.visit :=
+      case
+        visit = bt_visit_enable & cached_left_bt_output = bt_output_false : bt_visit_enable;
+        left_bt.output = bt_output_none : bt_visit_no;
+        left_bt.output = bt_output_false : bt_visit_enable;
+        TRUE : bt_visit_disable;
+      esac;
+    init(cached_left_bt_output) := left_bt.output;
+    next(cached_left_bt_output) :=
+      case
+        left_bt.output = bt_output_disable
+          | right_bt.output in { bt_output_true, bt_output_false } : bt_output_none; -- Reset.
+        left_bt.output = bt_output_none : cached_left_bt_output; -- Hold.
+        TRUE : left_bt.output; -- Update.
+      esac;
+  DEFINE
+    output :=
+      case
+        right_bt.output = bt_output_none : bt_output_none;
+        right_bt.output = bt_output_disable : cached_left_bt_output;
+        TRUE : right_bt.output;
+      esac;
+
+
 /--
   Binary sequence.
   The `left_bt` and `right_bt` parameters are the left and right child,
@@ -174,7 +216,7 @@ MODULE bt_sequence(left_bt, right_bt)
         left_bt.output = bt_output_true : bt_visit_enable;
         TRUE : bt_visit_disable;
       esac;
-    init(cached_left_bt_output) := left_bt.output;
+    init(cached_left_bt_output) := bt_output_none;
     next(cached_left_bt_output) :=
       case
         left_bt.output = bt_output_none : cached_left_bt_output;
@@ -188,7 +230,46 @@ MODULE bt_sequence(left_bt, right_bt)
         TRUE : right_bt.output;
       esac;
 
---MODULE bt_sequence_with_memory(left_bt, right_bt)
+
+MODULE bt_sequence_with_memory(left_bt, right_bt)
+  VAR
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    cached_left_bt_output : { bt_output_none,
+                              bt_output_disable,
+                              bt_output_running,
+                              bt_output_false,
+                              bt_output_true };
+  ASSIGN
+    left_bt.visit :=
+      case
+        visit = bt_visit_disable : bt_visit_disable;
+        cached_left_bt_output = bt_output_true : bt_visit_no;
+        TRUE : visit;
+      esac;
+    right_bt.visit :=
+      case
+        visit = bt_visit_enable & cached_left_bt_output = bt_output_true : bt_visit_enable;
+        left_bt.output = bt_output_none : bt_visit_no;
+        left_bt.output = bt_output_true : bt_visit_enable;
+        TRUE : bt_visit_disable;
+      esac;
+    init(cached_left_bt_output) := bt_output_none;
+    next(cached_left_bt_output) :=
+      case
+        left_bt.output = bt_output_disable
+          | right_bt.output in { bt_output_true, bt_output_false } : bt_output_none; -- Reset.
+        left_bt.output = bt_output_none : cached_left_bt_output; -- Hold.
+        TRUE : left_bt.output; -- Update.
+      esac;
+  DEFINE
+    output :=
+      case
+        right_bt.output = bt_output_none : bt_output_none;
+        right_bt.output = bt_output_disable : cached_left_bt_output;
+        TRUE : right_bt.output;
+      esac;
 
 
 /--

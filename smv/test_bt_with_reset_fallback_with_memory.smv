@@ -1,0 +1,30 @@
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+#include "bt_with_skill_reset.smv"
+
+MODULE main
+  VAR
+    a : bt_skill;
+    b : bt_skill;
+    r : bt_fallback_with_memory(a, b);
+    r_tick : bt_tick_generator(r);
+
+    -- The following properties provide a full coverage of the FALLBACK node
+    -- truth table.
+    LTLSPEC G (a.output = bt_output_true
+      -> (r.output = bt_output_none & X r.output = bt_output_true))
+    LTLSPEC G (a.output = bt_output_running
+      -> (r.output = bt_output_none & X r.output = bt_output_running))
+    LTLSPEC G (a.output = bt_output_false
+      -> (r.output = bt_output_none & X (r.output = b.output & r.output != bt_output_none)))
+
+    -- Then add some specific tests to exercise the memory part.
+    LTLSPEC G (a.output = bt_output_false -> X (b.output = bt_output_running ->
+      (r.output = bt_output_running &
+        X(r.visit = bt_visit_enable & a.visit = bt_visit_no & b.visit = bt_visit_enable
+          & X (b.output = r.output & r.output != bt_output_none)))))
+

@@ -96,7 +96,7 @@ MODULE bt_sequence_with_memory(left_bt, right_bt)
       case
         right_bt.output in { bt_output_true, bt_output_false } : FALSE; -- Reset.
         left_bt.output = bt_output_true : TRUE; -- Engage.
-        TRUE : has_left_bt_succeded;
+        TRUE : has_left_bt_succeded; -- Hold.
       esac;
     left_bt.enable := enable & !has_left_bt_succeded;
     right_bt.enable := (left_bt.output = bt_output_true)
