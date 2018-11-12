@@ -87,24 +87,20 @@ Module BT_binary_with_state (X: BT_SIG).
       | _ => (Fallback l' r, result)
       end
     | SequenceStar s l r =>
-      match s with
-      | true =>
-        let (r', result_r) := tick r input_f in
-        let flag := match result_r with
-                    | Succ => false
-                    | _ => true
-                    end in
-        (SequenceStar flag l r', result_r)
-      | false =>
-        let (l', result_l) := tick l input_f in
-        match result_l with
-        | Succ =>
+      let fix tick_right _l r {struct r} :=
           let (r', result_r) := tick r input_f in
           let flag := match result_r with
                       | Succ => false
                       | _ => true
                       end in
-          (SequenceStar flag l' r', result_r)
+          (SequenceStar flag _l r', result_r)
+      in
+      match s with
+      | true => tick_right l r
+      | false =>
+        let (l', result_l) := tick l input_f in
+        match result_l with
+        | Succ => tick_right l' r
         | _ => (SequenceStar false l' r, result_l)
         end
       end
