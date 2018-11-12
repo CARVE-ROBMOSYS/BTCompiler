@@ -1,22 +1,22 @@
-
 (* This module contains two implementations for the BT data type.
    Both are parameterized over the signature BT_SIG, which defines
    a set whose members are the basic skills available and a function
    mapping each skill to its name (a string). *)
 
 Require Import String.
+Require Import Coq.Init.Datatypes.
+Require Import Coq.Bool.Bool.
 
 Module Type BT_SIG.
-  
+
   Parameter skillSet: Set.
   Parameter skillName: skillSet -> string.
-  
+
 End BT_SIG.
 
 (* First implementation: trees with binary branching only *)
-
 Module BT_binary (X: BT_SIG).
-  
+
   Inductive nodeKind: Set :=
     Sequence | Fallback | Parallel1 | Parallel2.
 
@@ -28,7 +28,7 @@ Module BT_binary (X: BT_SIG).
      and Ogren, are best implemented as composite BTs which manage
      the state via some skills implementing a suitable interface,
      e.g. communication with a parameter server. *)
-  
+
   Inductive btree: Set :=
   | Skill: X.skillSet -> btree
   | TRUE: btree
@@ -46,6 +46,71 @@ Module BT_binary (X: BT_SIG).
     end.
 
 End BT_binary.
+
+Module BT_binary_with_state (X: BT_SIG).
+
+  Inductive btree: Set :=
+  | Skill: X.skillSet -> btree
+  | Sequence: btree -> btree -> btree
+  | Fallback: btree -> btree -> btree
+  | SequenceStar: bool -> btree -> btree -> btree.
+
+  Fixpoint init_state (t: btree) :=
+    match t with
+    | Skill s => Skill s
+    | Sequence l r => Sequence l r
+    | Fallback l r => Fallback l r
+    | SequenceStar s l r => SequenceStar false l r
+    end.
+
+  Inductive return_enum := Runn | Fail | Succ.
+
+  Definition skills_input := X.skillSet -> return_enum.
+
+  Fixpoint tick (t: btree) (input_f: skills_input) :=
+    match t with
+    | Skill s => (t, input_f s)
+    | Sequence l r =>
+      let (l', result) := tick l input_f in
+      match result with
+      | Succ =>
+        let (r', result') := tick r input_f in
+        (Sequence l' r', result')
+      | _ => (Sequence l' r, result)
+      end
+    | Fallback l r =>
+      let (l', result) := tick l input_f in
+      match result with
+      | Fail =>
+        let (r', result') := tick r input_f in
+        (Fallback l' r', result')
+      | _ => (Fallback l' r, result)
+      end
+    | SequenceStar s l r =>
+      match s with
+      | true =>
+        let (r', result_r) := tick r input_f in
+        let flag := match result_r with
+                    | Succ => false
+                    | _ => true
+                    end in
+        (SequenceStar flag l r', result_r)
+      | false =>
+        let (l', result_l) := tick l input_f in
+        match result_l with
+        | Succ =>
+          let (r', result_r) := tick r input_f in
+          let flag := match result_r with
+                      | Succ => false
+                      | _ => true
+                      end in
+          (SequenceStar flag l' r', result_r)
+        | _ => (SequenceStar false l' r, result_l)
+        end
+      end
+    end.
+
+End BT_binary_with_state.
 
 (* Second implementation: trees with arbitrary branching *)
 
