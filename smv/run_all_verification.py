@@ -15,7 +15,7 @@ class RunBTPropertiesVerification(unittest.TestCase):
                                            line.endswith('false'))
 
     def _is_parse_error_line(self, line):
-        return line.endswith(': Parser error')
+        return line.endswith(': Parser error') or line.endswith('" undefined')
 
     def _run_nusmv(self, smv_file):
         # use 'universal_newlines' to create pipes in text mode.
@@ -42,7 +42,9 @@ class RunBTPropertiesVerification(unittest.TestCase):
 
     def _look_for_nuxmv_parse_errors(self, err):
         for line in err.splitlines():
-            self.assertFalse(self._is_parse_error_line(line))
+            if self._is_parse_error_line(line):
+                print(line)
+                self.fail("SMV Syntax error.")
 
     def _run_smv_test(self, smv_file):
         out, err = self._run_nusmv(smv_file)
@@ -78,6 +80,9 @@ class RunBTPropertiesVerification(unittest.TestCase):
         self._run_smv_test('test_bt_with_reset_fallback.smv')
         self._run_smv_test('test_bt_fallback_with_memory.smv')
         self._run_smv_test('test_bt_with_reset_fallback_with_memory.smv')
+
+    def test_bt_resource_allocation(self):
+        self._run_smv_test('test_bt_resource_allocation_01.smv')
 
 
 if __name__ == '__main__':
