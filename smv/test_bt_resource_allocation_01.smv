@@ -8,8 +8,9 @@
 
 /--
  Requires the resource as long as the skill is running.
+ First, wrong attempt.
  --/
-MODULE bt_skill_with_resource
+MODULE bt_skill_with_resource_wrong
   VAR
     embedded_skill : bt_skill;
     resource_held : boolean;
@@ -22,6 +23,37 @@ MODULE bt_skill_with_resource
     next(resource_held) :=
       case
         output = bt_output_running : TRUE; -- Acquire.
+        output = bt_output_none : resource_held; -- Unchanged.
+        TRUE : FALSE; -- Release.
+      esac;
+  DEFINE
+    output := embedded_skill.output;
+
+/--
+ Requires the resource as long as the skill is running.
+ Ok, with a delay.
+ --/
+MODULE bt_skill_with_resource
+  VAR
+    embedded_skill : bt_skill;
+    resource_held : boolean;
+    visit : { bt_visit_no,
+              bt_visit_enable,
+              bt_visit_disable };
+    was_already_running : boolean;
+  ASSIGN
+    init(was_already_running) := FALSE;
+    next(was_already_running) :=
+      case
+        output = bt_output_running : TRUE;
+        output = bt_output_none : was_already_running;
+        TRUE : FALSE;
+      esac;
+    embedded_skill.visit := visit;
+    init(resource_held) := FALSE;
+    next(resource_held) :=
+      case
+        output = bt_output_running & was_already_running : TRUE; -- Acquire.
         output = bt_output_none : resource_held; -- Unchanged.
         TRUE : FALSE; -- Release.
       esac;
