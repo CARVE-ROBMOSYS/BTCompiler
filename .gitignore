@@ -31,6 +31,7 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+Makefile.conf
 
 # ocamlbuild working directory
 _build/
