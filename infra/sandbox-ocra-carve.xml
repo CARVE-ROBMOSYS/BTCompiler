@@ -24,7 +24,7 @@
       assume="true"
       guarantee="
         always(req_skill_1 -> in the future is_skill_1_ok) and
-        always((req_skill_2 and is_skill_2_ok) -> in the future is_skill_2_ok) and
+        always((req_skill_2 and is_skill_1_ok) -> in the future is_skill_2_ok) and
         always(is_skill_1_ok -> always is_skill_1_ok) and
         always(is_skill_2_ok -> always is_skill_2_ok)
         ">
