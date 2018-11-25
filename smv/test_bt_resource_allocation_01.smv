@@ -10,7 +10,7 @@
  Requires the resource as long as the skill is running.
  First, wrong attempt.
  --/
-MODULE bt_skill_with_resource_wrong
+MODULE bt_skill_with_resource
   VAR
     embedded_skill : bt_skill;
     resource_held : boolean;
@@ -33,7 +33,7 @@ MODULE bt_skill_with_resource_wrong
  Requires the resource as long as the skill is running.
  Ok, with a delay.
  --/
-MODULE bt_skill_with_resource
+MODULE bt_skill_with_resource_with_delay
   VAR
     embedded_skill : bt_skill;
     resource_held : boolean;
@@ -77,6 +77,7 @@ MODULE main
     root : bt_sequence(recharge_if_needed, patrol);
     r_tick : bt_tick_generator(root);
 
-    LTLSPEC G robot_base.is_mutual_exclusion_satisfied
-
+    -- LTLSPEC G robot_base.is_mutual_exclusion_satisfied
+    CTLSPEC EF !robot_base.is_mutual_exclusion_satisfied
+    LTLSPEC G (root.visit = bt_visit_enable -> robot_base.is_mutual_exclusion_satisfied)
 

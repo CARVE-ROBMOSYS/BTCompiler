@@ -1,0 +1,49 @@
+<root>
+
+  <BehaviorTree
+      mission = "is_skill_2_ok = true"
+      assume = "true"
+      guarantee = "in the future from_skill_2 = succeeded">
+      <Sequence name="root">
+        <Action
+            ID="skill_1"
+            assume="true"
+            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                       always (is_skill_1_ok -> (to_bt = none or to_bt = succeeded))"
+            />
+        <Action
+            ID="skill_2"
+            assume="true"
+            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+                       always (is_skill_2_ok -> (to_bt = none or to_bt = succeeded))"
+            />
+      </Sequence>
+  </BehaviorTree>
+
+  <Environment
+      assume="true"
+      guarantee="
+        always(req_skill_1 -> in the future is_skill_1_ok) and
+        always((req_skill_2 and is_skill_2_ok) -> in the future is_skill_2_ok) and
+        always(is_skill_1_ok -> always is_skill_1_ok) and
+        always(is_skill_2_ok -> always is_skill_2_ok)
+        ">
+
+    <OutSignal name="is_skill_1_ok">
+      <Destination ID="skill_1"/>
+    </OutSignal>
+    <OutSignal name="is_skill_2_ok">
+      <Destination ID="skill_2"/>
+    </OutSignal>
+
+    <InSignal name="req_skill_1">
+      <Source ID="skill_1"/>
+    </InSignal>
+    <InSignal name="req_skill_2">
+      <Source ID="skill_2"/>
+    </InSignal>
+
+  </Environment>
+  
+</root>
+
