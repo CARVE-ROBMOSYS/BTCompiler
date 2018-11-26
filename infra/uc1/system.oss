@@ -1,0 +1,107 @@
+@requires discrete-time
+COMPONENT uc1 system
+ INTERFACE
+  OUTPUT PORT mission: boolean;
+
+  CONTRACT mission
+   assume: true;
+   guarantee: in the future mission;
+
+ REFINEMENT
+  SUB Bt_fsm: BT_FSM;
+  SUB Robot_env: ROBOT_AND_ENVIRONMENT;
+  SUB Go_to_kitchen: GO_TO_KITCHEN;
+  SUB Find_bottle: FIND_BOTTLE;
+  SUB Fetch_bottle: FETCH_BOTTLE;
+  SUB Ask_for_help: ASK_FOR_HELP;
+  
+  CONNECTION Bt_fsm.from_Go_to_kitchen := Go_to_kitchen.to_bt;
+  CONNECTION Go_to_kitchen.from_bt := Bt_fsm.to_Go_to_kitchen;
+  CONNECTION Robot_env.req_Go_to_kitchen := Go_to_kitchen.req_Go_to_kitchen;
+  CONNECTION Go_to_kitchen.is_robot_in_kitchen := Robot_env.is_robot_in_kitchen;
+
+  CONNECTION Bt_fsm.from_Find_bottle := Find_bottle.to_bt;
+  CONNECTION Find_bottle.from_bt := Bt_fsm.to_Find_bottle;
+  CONNECTION Robot_env.req_Find_bottle := Find_bottle.req_Find_bottle;
+  CONNECTION Find_bottle.is_bottle_found := Robot_env.is_bottle_found;
+
+  CONNECTION Bt_fsm.from_Fetch_bottle := Fetch_bottle.to_bt;
+  CONNECTION Fetch_bottle.from_bt := Bt_fsm.to_Fetch_bottle;
+  CONNECTION Robot_env.req_Fetch_bottle := Fetch_bottle.req_Fetch_bottle;
+  CONNECTION Fetch_bottle.is_bottle_fetched := Robot_env.is_bottle_fetched;
+
+  CONNECTION Bt_fsm.from_Ask_for_help := Ask_for_help.to_bt;
+  CONNECTION Ask_for_help.from_bt := Bt_fsm.to_Ask_for_help;
+  CONNECTION Robot_env.req_Ask_for_help := Ask_for_help.req_Ask_for_help;
+  CONNECTION mission := Robot_env.is_bottle_fetched = true;
+
+  CONTRACT mission REFINEDBY Bt_fsm.bt_contract, Robot_env.env_contract, Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
+  
+COMPONENT BT_FSM
+ INTERFACE
+  INPUT PORT from_Go_to_kitchen: {none, running, failed, succeeded};
+  OUTPUT PORT to_Go_to_kitchen: {Enable, Reset};
+  INPUT PORT from_Find_bottle: {none, running, failed, succeeded};
+  OUTPUT PORT to_Find_bottle: {Enable, Reset};
+  INPUT PORT from_Fetch_bottle: {none, running, failed, succeeded};
+  OUTPUT PORT to_Fetch_bottle: {Enable, Reset};
+  INPUT PORT from_Ask_for_help: {none, running, failed, succeeded};
+  OUTPUT PORT to_Ask_for_help: {Enable, Reset};
+  
+  CONTRACT bt_contract
+   assume: true;
+   guarantee: in the future (from_Go_to_kitchen = succeeded and from_Find_bottle = succeeded and from_Fetch_bottle = succeeded);
+
+COMPONENT ROBOT_AND_ENVIRONMENT
+ INTERFACE
+  INPUT PORT req_Ask_for_help: boolean;
+  INPUT PORT req_Fetch_bottle: boolean;
+  INPUT PORT req_Find_bottle: boolean;
+  INPUT PORT req_Go_to_kitchen: boolean;
+  OUTPUT PORT is_bottle_fetched: boolean;
+  OUTPUT PORT is_bottle_found: boolean;
+  OUTPUT PORT is_bottle_visible: boolean;
+  OUTPUT PORT is_robot_in_kitchen: boolean;
+  
+  CONTRACT env_contract
+   assume: true;
+   guarantee: always(req_Go_to_kitchen -> in the future is_robot_in_kitchen) and always((req_Find_bottle and is_bottle_visible) -> in the future is_bottle_found) and always((req_Fetch_bottle and is_bottle_found) -> in the future is_bottle_fetched) and always(is_bottle_visible iff is_robot_in_kitchen) and always(is_robot_in_kitchen -> always is_robot_in_kitchen) and always(is_bottle_found -> always is_bottle_found) and always(is_bottle_fetched -> always is_bottle_fetched);
+
+COMPONENT GO_TO_KITCHEN
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  INPUT PORT is_robot_in_kitchen: boolean;
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_Go_to_kitchen: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_robot_in_kitchen -> (to_bt = none or to_bt = succeeded));
+
+COMPONENT FIND_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  INPUT PORT is_bottle_found: boolean;
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_Find_bottle: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_bottle_found -> (to_bt = none or to_bt = succeeded));
+
+COMPONENT FETCH_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  INPUT PORT is_bottle_fetched: boolean;
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_Fetch_bottle: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_bottle_fetched -> (to_bt = none or to_bt = succeeded));
+
+COMPONENT ASK_FOR_HELP
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_Ask_for_help: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none));

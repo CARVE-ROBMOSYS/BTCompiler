@@ -1,0 +1,88 @@
+MODULE bt_fallback_2(bt2, bt1)
+VAR
+enable : boolean;
+DEFINE
+output := case
+bt2.output = running | bt2.output = succeeded : bt2.output;
+TRUE : bt1.output;
+esac;
+ASSIGN
+bt2.enable := enable;
+bt1.enable := bt2.output = failed;
+
+MODULE bt_sequence_3(bt3, bt2, bt1)
+VAR
+enable : boolean;
+DEFINE
+output := case
+bt3.output = running | bt3.output = failed : bt3.output;
+bt2.output = running | bt2.output = failed : bt2.output;
+TRUE : bt1.output;
+esac;
+ASSIGN
+bt3.enable := enable;
+bt2.enable := bt3.output = succeeded;
+bt1.enable := bt2.output = succeeded;
+
+MODULE bt_skill()
+VAR
+output : { none, running, failed, succeeded };
+enable : boolean;
+
+MODULE bt_tick_generator(top_level_bt)
+ASSIGN
+init(top_level_bt.enable) := TRUE;
+next(top_level_bt.enable) := !(top_level_bt.output = none);
+
+MODULE bt_main()
+VAR
+Ask_for_help : bt_skill;
+Fetch_bottle : bt_skill;
+Find_bottle : bt_skill;
+Go_to_kitchen : bt_skill;
+find_and_fetch : bt_sequence_3(Go_to_kitchen, Find_bottle, Fetch_bottle);
+root : bt_fallback_2(find_and_fetch, Ask_for_help);
+tick_generator : bt_tick_generator(root);
+
+MODULE BT_FSM(from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help)
+VAR
+to_Go_to_kitchen : { Enable, Reset };
+to_Find_bottle : { Enable, Reset };
+to_Fetch_bottle : { Enable, Reset };
+to_Ask_for_help : { Enable, Reset };
+bt_main_inst : bt_main;
+ASSIGN
+bt_main_inst.Go_to_kitchen.output := from_Go_to_kitchen;
+to_Go_to_kitchen := case
+bt_main_inst.Go_to_kitchen.enable = TRUE : Enable;
+bt_main_inst.Go_to_kitchen.enable = FALSE : Reset;
+esac;
+bt_main_inst.Find_bottle.output := from_Find_bottle;
+to_Find_bottle := case
+bt_main_inst.Find_bottle.enable = TRUE : Enable;
+bt_main_inst.Find_bottle.enable = FALSE : Reset;
+esac;
+bt_main_inst.Fetch_bottle.output := from_Fetch_bottle;
+to_Fetch_bottle := case
+bt_main_inst.Fetch_bottle.enable = TRUE : Enable;
+bt_main_inst.Fetch_bottle.enable = FALSE : Reset;
+esac;
+bt_main_inst.Ask_for_help.output := from_Ask_for_help;
+to_Ask_for_help := case
+bt_main_inst.Ask_for_help.enable = TRUE : Enable;
+bt_main_inst.Ask_for_help.enable = FALSE : Reset;
+esac;
+
+MODULE main()
+VAR
+BT_FSM_inst : BT_FSM(from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help);
+from_Go_to_kitchen : { none, running, failed, succeeded };
+from_Find_bottle : { none, running, failed, succeeded };
+from_Fetch_bottle : { none, running, failed, succeeded };
+from_Ask_for_help : { none, running, failed, succeeded };
+DEFINE
+to_Go_to_kitchen := BT_FSM_inst.to_Go_to_kitchen;
+to_Find_bottle := BT_FSM_inst.to_Find_bottle;
+to_Fetch_bottle := BT_FSM_inst.to_Fetch_bottle;
+to_Ask_for_help := BT_FSM_inst.to_Ask_for_help;
+

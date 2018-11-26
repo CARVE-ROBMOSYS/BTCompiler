@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SkillList>
+<!-- use cases -->
+  <Action ID="Ask_for_help" />
+  <Action ID="Go_to_kitchen" />
+  <Action ID="Find_bottle" />
+  <Action ID="Fetch_bottle" />
+  <Condition ID="Room_known" />
+  <Action ID="Follow_human" />
+  <Action ID="Go_to_room" />
+  <Action ID="Find_glass" />
+  <Action ID="Fetch_glass" />
+  <Action ID="Pour_drink" />
+<!-- other stuff -->
+  <Action ID="IsDoorOpen" />
+  <Action ID="PassThroughDoor" />
+  <Action ID="OpenDoor" />
+  <Action ID="CloseDoor" />
+  <Action ID="PassThroughWindow" />
+  <Action ID="Action1SecondSuccess" />
+  <Action ID="Action1SecondFailure" />
+  <Action ID="ActionRunning" />
+  <Condition ID="ConditionTrue" /> 
+  <Condition ID="ConditionFalse" />
+</SkillList>
