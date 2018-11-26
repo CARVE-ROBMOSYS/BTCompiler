@@ -1,0 +1,33 @@
+@requires discrete-time
+COMPONENT system
+ INTERFACE
+  OUTPUT PORT comp_1_out : boolean;
+  OUTPUT PORT comp_2_out : boolean;
+
+  CONTRACT mission
+   assume: TRUE;
+   -- guarantee: TRUE;
+   guarantee: always (comp_1_out and comp_2_out);
+
+ REFINEMENT
+  SUB comp_1_inst : comp_spec;
+  SUB comp_2_inst : comp_spec;
+
+  CONNECTION comp_1_inst.input := comp_2_inst.output;
+  CONNECTION comp_2_inst.input := comp_1_inst.output;
+
+  CONNECTION comp_1_out := comp_1_inst.output;
+  CONNECTION comp_2_out := comp_2_inst.output;
+
+  CONTRACT mission REFINEDBY comp_1_inst.comp_contract, comp_2_inst.comp_contract;
+
+COMPONENT comp_spec
+ INTERFACE
+  INPUT PORT input : boolean;
+  OUTPUT PORT output : boolean;
+
+  CONTRACT comp_contract
+   --assume: always input = TRUE;
+   assume: TRUE;
+   guarantee: always output = TRUE;
+
