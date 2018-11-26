@@ -1,0 +1,70 @@
+@requires discrete-time
+COMPONENT uc1 system
+ INTERFACE
+  OUTPUT PORT mission: boolean;
+
+  CONTRACT mission
+   assume: true;
+   guarantee: in the future mission;
+
+ REFINEMENT
+  SUB Bt_fsm: BT_FSM;
+  SUB Robot_env: ROBOT_AND_ENVIRONMENT;
+  SUB skill_1: SKILL_1;
+  SUB skill_2: SKILL_2;
+  
+  CONNECTION Bt_fsm.from_skill_1 := skill_1.to_bt;
+  CONNECTION skill_1.from_bt := Bt_fsm.to_skill_1;
+  CONNECTION Robot_env.req_skill_1 := skill_1.req_skill_1;
+  CONNECTION skill_1.is_skill_1_ok := Robot_env.is_skill_1_ok;
+
+  CONNECTION Bt_fsm.from_skill_2 := skill_2.to_bt;
+  CONNECTION skill_2.from_bt := Bt_fsm.to_skill_2;
+  CONNECTION Robot_env.req_skill_2 := skill_2.req_skill_2;
+  CONNECTION skill_2.is_skill_2_ok := Robot_env.is_skill_2_ok;
+
+  CONNECTION mission := Robot_env.is_skill_2_ok = true;
+
+  CONTRACT mission REFINEDBY Bt_fsm.bt_contract, Robot_env.env_contract, skill_1.skill_contract, skill_2.skill_contract;
+  
+COMPONENT BT_FSM
+ INTERFACE
+  INPUT PORT from_skill_1: {none, running, failed, succeeded};
+  OUTPUT PORT to_skill_1: {Enable, Reset};
+  INPUT PORT from_skill_2: {none, running, failed, succeeded};
+  OUTPUT PORT to_skill_2: {Enable, Reset};
+  
+  CONTRACT bt_contract
+   assume: true;
+   guarantee: in the future from_skill_2 = succeeded;
+
+COMPONENT ROBOT_AND_ENVIRONMENT
+ INTERFACE
+  INPUT PORT req_skill_2: boolean;
+  INPUT PORT req_skill_1: boolean;
+  OUTPUT PORT is_skill_2_ok: boolean;
+  OUTPUT PORT is_skill_1_ok: boolean;
+  
+  CONTRACT env_contract
+   assume: true;
+   guarantee: always(req_skill_1 -> in the future is_skill_1_ok) and always((req_skill_2 and is_skill_1_ok) -> in the future is_skill_2_ok) and always(is_skill_1_ok -> always is_skill_1_ok) and always(is_skill_2_ok -> always is_skill_2_ok);
+
+COMPONENT SKILL_1
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  INPUT PORT is_skill_1_ok: boolean;
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_skill_1: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_skill_1_ok -> (to_bt = none or to_bt = succeeded));
+
+COMPONENT SKILL_2
+ INTERFACE
+  INPUT PORT from_bt: {Enable, Reset};
+  INPUT PORT is_skill_2_ok: boolean;
+  OUTPUT PORT to_bt: {none, running, failed, succeeded};
+  OUTPUT PORT req_skill_2: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_skill_2_ok -> (to_bt = none or to_bt = succeeded));
