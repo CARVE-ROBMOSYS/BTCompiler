@@ -1,0 +1,145 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        uc1_inst : uc1;
+    DEFINE
+        mission := uc1_inst.mission;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE uc1
+    VAR
+        Bt_fsm : BT_FSM(skill_1.to_bt, skill_2.to_bt);
+        Robot_env : ROBOT_AND_ENVIRONMENT(skill_2.req_skill_2, skill_1.req_skill_1);
+        skill_1 : SKILL_1(Bt_fsm.to_skill_1, Robot_env.is_skill_1_ok);
+        skill_2 : SKILL_2(Bt_fsm.to_skill_2, Robot_env.is_skill_2_ok);
+    DEFINE
+        mission := Robot_env.is_skill_2_ok = TRUE;
+
+    LTLSPEC NAME mission_norm_guarantee :=  F mission;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BT_FSM(from_skill_1, from_skill_2)
+    VAR
+        bt_main_inst : bt_main;
+    VAR
+        to_skill_1 : {Enable, Reset};
+        to_skill_2 : {Enable, Reset};
+
+    ASSIGN
+        bt_main_inst.skill_1.output := from_skill_1;
+        to_skill_1 := case
+bt_main_inst.skill_1.enable = TRUE : Enable;
+bt_main_inst.skill_1.enable = FALSE : Reset;
+esac;
+        bt_main_inst.skill_2.output := from_skill_2;
+        to_skill_2 := case
+bt_main_inst.skill_2.enable = TRUE : Enable;
+bt_main_inst.skill_2.enable = FALSE : Reset;
+esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_main
+    VAR
+        skill_2 : bt_skill;
+        skill_1 : bt_skill;
+        root : bt_sequence_2(skill_1, skill_2);
+        tick_generator : bt_tick_generator(root);
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_skill
+    VAR
+        output : {none, running, failed, succeeded};
+        enable : boolean;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_sequence_2(bt2, bt1)
+    VAR
+        enable : boolean;
+
+    DEFINE
+        output := case
+(bt2.output = running | bt2.output = failed) : bt2.output;
+TRUE : bt1.output;
+esac;
+
+    ASSIGN
+        bt2.enable := enable;
+        bt1.enable := bt2.output = succeeded;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_tick_generator(top_level_bt)
+    ASSIGN
+        init(top_level_bt.enable) := TRUE;
+        next(top_level_bt.enable) := !(top_level_bt.output = none);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ROBOT_AND_ENVIRONMENT(req_skill_2, req_skill_1)
+    VAR
+        is_skill_2_ok : boolean;
+        is_skill_1_ok : boolean;
+
+    LTLSPEC NAME env_contract_norm_guarantee := ((( G (req_skill_1 ->  F is_skill_1_ok) &  G ((req_skill_2 & is_skill_1_ok) ->  F is_skill_2_ok)) &  G (is_skill_1_ok ->  G is_skill_1_ok)) &  G (is_skill_2_ok ->  G is_skill_2_ok));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SKILL_1(from_bt, is_skill_1_ok)
+    VAR
+        to_bt : {none, running, failed, succeeded};
+        req_skill_1 : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := ( G (from_bt = Enable <-> next(to_bt != none)) &  G (is_skill_1_ok -> (to_bt = none | to_bt = succeeded)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SKILL_2(from_bt, is_skill_2_ok)
+    VAR
+        to_bt : {none, running, failed, succeeded};
+        req_skill_2 : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := ( G (from_bt = Enable <-> next(to_bt != none)) &  G (is_skill_2_ok -> (to_bt = none | to_bt = succeeded)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
