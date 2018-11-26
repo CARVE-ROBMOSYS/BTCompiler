@@ -1,0 +1,13 @@
+MODULE comp_spec(input)
+VAR
+  output : boolean;
+ASSIGN
+  output := input;
+
+MODULE main()
+VAR
+input : boolean;
+comp_spec_inst : comp_spec(input);
+DEFINE
+output := comp_spec_inst.output;
+
