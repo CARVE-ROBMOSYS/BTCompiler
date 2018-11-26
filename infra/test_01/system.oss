@@ -57,7 +57,7 @@ COMPONENT SKILL_1
   OUTPUT PORT req_skill_1: boolean;
   CONTRACT skill_contract
    assume: true;
-   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_skill_1_ok -> (to_bt = none or to_bt = succeeded));
+   guarantee: always ((from_bt = Enable) iff next (to_bt != none)) and always (is_skill_1_ok -> (to_bt = none or to_bt = succeeded));
 
 COMPONENT SKILL_2
  INTERFACE
@@ -67,4 +67,4 @@ COMPONENT SKILL_2
   OUTPUT PORT req_skill_2: boolean;
   CONTRACT skill_contract
    assume: true;
-   guarantee: always ((from_bt = Enable) -> next (to_bt != none)) and always (is_skill_2_ok -> (to_bt = none or to_bt = succeeded));
+   guarantee: always ((from_bt = Enable) iff next (to_bt != none)) and always (is_skill_2_ok -> (to_bt = none or to_bt = succeeded));

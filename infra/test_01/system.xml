@@ -8,13 +8,13 @@
         <Action
             ID="skill_1"
             assume="true"
-            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+            guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
                        always (is_skill_1_ok -> (to_bt = none or to_bt = succeeded))"
             />
         <Action
             ID="skill_2"
             assume="true"
-            guarantee="always ((from_bt = Enable) -> next (to_bt != none)) and
+            guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
                        always (is_skill_2_ok -> (to_bt = none or to_bt = succeeded))"
             />
       </Sequence>
