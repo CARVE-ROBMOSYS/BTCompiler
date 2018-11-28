@@ -257,6 +257,15 @@ let rec mktail = function
   | [] -> [";\n  "]
   | skname :: rest -> [", "; skname; ".skill_contract"] @ mktail rest
 
+let rec qualify_mission s signals =
+  match signals with
+  | [] -> s
+  | sgn :: rest ->
+    let s' = Str.global_replace (Str.regexp ("\\(" ^ sgn.id ^ "\\)"))
+                                "Robot_env.\\1"
+                                s in
+    qualify_mission s' rest
+
 let make_comp_system lst =
   let disc_time_head = "@requires discrete-time\n" in
   let header =
@@ -271,7 +280,9 @@ let make_comp_system lst =
   let subs = String.concat "" (mksubs lst) in
   let connections = String.concat "" (mkconn lst) in
   let refinement =
-    String.concat "" (["CONNECTION mission := Robot_env."; !mission; ";\n\n  ";
+    String.concat "" (["CONNECTION mission := ";
+                       qualify_mission !mission (!in_signals @ !out_signals);
+                       ";\n\n  ";
                        "CONTRACT mission REFINEDBY Bt_fsm.bt_contract, ";
                        "Robot_env.env_contract"] @ mktail lst) in
 

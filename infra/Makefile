@@ -12,7 +12,7 @@ all: readskill interp mkspec
 
 # check that needed OCaml packages can be found
 checkpkg:
-	ocamlfind query xmlm
+	ocamlfind query xmlm str
 
 readskill: checkpkg
 	$(OCB) 'readskill.native'
