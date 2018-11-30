@@ -1,0 +1,16 @@
+-- // This document contains no USA or EU export controlled technical data.
+
+MODULE comp_spec
+  VAR
+    inp : { bbb, aaa };
+    outp : { bbb, aaa };
+  ASSIGN
+    outp := inp;
+
+
+MODULE main
+  VAR
+    inp : { bbb, aaa };
+    comp_inst : comp_spec;
+  DEFINE
+    outp := comp_inst.outp;
