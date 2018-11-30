@@ -1,16 +1,28 @@
--- // This document contains no USA or EU export controlled technical data.
 
-MODULE comp_spec
-  VAR
-    inp : { bbb, aaa };
-    outp : { bbb, aaa };
-  ASSIGN
-    outp := inp;
-
-
+-- ===============================================================================
 MODULE main
-  VAR
-    inp : { bbb, aaa };
-    comp_inst : comp_spec;
-  DEFINE
-    outp := comp_inst.outp;
+    VAR
+        comp_spec_inst : comp_spec(inp);
+    VAR
+        inp : {aaa, bbb};
+
+    DEFINE
+        outp := comp_spec_inst.outp;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE comp_spec(inp)
+    VAR
+        outp : {bbb, aaa};
+    ASSIGN
+        init(outp) := aaa;
+        next(outp) := inp;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
