@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SkillList>
+  <Action ID="skill_1" />
+  <Action ID="skill_2" />
+  <Action ID="skill_3" />
+  <Action ID="skill_4" />
+  <Action ID="skill_5" />
+  <Action ID="skill_6" />
+</SkillList>
