@@ -1,11 +1,13 @@
 @requires discrete-time
 COMPONENT system
- INTERFACE
-  -- OUTPUT PORT mission: boolean;
+  INTERFACE
+    -- Fabricated.
+    OUTPUT PORT bt_tick : boolean;
+    OUTPUT PORT is_mutual_exclusion_satisfied : boolean;
 
-  -- CONTRACT mission
-  --  assume: true;
-  --  guarantee: in the future mission;
+  CONTRACT mission
+   assume: true;
+   guarantee: always(bt_tick implies is_mutual_exclusion_satisfied);
 
  REFINEMENT
   SUB bt_inst: bt_spec;
@@ -23,7 +25,19 @@ COMPONENT system
   CONNECTION bt_inst.from_skill_is_battery_ok := skill_is_battery_ok.to_bt;
   CONNECTION skill_is_battery_ok.from_bt := bt_inst.to_skill_is_battery_ok;
 
-  --CONTRACT mission REFINEDBY Bt_fsm.bt_contract, Robot_env.env_contract, skill_1.skill_contract, skill_2.skill_contract;
+  -- The following ports are only needed to express the system obligation but
+  -- are in no way required by the functional specification to be exposed at this
+  -- level. Is this ok or is it a sign of some bad modeling?
+  CONNECTION bt_tick := bt_inst.tick;
+  CONNECTION is_mutual_exclusion_satisfied := shared_resource_inst.is_mutual_exclusion_satisfied;
+
+  CONTRACT mission REFINEDBY
+    bt_inst.no_two_actions_running,
+    shared_resource_inst.implementation,
+    skill_goto_recharge.bt_skill,
+    skill_goto_recharge.resource_usage,
+    skill_patrol.bt_skill,
+    skill_patrol.resource_usage;
 
 
 COMPONENT shared_resource_spec
@@ -31,9 +45,16 @@ COMPONENT shared_resource_spec
     INPUT PORT consumer_1_in_use : boolean;
     INPUT PORT consumer_2_in_use : boolean;
 
-  CONTRACT mutual_exclusive_use
-    assume: always not (consumer_1_in_use and consumer_2_in_use);
-    guarantee: true;
+    -- Fabricated
+    OUTPUT PORT is_mutual_exclusion_satisfied : boolean;
+
+  -- CONTRACT mutual_exclusive_use
+  --   assume: always not (consumer_1_in_use and consumer_2_in_use);
+  --   guarantee: true;
+
+  CONTRACT implementation
+    assume: true;
+    guarantee: always(is_mutual_exclusion_satisfied iff not (consumer_1_in_use and consumer_2_in_use));
 
 
 COMPONENT plain_skill
@@ -48,20 +69,23 @@ COMPONENT skill_with_resource_spec
     OUTPUT PORT to_bt : { bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable };
     OUTPUT PORT resource_in_use : boolean;
 
---  CONTRACT bt_skill
---    assume: true;
---    guarantee: always (
---      ((from_bt = bt_visit_enable) implies next (to_bt in { bt_output_running, bt_output_false, bt_output_true } ))
---      and ((from_bt = bt_visit_disable) implies next (to_bt = bt_output_disable))
---      );
---
---  CONTRACT resource_usage
---    assume: true;
---    guarantee: always (
---      (from_bt = bt_visit_enable implies next (to_bt = bt_output_running iff resource_in_use))
---      and (from_bt = bt_visit_disable implies next (not resource_in_use))
---      and ((from_bt = bt_visit_no) implies (resource_in_use iff next resource_in_use))
---    );
+  CONTRACT bt_skill
+    assume: true;
+    guarantee: always (
+      ((from_bt = bt_visit_enable) iff
+        ((next(to_bt) = bt_output_running) or (next(to_bt) = bt_output_false) or
+        (next(to_bt) = bt_output_true)))
+      and ((from_bt = bt_visit_disable) iff (next(to_bt) = bt_output_disable))
+      );
+
+  CONTRACT resource_usage
+    assume: true;
+    guarantee: (resource_in_use = false)
+      and always (
+      (from_bt = bt_visit_enable implies (next(to_bt) = bt_output_running iff next(resource_in_use)))
+      and (from_bt = bt_visit_disable implies not next(resource_in_use))
+      and ((from_bt = bt_visit_no) implies (resource_in_use iff next(resource_in_use)))
+    );
 
 
 COMPONENT bt_spec
@@ -74,3 +98,15 @@ COMPONENT bt_spec
     OUTPUT PORT to_skill_patrol : { bt_visit_disable, bt_visit_enable, bt_visit_no };
     OUTPUT PORT to_skill_is_battery_ok : { bt_visit_disable, bt_visit_enable, bt_visit_no };
 
+    -- We do not explicitly model the BT tick generator, which is sort of
+    -- implementation detail. However we expose the beginning of the tick on the BT
+    -- interface because it is needed to express the BT contract.
+    OUTPUT PORT tick : boolean;
+
+  CONTRACT no_two_actions_running
+    assume: TRUE;
+    -- The actions cannot be running within the same tick event.
+    guarantee:
+      always (to_skill_goto_recharge != bt_visit_enable or to_skill_patrol != bt_visit_enable)
+      and always (from_skill_goto_recharge = bt_output_running -> ((to_skill_patrol != bt_visit_enable) until tick))
+      and always (from_skill_patrol = bt_output_running -> ((to_skill_goto_recharge != bt_visit_enable) until tick));

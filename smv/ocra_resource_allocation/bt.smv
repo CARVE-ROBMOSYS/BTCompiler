@@ -4,6 +4,42 @@
 -- // innovation programme under grant agreement No 732410, in the form of financial
 -- // support to third parties of the RobMoSys project.
 
+-- ===============================================================================
+MODULE main
+    VAR
+        bt_spec_inst : bt_spec(from_skill_goto_recharge, from_skill_patrol, from_skill_is_battery_ok);
+    VAR
+        from_skill_goto_recharge : {bt_output_disable, bt_output_true, bt_output_false, bt_output_running, bt_output_none};
+        from_skill_patrol : {bt_output_disable, bt_output_true, bt_output_false, bt_output_running, bt_output_none};
+        from_skill_is_battery_ok : {bt_output_disable, bt_output_true, bt_output_false, bt_output_running, bt_output_none};
+
+    DEFINE
+        to_skill_goto_recharge := bt_spec_inst.to_skill_goto_recharge;
+        to_skill_patrol := bt_spec_inst.to_skill_patrol;
+        to_skill_is_battery_ok := bt_spec_inst.to_skill_is_battery_ok;
+        tick := bt_spec_inst.tick;
+
+
+MODULE bt_spec(from_skill_goto_recharge, from_skill_patrol, from_skill_is_battery_ok)
+    VAR
+        to_skill_goto_recharge : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+        to_skill_patrol : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+        to_skill_is_battery_ok : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+    VAR
+      skill_goto_recharge : bt_skill(from_skill_goto_recharge);
+      skill_patrol : bt_skill(from_skill_patrol);
+      skill_is_battery_ok : bt_skill(from_skill_is_battery_ok);
+      recharge_if_needed : bt_fallback(skill_is_battery_ok, skill_goto_recharge);
+      root : bt_sequence(recharge_if_needed, skill_patrol);
+      r_tick : bt_tick_generator(root);
+      tick : boolean;
+    ASSIGN
+      to_skill_goto_recharge := skill_goto_recharge.visit;
+      to_skill_patrol := skill_patrol.visit;
+      to_skill_is_battery_ok := skill_is_battery_ok.visit;
+      tick := (root.visit = bt_visit_enable);
+
+
 MODULE bt_tick_generator(top_level_bt)
   ASSIGN
     init(top_level_bt.visit) := bt_visit_enable;
@@ -90,26 +126,3 @@ MODULE shared_resource(consumer_1, consumer_2)
     is_mutual_exclusion_satisfied :=
       !(consumer_1.resource_held & consumer_2.resource_held);
 
-
-MODULE bt_spec(from_skill_is_battery_ok, from_skill_goto_recharge, from_skill_patrol)
-  VAR
-    goto_recharge : bt_skill(from_skill_goto_recharge);
-    patrol : bt_skill(from_skill_goto_recharge);
-    is_battery_ok : bt_skill(from_skill_is_battery_ok);
-    recharge_if_needed : bt_fallback(is_battery_ok, goto_recharge);
-    root : bt_sequence(recharge_if_needed, patrol);
-    r_tick : bt_tick_generator(root);
-
-
-MODULE main
-  VAR
-    to_skill_goto_recharge : { bt_visit_no, bt_visit_enable, bt_visit_disable };
-    from_skill_goto_recharge : { bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable };
-    from_skill_patrol : { bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable };
-    from_skill_is_battery_ok : { bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable };
-    bt_inst : bt_spec(from_skill_is_battery_ok, from_skill_goto_recharge, from_skill_patrol);
-  DEFINE
-    to_skill_patrol := bt_inst.patrol.visit;
-    to_skill_is_battery_ok := bt_inst.is_battery_ok.visit;
-  ASSIGN
-    to_skill_goto_recharge := bt_visit_no; --bt_inst.goto_recharge.visit;
