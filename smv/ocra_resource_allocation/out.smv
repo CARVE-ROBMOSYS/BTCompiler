@@ -1,0 +1,183 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        system_inst : system;
+    DEFINE
+        bt_tick := system_inst.bt_tick;
+        is_mutual_exclusion_satisfied := system_inst.is_mutual_exclusion_satisfied;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE system
+    VAR
+        bt_inst : bt_spec(skill_goto_recharge.to_bt, skill_patrol.to_bt, skill_is_battery_ok.to_bt);
+        shared_resource_inst : shared_resource_spec(skill_goto_recharge.resource_in_use, skill_patrol.resource_in_use);
+        skill_goto_recharge : skill_with_resource_spec(bt_inst.to_skill_goto_recharge);
+        skill_patrol : skill_with_resource_spec(bt_inst.to_skill_patrol);
+        skill_is_battery_ok : plain_skill(bt_inst.to_skill_is_battery_ok);
+    DEFINE
+        bt_tick := bt_inst.tick;
+        is_mutual_exclusion_satisfied := shared_resource_inst.is_mutual_exclusion_satisfied;
+
+    LTLSPEC NAME mission_norm_guarantee := (TRUE ->  G (bt_tick -> is_mutual_exclusion_satisfied));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_spec(from_skill_goto_recharge, from_skill_patrol, from_skill_is_battery_ok)
+    VAR
+        skill_goto_recharge : bt_skill(from_skill_goto_recharge);
+        skill_patrol : bt_skill(from_skill_patrol);
+        skill_is_battery_ok : bt_skill(from_skill_is_battery_ok);
+        recharge_if_needed : bt_fallback(skill_is_battery_ok, skill_goto_recharge);
+        root : bt_sequence(recharge_if_needed, skill_patrol);
+        r_tick : bt_tick_generator(root);
+    VAR
+        to_skill_goto_recharge : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+        to_skill_patrol : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+        to_skill_is_battery_ok : {bt_visit_disable, bt_visit_enable, bt_visit_no};
+        tick : boolean;
+
+    ASSIGN
+        to_skill_goto_recharge := skill_goto_recharge.visit;
+        to_skill_patrol := skill_patrol.visit;
+        to_skill_is_battery_ok := skill_is_battery_ok.visit;
+        tick := root.visit = bt_visit_enable;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_skill(from_skill)
+    VAR
+        visit : {bt_visit_no, bt_visit_enable, bt_visit_disable};
+
+    DEFINE
+        output := from_skill;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_fallback(left_bt, right_bt)
+    VAR
+        visit : {bt_visit_no, bt_visit_enable, bt_visit_disable};
+        cached_left_bt_output : {bt_output_none, bt_output_disable, bt_output_running, bt_output_false, bt_output_true};
+
+    DEFINE
+        output := case
+right_bt.output = bt_output_none : bt_output_none;
+right_bt.output = bt_output_disable : cached_left_bt_output;
+TRUE : right_bt.output;
+esac;
+
+    ASSIGN
+        init(cached_left_bt_output) := left_bt.output;
+        left_bt.visit := visit;
+        right_bt.visit := case
+left_bt.output = bt_output_none : bt_visit_no;
+left_bt.output = bt_output_false : bt_visit_enable;
+TRUE : bt_visit_disable;
+esac;
+        next(cached_left_bt_output) := case
+left_bt.output = bt_output_none : cached_left_bt_output;
+TRUE : left_bt.output;
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_sequence(left_bt, right_bt)
+    VAR
+        visit : {bt_visit_no, bt_visit_enable, bt_visit_disable};
+        cached_left_bt_output : {bt_output_none, bt_output_disable, bt_output_running, bt_output_false, bt_output_true};
+
+    DEFINE
+        output := case
+right_bt.output = bt_output_none : bt_output_none;
+right_bt.output = bt_output_disable : cached_left_bt_output;
+TRUE : right_bt.output;
+esac;
+
+    ASSIGN
+        init(cached_left_bt_output) := bt_output_none;
+        left_bt.visit := visit;
+        right_bt.visit := case
+left_bt.output = bt_output_none : bt_visit_no;
+left_bt.output = bt_output_true : bt_visit_enable;
+TRUE : bt_visit_disable;
+esac;
+        next(cached_left_bt_output) := case
+left_bt.output = bt_output_none : cached_left_bt_output;
+TRUE : left_bt.output;
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE bt_tick_generator(top_level_bt)
+    ASSIGN
+        init(top_level_bt.visit) := bt_visit_enable;
+        next(top_level_bt.visit) := case
+top_level_bt.output = bt_output_none : bt_visit_no;
+TRUE : bt_visit_enable;
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE shared_resource_spec(consumer_1_in_use, consumer_2_in_use)
+    VAR
+        is_mutual_exclusion_satisfied : boolean;
+
+    LTLSPEC NAME implementation_norm_guarantee := (TRUE ->  G (is_mutual_exclusion_satisfied <-> !(consumer_1_in_use & consumer_2_in_use)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE skill_with_resource_spec(from_bt)
+    VAR
+        to_bt : {bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable};
+        resource_in_use : boolean;
+
+    LTLSPEC NAME resource_usage_norm_guarantee := (TRUE -> (resource_in_use = FALSE &  G (((from_bt = bt_visit_enable -> (next(to_bt) = bt_output_running <-> next(resource_in_use))) & (from_bt = bt_visit_disable -> !next(resource_in_use))) & (from_bt = bt_visit_no -> (resource_in_use <-> next(resource_in_use))))));
+
+    LTLSPEC NAME bt_skill_norm_guarantee := (TRUE ->  G ((from_bt = bt_visit_enable -> ((next(to_bt) = bt_output_running | next(to_bt) = bt_output_false) | next(to_bt) = bt_output_true)) & (from_bt = bt_visit_disable -> next(to_bt) = bt_output_disable)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE plain_skill(from_bt)
+    VAR
+        to_bt : {bt_output_none, bt_output_running, bt_output_false, bt_output_true, bt_output_disable};
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

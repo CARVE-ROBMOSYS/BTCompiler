@@ -1,0 +1,19 @@
+-- // This document contains no USA or EU export controlled technical data.
+
+@requires discrete-time
+COMPONENT system
+  INTERFACE
+
+  REFINEMENT
+    SUB inst_1 : comp_spec;
+    SUB inst_2 : comp_spec;
+
+    CONNECTION inst_1.inp := inst_2.outp;
+    CONNECTION inst_2.inp := inst_1.outp;
+
+
+COMPONENT comp_spec
+  INTERFACE
+    INPUT PORT inp : { bbb, aaa };
+    OUTPUT PORT outp : { bbb, aaa };
+

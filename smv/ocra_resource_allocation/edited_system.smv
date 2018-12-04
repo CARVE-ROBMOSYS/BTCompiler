@@ -1,0 +1,83 @@
+MODULE bt_sequence_2(bt2, bt1)
+VAR
+enable : boolean;
+DEFINE
+output := case
+bt2.output = running | bt2.output = failed : bt2.output;
+TRUE : bt1.output;
+esac;
+ASSIGN
+bt2.enable := enable;
+bt1.enable := bt2.output = succeeded;
+
+MODULE bt_skill()
+VAR
+output : { none, running, failed, succeeded };
+enable : boolean;
+
+MODULE bt_tick_generator(top_level_bt)
+ASSIGN
+init(top_level_bt.enable) := TRUE;
+next(top_level_bt.enable) := !(top_level_bt.output = none);
+
+MODULE bt_main()
+VAR
+skill_2 : bt_skill;
+skill_1 : bt_skill;
+root : bt_sequence_2(skill_1, skill_2);
+tick_generator : bt_tick_generator(root);
+
+-- The following LTL encodes as an implication the property we would like to
+-- prove about the BT. The antecedent is the conjunction of the contracts from
+-- the environment and the skills. The consequent encodes the succesfull
+-- completion of the BT mission.
+--
+LTLSPEC
+  (
+  (G (skill_1.enable <-> X skill_1.output != none))
+  & (G (skill_2.enable <-> X skill_2.output != none))
+  & (G (skill_1.enable -> F skill_1.output = succeeded))
+  & (G (skill_1.output = succeeded -> G skill_1.output in {none, succeeded}))
+  & (G ((skill_1.output = succeeded & skill_2.enable) -> F skill_2.output = succeeded))
+  )
+  -> (F skill_2.output = succeeded)
+
+-- This property is expected to fail.
+-- This second property is the antecedent of the above implication, negated.
+-- The purpose is to show that the antecedent is not empty, i.e. that the above
+-- implication is vacuously true.
+LTLSPEC
+  !(
+  (G (skill_1.enable <-> X skill_1.output != none))
+  & (G (skill_2.enable <-> X skill_2.output != none))
+  & (G (skill_1.enable -> F skill_1.output = succeeded))
+  & (G (skill_1.output = succeeded -> G skill_1.output in {none, succeeded}))
+  & (G ((skill_1.output = succeeded & skill_2.enable) -> F skill_2.output = succeeded))
+  )
+
+MODULE BT_FSM(from_skill_1, from_skill_2)
+VAR
+to_skill_1 : { Enable, Reset };
+to_skill_2 : { Enable, Reset };
+bt_main_inst : bt_main;
+ASSIGN
+bt_main_inst.skill_1.output := from_skill_1;
+to_skill_1 := case
+bt_main_inst.skill_1.enable = TRUE : Enable;
+bt_main_inst.skill_1.enable = FALSE : Reset;
+esac;
+bt_main_inst.skill_2.output := from_skill_2;
+to_skill_2 := case
+bt_main_inst.skill_2.enable = TRUE : Enable;
+bt_main_inst.skill_2.enable = FALSE : Reset;
+esac;
+
+MODULE main()
+VAR
+BT_FSM_inst : BT_FSM(from_skill_1, from_skill_2);
+from_skill_1 : { none, running, failed, succeeded };
+from_skill_2 : { none, running, failed, succeeded };
+DEFINE
+to_skill_1 := BT_FSM_inst.to_skill_1;
+to_skill_2 := BT_FSM_inst.to_skill_2;
+
