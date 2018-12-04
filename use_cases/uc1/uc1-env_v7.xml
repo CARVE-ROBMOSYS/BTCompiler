@@ -1,0 +1,96 @@
+<root>
+
+  <BehaviorTree
+      mission = "(is_bottle_fetched or is_help_given) and out_bt = succeeded"
+      assume = "always ((to_Go_to_kitchen = Enable) iff  (from_Go_to_kitchen != none)) and
+		always ((to_Find_bottle = Enable) iff  (from_Find_bottle != none)) and
+		always ((to_Fetch_bottle = Enable) iff  (from_Fetch_bottle != none)) and
+		always ((to_Ask_for_help = Enable) iff  (from_Ask_for_help != none))"
+      guarantee = "always((((from_Go_to_kitchen = succeeded) and
+                            (from_Find_bottle = succeeded) and
+                            (from_Fetch_bottle = succeeded)) or
+		           (from_Ask_for_help = succeeded)) -> in the future(out_bt = succeeded)) and
+		   always(to_Find_bottle = Enable iff (to_Go_to_kitchen = Enable and from_Go_to_kitchen = succeeded)) and
+		   always(to_Fetch_bottle = Enable iff (to_Find_bottle = Enable and from_Find_bottle = succeeded)) and
+		   always(to_Ask_for_help = Enable iff (from_Go_to_kitchen = failed or from_Find_bottle = failed or from_Fetch_bottle = failed)) and
+		   in the future (to_Go_to_kitchen = Enable or to_Find_bottle = Enable or to_Fetch_bottle = Enable or to_Ask_for_help = Enable)">
+    <Fallback name = "root">
+      <Sequence name="find_and_fetch">
+        <Action
+            ID="Go_to_kitchen"
+            assume="always(req_Go_to_kitchen iff in the future is_robot_in_kitchen)"
+            guarantee="always ((from_bt = Enable) iff (to_bt != none)) and
+		       always (from_bt = Enable iff in the future req_Go_to_kitchen) and
+                       always (is_robot_in_kitchen -> (to_bt = none or to_bt = succeeded))"
+            />
+        <Action
+            ID="Find_bottle"
+            assume="always((req_Find_bottle and is_bottle_visible) iff in the future is_bottle_found)"
+            guarantee="always ((from_bt = Enable) iff (to_bt != none)) and
+		       always (from_bt = Enable iff in the future req_Find_bottle) and
+                       always (is_bottle_found -> (to_bt = none or to_bt = succeeded))"
+            />
+        <Action
+            ID="Fetch_bottle"
+            assume="always((req_Fetch_bottle and is_bottle_found) iff in the future is_bottle_fetched)"
+            guarantee="always ((from_bt = Enable) iff (to_bt != none)) and
+		       always (from_bt = Enable iff in the future req_Fetch_bottle) and
+                       always (is_bottle_fetched -> (to_bt = none or to_bt = succeeded))"
+            />
+      </Sequence>
+      <Action
+          ID="Ask_for_help"
+          assume="always(req_Ask_for_help iff in the future is_help_given)"
+          guarantee="always ((from_bt = Enable) iff (to_bt != none)) and
+		     always (from_bt = Enable iff in the future req_Ask_for_help) and
+		     always (is_help_given -> (to_bt = none or to_bt = succeeded))"
+          />
+    </Fallback>
+  </BehaviorTree>
+
+  <Environment
+      assume="true"
+      guarantee="always(req_Go_to_kitchen iff in the future is_robot_in_kitchen) and
+                 always((req_Find_bottle and is_bottle_visible) iff in the future is_bottle_found) and
+		 always((req_Fetch_bottle and is_bottle_found) iff in the future is_bottle_fetched) and
+                 always(req_Ask_for_help iff in the future is_help_given) and
+		 always(is_bottle_visible iff is_robot_in_kitchen) and
+		 always(is_robot_in_kitchen -> always is_robot_in_kitchen) and
+		 always(is_bottle_found -> always is_bottle_found) and
+		 always(is_bottle_fetched -> always is_bottle_fetched) and
+		 always(is_help_given -> always is_help_given)">
+
+    <OutSignal name="is_robot_in_kitchen">
+      <Destination ID="Go_to_kitchen"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_visible">
+      <Destination ID="Find_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_found">
+      <Destination ID="Find_bottle"/>
+      <Destination ID="Fetch_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_fetched">
+      <Destination ID="Fetch_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_help_given">
+      <Destination ID="Ask_for_help"/>
+    </OutSignal>
+    
+    <InSignal name="req_Go_to_kitchen">
+      <Source ID="Go_to_kitchen"/>
+    </InSignal>
+    <InSignal name="req_Find_bottle">
+      <Source ID="Find_bottle"/>
+    </InSignal>
+    <InSignal name="req_Fetch_bottle">
+      <Source ID="Fetch_bottle"/>
+    </InSignal>
+    <InSignal name="req_Ask_for_help">
+      <Source ID="Ask_for_help"/>
+    </InSignal>  
+
+  </Environment>
+  
+</root>
+
