@@ -31,10 +31,16 @@ MODULE main
 
   LTLSPEC
     (
-    -- Assumes
-    -- Environment
+      -- Assumes
+      -- Environment Initial conditions
+      env.is_robot_in_kitchen = FALSE
+      & env.bottle.is_found = FALSE
+      & env.bottle.is_fetched = FALSE
+      & env.glass.is_found = FALSE
+      & env.glass.is_fetched = FALSE
+      & env.is_drink_poured = FALSE
       -- Glass and bottle are visible only in the kitchen.
-      G (env.is_robot_in_kitchen <-> (env.bottle.is_visible & env.glass.is_visible))
+      & G (env.is_robot_in_kitchen <-> (env.bottle.is_visible & env.glass.is_visible))
       -- If the robot tries to go to kitchen, it eventually succedes.
       & ((G F skill_goto_kitchen.enable)
          -> G F (skill_goto_kitchen.enable & env.is_robot_in_kitchen))
@@ -60,22 +66,22 @@ MODULE main
       & G ((skill_pour_drink.enable & env.glass.is_fetched & env.bottle.is_fetched) -> F env.is_drink_poured)
       -- The drink is not accidentally spilled.
       & G (env.is_drink_poured -> G env.is_drink_poured)
-    -- Navigator component
-    & G (skill_goto_kitchen.output != bt_output_none
-         -> (env.is_robot_in_kitchen <-> skill_goto_kitchen.output = bt_output_true))
-    -- Gaze object component: bottle
-    & G (env.bottle.is_found -> skill_find_bottle.output in { bt_output_true, bt_output_none })
-    -- Gaze object component: glass
-    & G (env.glass.is_found -> skill_find_glass.output in { bt_output_none, bt_output_true})
-    -- Fetch object component: bottle
-    & G (env.bottle.is_fetched -> skill_fetch_bottle.output in { bt_output_none, bt_output_true} )
-    -- Fetch object component: glass
-    & G (env.glass.is_fetched -> skill_fetch_glass.output in { bt_output_none, bt_output_true })
-    -- Pour drink component
-    & G (env.is_drink_poured -> skill_pour_drink.output in { bt_output_true, bt_output_none })
+      -- Navigator component
+      & G (skill_goto_kitchen.output != bt_output_none
+           -> (env.is_robot_in_kitchen <-> skill_goto_kitchen.output = bt_output_true))
+      -- Gaze object component: bottle
+      & G (env.bottle.is_found -> skill_find_bottle.output in { bt_output_true, bt_output_none })
+      -- Gaze object component: glass
+      & G (env.glass.is_found -> skill_find_glass.output in { bt_output_none, bt_output_true})
+      -- Fetch object component: bottle
+      & G (env.bottle.is_fetched -> skill_fetch_bottle.output in { bt_output_none, bt_output_true} )
+      -- Fetch object component: glass
+      & G (env.glass.is_fetched -> skill_fetch_glass.output in { bt_output_none, bt_output_true })
+      -- Pour drink component
+      & G (env.is_drink_poured -> skill_pour_drink.output in { bt_output_true, bt_output_none })
     )
     -> (
     -- Guarantees
-    --FALSE &
+    -- FALSE &
     F (do_pour_drink_in_kitchen.output = bt_output_true & env.is_drink_poured)
     )
