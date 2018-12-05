@@ -1,0 +1,65 @@
+MODULE BT_FSM(from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help)
+VAR
+to_Go_to_kitchen : { Enable, Reset };
+to_Find_bottle : { Enable, Reset };
+to_Fetch_bottle : { Enable, Reset };
+to_Ask_for_help : { Enable, Reset };
+out_bt : { none, running, failed, succeeded };
+ASSIGN
+  out_bt := succeeded;
+
+  init(to_Go_to_kitchen) := Enable;
+  next(to_Go_to_kitchen) := Reset;
+
+  init(to_Find_bottle) :=
+    case
+      from_Go_to_kitchen = succeeded : Enable;
+      TRUE : Reset;
+    esac;
+  next(to_Find_bottle) := Reset;
+
+  init(to_Fetch_bottle) :=
+    case
+      from_Find_bottle = succeeded : Enable;
+      TRUE : Reset;
+    esac;
+  next(to_Fetch_bottle) := Reset;
+
+  init(to_Ask_for_help) :=
+   case
+     from_Go_to_kitchen = failed | from_Find_bottle = failed | from_Fetch_bottle = failed : Enable;
+     TRUE : Reset;
+   esac;
+  next(to_Ask_for_help) := Reset;
+
+MODULE main()
+VAR
+BT_FSM_inst : BT_FSM(from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help);
+from_Go_to_kitchen : { none, running, failed, succeeded };
+from_Find_bottle : { none, running, failed, succeeded };
+from_Fetch_bottle : { none, running, failed, succeeded };
+from_Ask_for_help : { none, running, failed, succeeded };
+DEFINE
+to_Go_to_kitchen := BT_FSM_inst.to_Go_to_kitchen;
+to_Find_bottle := BT_FSM_inst.to_Find_bottle;
+to_Fetch_bottle := BT_FSM_inst.to_Fetch_bottle;
+to_Ask_for_help := BT_FSM_inst.to_Ask_for_help;
+out_bt := BT_FSM_inst.out_bt;
+
+/--
+Issues:
+1. Major
+  The iterative nature of bt is not captured by the contract. For example, this
+  BT has no 'tick_generator' and it produces only one tick event. Nevertheless
+  it gets accepted as a refinement of the contract.
+2. Minor
+  Time is flattened (no delay between the skill activation and the skill
+  response). This is a modeling issue because you lose the ability to predicate
+  about the relative order of skills within a tick. This is not an issue for
+  this specific use case and mission, however it might be desirable by other
+  applications.
+3. Minor
+  `out_bt` is underspecified. This BT assigns to it the constant `Enable`, which
+  however should not be an accepted implementation (from the understanding of
+  how BT work).
+--/
