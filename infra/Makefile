@@ -22,7 +22,7 @@ interp: checkpkg
 	cp _build/interp.native.o ../test/modcaml.o
 
 mkspec: checkpkg
-	$(OCB) 'mkspec.native'
+	$(OCB) -pkg str 'mkspec.native'
 
 clean:
 	$(OCB) -clean

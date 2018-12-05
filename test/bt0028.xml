@@ -1,0 +1,12 @@
+<root>
+
+  <BehaviorTree ID="bt0028">
+    <Sequence name="seq0028">
+     <Fallback name="fb0028">
+      <Action ID="ActionRunning" />
+      <Action ID="Action1SecondFailure" />
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+
+</root>

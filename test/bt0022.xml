@@ -1,0 +1,9 @@
+<root>
+
+  <BehaviorTree ID="bt0022">
+    <Decorator ID="Negation" name="seq0022">
+      <Action ID="ConditionFalse" />
+    </Decorator>
+  </BehaviorTree>
+
+</root>

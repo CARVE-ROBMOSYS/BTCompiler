@@ -1,0 +1,19 @@
+<root>
+
+  <BehaviorTree ID="bt0024">
+    <Parallel name="par0024" threshold="1">
+        <Decorator ID="Negation" name="seq0024">
+           <Action ID="ConditionTrue" />
+        </Decorator>
+
+      <Action ID="Action1SecondFailure" />
+      <Action ID="ActionRunning" />
+
+        <Decorator ID="Negation" name="seq0024">
+           <Action ID="Action1SecondSuccess" /> 
+        </Decorator>
+    </Parallel>
+  </BehaviorTree>
+
+</root>
+

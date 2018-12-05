@@ -1,0 +1,16 @@
+<root>
+
+  <BehaviorTree ID="bt0020">
+  <Sequence name="seq0020">
+   <Action ID="ConditionTrue" />
+    <Parallel name="par0018" threshold="3">
+      <Action ID="ConditionTrue" />
+      <Action ID="Action1SecondFailure" />
+      <Action ID="ActionRunning" />
+      <Action ID="Action1SecondSuccess" />
+    </Parallel>
+    <Action ID="Action1SecondSuccess" />
+    </Sequence>
+  </BehaviorTree>
+
+</root>

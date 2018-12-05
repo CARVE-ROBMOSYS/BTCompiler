@@ -19,5 +19,15 @@ bt0016: Failure, no reset
 bt0017: Success, reset ActionRunning
 bt0018: Running, no reset
 bt0019: Success, reset ActionRunning
-
+bt0020: Running, reset Action1SecondSuccess
+bt0021: Failure, no reset
+bt0022: Success, no reset
+bt0023: Success, reset Action1SecondSuccess
+bt0024: Running, no reset
+bt0025: Failure, reset ActionRunning
+bt0026: Failure, reset ActionRunning
+bt0027: Running, no reset
+bt0028: Running, reset Action1SecondFailure
+bt0029: Running, reset Action1SecondFailure, ActionRunning
+bt0030: Running, reset ActionRunning, Action1SecondFailure
 

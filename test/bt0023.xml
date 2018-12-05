@@ -1,0 +1,13 @@
+<root>
+
+  <BehaviorTree ID="bt0023">
+    <Decorator ID="Negation" name="seq0023">
+     <Sequence name="seq0006">
+      <Action ID="ConditionTrue" />
+      <Action ID="ConditionFalse" />
+      <Action ID="Action1SecondSuccess" />
+    </Sequence>
+    </Decorator>
+  </BehaviorTree>
+
+</root>
