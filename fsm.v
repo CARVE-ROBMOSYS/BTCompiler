@@ -460,6 +460,11 @@ Section Microsmv_execution.
     | _ => None    (* need single initial state *)
     end.
 
+(* still TODO:
+   - DEFINE support
+   - support for hierarchical specifications 
+*)
+  
 End Microsmv_execution.
 
 
@@ -469,7 +474,7 @@ End Microsmv_execution.
 
 
 
-(*** Examples ***)
+(*** Examples
 
 (* The easiest possible FSM: one bit state, single transition *)
 Definition inverter :=
@@ -603,3 +608,4 @@ Compute next_states single_leaf ("none"::"TRUE"::nil) ("Succ"::nil).
 
 Compute exec_determ single_leaf ("Runn"::nil).
 
+ ***)
