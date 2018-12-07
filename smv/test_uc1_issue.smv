@@ -1,0 +1,33 @@
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+MODULE main
+  VAR
+    req_Go_to_kitchen : boolean;
+    is_robot_in_kitchen : boolean;
+    is_bottle_visible : boolean;
+    is_bottle_found : boolean;
+    is_bottle_fetched : boolean;
+
+  LTLSPEC
+    (
+      G(req_Go_to_kitchen <-> F is_robot_in_kitchen)
+      & G(is_robot_in_kitchen -> G is_robot_in_kitchen)
+      & G(is_robot_in_kitchen <-> is_bottle_visible)
+      & G(is_bottle_visible <-> F is_bottle_found)
+      & G(is_bottle_found -> G is_bottle_found)
+      & G(is_bottle_found <-> F is_bottle_fetched)
+      & G(is_bottle_fetched -> G is_bottle_fetched)
+      --
+      & F req_Go_to_kitchen
+    )
+    ->
+    (
+      is_robot_in_kitchen
+      & is_bottle_visible
+      & is_bottle_found
+    )
+
