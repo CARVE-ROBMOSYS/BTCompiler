@@ -26,6 +26,12 @@ MODULE main
 #include "uc1_bt.smv"
     --do_bottle_and_glass : bt_parallel(2, do_bottle, do_glass);
     do_bottle_and_glass : bt_sequence(do_bottle, do_glass);
+    /--
+     As expected, the verification fails if the tick generator is replaced by a
+     `single_tick_generator`: The BT cannot always complete the mission with
+     success with a single tick.
+    --/
+    -- tick_generator : bt_single_tick_generator(bt_root);
     tick_generator : bt_tick_generator(bt_root);
     env : environment;
 

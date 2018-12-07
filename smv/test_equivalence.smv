@@ -1,0 +1,25 @@
+-- // This document contains no USA or EU export controlled technical data.
+--
+-- // CARVE has received funding from the European Union's Horizon 2020 research and
+-- // innovation programme under grant agreement No 732410, in the form of financial
+-- // support to third parties of the RobMoSys project.
+
+MODULE main
+  VAR
+    a : boolean;
+    b : boolean;
+
+  LTLSPEC
+    ((F b) & G(a <-> F b)) -> a;
+
+  LTLSPEC
+    (((G F a) -> G F (a & b)) & G(b -> G b))
+    ->
+    (G(a -> F b))
+
+  LTLSPEC
+    ((G(a -> F b)) & G(b -> G b))
+    ->
+    ((G F a) -> G F (a & b))
+
+    -- ((((!b) U a) | (G !a)) & G(a -> F b))

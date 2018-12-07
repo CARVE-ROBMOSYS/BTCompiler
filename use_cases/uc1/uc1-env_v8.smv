@@ -6,8 +6,9 @@ to_Fetch_bottle : { Enable, Reset };
 to_Ask_for_help : { Enable, Reset };
 ASSIGN
 
-init(to_Go_to_kitchen) := Enable;
-next(to_Go_to_kitchen) := Reset;
+-- init(to_Go_to_kitchen) := Enable;
+-- next(to_Go_to_kitchen) := Reset;
+to_Go_to_kitchen := Enable;
 
 init(to_Find_bottle) := Reset;
 next(to_Find_bottle) :=
