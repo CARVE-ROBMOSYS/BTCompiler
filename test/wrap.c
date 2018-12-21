@@ -15,7 +15,7 @@
 
 /* C interface to OCaml functions readbt, tick */
 
-value readbt(char *filename) {
+value readbt(const char *filename) {
   CAMLparam0();
   static value *readbt_closure = NULL;
   if (readbt_closure == NULL) readbt_closure = caml_named_value("readbt");
