@@ -1,0 +1,33 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        SEQUENCE_NODE_inst : SEQUENCE_NODE(visit, from_left_bt, from_right_bt);
+    VAR
+        visit : {disable, enable, no};
+        from_left_bt : {succeeded, failed, running, disabled, none};
+        from_right_bt : {succeeded, failed, running, disabled, none};
+
+    DEFINE
+        to_left_bt := SEQUENCE_NODE_inst.to_left_bt;
+        to_right_bt := SEQUENCE_NODE_inst.to_right_bt;
+        output := SEQUENCE_NODE_inst.output;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
+    VAR
+        to_left_bt : {no, enable, disable};
+        to_right_bt : {no, enable, disable};
+        output : {none, disabled, running, failed, succeeded};
+
+    LTLSPEC NAME sequence_contract_norm_guarantee := (( G (to_left_bt = enable ->  F from_left_bt != none) &  G (to_right_bt = enable ->  F from_right_bt != none)) -> ((((( G (visit = enable ->  F output != none) &  G (from_right_bt = succeeded <-> next(output = succeeded))) &  G (from_left_bt = failed <-> to_right_bt = disable)) &  G (from_left_bt = disable <-> to_right_bt = disable)) &  G (from_left_bt = none <-> to_right_bt = no)) &  G (to_left_bt != enable | to_right_bt != enable)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

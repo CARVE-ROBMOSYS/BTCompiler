@@ -1,0 +1,30 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        ASK_FOR_HELP_inst : ASK_FOR_HELP(from_bt, is_help_given);
+    VAR
+        from_bt : {disable, enable, no};
+        is_help_given : {succeeded, failed, running};
+
+    DEFINE
+        to_bt := ASK_FOR_HELP_inst.to_bt;
+        req_Ask_for_help := ASK_FOR_HELP_inst.req_Ask_for_help;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ASK_FOR_HELP(from_bt, is_help_given)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Ask_for_help : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := (TRUE -> TRUE);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

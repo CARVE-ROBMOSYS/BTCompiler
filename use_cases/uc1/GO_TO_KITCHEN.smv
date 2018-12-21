@@ -1,0 +1,30 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        GO_TO_KITCHEN_inst : GO_TO_KITCHEN(from_bt, is_robot_in_kitchen);
+    VAR
+        from_bt : {disable, enable, no};
+        is_robot_in_kitchen : {succeeded, failed, running};
+
+    DEFINE
+        to_bt := GO_TO_KITCHEN_inst.to_bt;
+        req_Go_to_kitchen := GO_TO_KITCHEN_inst.req_Go_to_kitchen;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_kitchen : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := (TRUE -> TRUE);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
