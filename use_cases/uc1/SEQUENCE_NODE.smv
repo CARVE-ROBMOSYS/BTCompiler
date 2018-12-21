@@ -24,8 +24,69 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
         to_left_bt : {no, enable, disable};
         to_right_bt : {no, enable, disable};
         output : {none, disabled, running, failed, succeeded};
+	cached_left : {succeeded, failed, running, disabled, none};
+	state : {initial, enabling_left, enabling_right, return_left, return_right,
+	         disabling_left, disabling_right};
 
-    LTLSPEC NAME sequence_contract_norm_guarantee := (( G (to_left_bt = enable ->  F from_left_bt != none) &  G (to_right_bt = enable ->  F from_right_bt != none)) -> ((((( G (visit = enable ->  F output != none) &  G (from_right_bt = succeeded <-> next(output = succeeded))) &  G (from_left_bt = failed <-> to_right_bt = disable)) &  G (from_left_bt = disable <-> to_right_bt = disable)) &  G (from_left_bt = none <-> to_right_bt = no)) &  G (to_left_bt != enable | to_right_bt != enable)));
+    ASSIGN
+	init(to_left_bt)  := no;
+	init(to_right_bt) := no;
+	init(output)      := none;
+	init(cached_left) := none;
+	init(state)       := initial;
+
+	next(to_left_bt) :=
+	  case
+	    (state = initial & visit = enable) : enable;
+	    (state = initial & visit = disable) : disable;
+	    (state = enabling_left & from_left_bt = none) : enable;
+	    (state = disabling_left & from_left_bt != disabled) : disable;
+	    TRUE : no;
+	  esac;
+
+	next(to_right_bt) :=
+	  case
+	    (state = enabling_left & from_left_bt = succeeded) : enable;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disable;
+	    (state = enabling_right & from_right_bt = none): enable;
+	    (state = disabling_right & from_right_bt != disable): disable;
+	    TRUE : no;
+	  esac;
+
+	next(output) :=
+	  case
+	    (state = initial & visit = enable) : running;
+	    (state = enabling_left & from_left_bt = succeeded) : running;
+	    (state = enabling_right & from_right_bt != none) : from_right_bt;
+	    (state = enabling_right & from_right_bt = none) : running;
+	    (state = disabling_right & from_right_bt = disabled) : cached_left;
+	    TRUE : none;
+	  esac;
+
+	next(cached_left) :=
+	  case
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : from_left_bt;
+	    (state = disabling_left & from_left_bt = disabled) : from_left_bt;
+	    (state = disabling_right & from_right_bt != disabled) : cached_left;
+	    TRUE : none; 
+	  esac;
+
+	next(state) :=
+	  case
+	    (state = initial & visit = enable) : enabling_left;
+	    (state = initial & visit = disable) : disabling_left;
+	    (state = enabling_left & from_left_bt = succeeded) : enabling_right;
+	    (state = enabling_left & from_left_bt = none) : enabling_left;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disabling_right;
+	    (state = enabling_right & from_right_bt = none) : enabling_right;
+	    (state = enabling_right & from_right_bt != none) : return_right;
+	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
+	    (state = disabling_right & from_right_bt = disabled) : return_left;
+	    (state = disabling_left & from_left_bt != disabled) ; disabling_left;
+	    (state = disabling_left & from_left_bt = disabled) ; disabling_right;
+	    TRUE : initial;
+	  esac;
+
 
 
 -- ===============================================================================
