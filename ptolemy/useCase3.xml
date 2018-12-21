@@ -8,9 +8,15 @@
     </property>
     <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1641, 967]">
     </property>
+<<<<<<< Updated upstream
     <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.7247026805612446">
     </property>
     <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{826.2890624999999, 731.973899256591}">
+=======
+    <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.640000000000001">
+    </property>
+    <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1356.9852258663368, 573.0280785891089}">
+>>>>>>> Stashed changes
     </property>
     <property name="enableBackwardTypeInference" class="ptolemy.data.expr.Parameter" value="false">
     </property>
