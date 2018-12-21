@@ -1,0 +1,234 @@
+/--
+  Notes:
+  A weak_until B = (A U B) or G A
+--/
+
+@requires discrete-time
+COMPONENT uc1 system
+ INTERFACE
+  OUTPUT PORT mission: boolean;
+
+  CONTRACT mission
+   assume: true;
+   guarantee: in the future mission;
+
+ REFINEMENT
+  SUB Fallback_node: FALLBACK_NODE;
+  SUB Sequence_node_1: SEQUENCE_NODE;
+  SUB Sequence_node_2: SEQUENCE_NODE;
+  SUB Robot_env: ROBOT_AND_ENVIRONMENT;
+  SUB Go_to_kitchen: GO_TO_KITCHEN;
+  SUB Find_bottle: FIND_BOTTLE;
+  SUB Fetch_bottle: FETCH_BOTTLE;
+  SUB Ask_for_help: ASK_FOR_HELP;
+
+  CONNECTION Fallback_node.from_left_bt := Sequence_node_1.output;
+  CONNECTION Sequence_node_1.visit := Fallback_node.to_left_bt;
+  CONNECTION Sequence_node_1.from_right_bt := Sequence_node_2.output;
+  CONNECTION Sequence_node_2.visit := Sequence_node_1.to_right_bt;
+
+  CONNECTION Sequence_node_1.from_left_bt := Go_to_kitchen.to_bt;
+  CONNECTION Go_to_kitchen.from_bt := Sequence_node_1.to_left_bt;
+  CONNECTION Robot_env.req_Go_to_kitchen := Go_to_kitchen.req_Go_to_kitchen;
+  CONNECTION Go_to_kitchen.is_robot_in_kitchen := Robot_env.is_robot_in_kitchen;
+
+  CONNECTION Sequence_node_2.from_left_bt := Find_bottle.to_bt;
+  CONNECTION Find_bottle.from_bt := Sequence_node_2.to_left_bt;
+  CONNECTION Robot_env.req_Find_bottle := Find_bottle.req_Find_bottle;
+  CONNECTION Find_bottle.is_bottle_found := Robot_env.is_bottle_found;
+
+  CONNECTION Find_bottle.is_bottle_visible := Robot_env.is_bottle_visible;
+
+  CONNECTION Sequence_node_2.from_right_bt := Fetch_bottle.to_bt;
+  CONNECTION Fetch_bottle.from_bt := Sequence_node_2.to_right_bt;
+  CONNECTION Robot_env.req_Fetch_bottle := Fetch_bottle.req_Fetch_bottle;
+  CONNECTION Fetch_bottle.is_bottle_fetched := Robot_env.is_bottle_fetched;
+
+  CONNECTION Fetch_bottle.is_bottle_found := Robot_env.is_bottle_found;
+  
+  CONNECTION Fallback_node.from_right_bt := Ask_for_help.to_bt;
+  CONNECTION Ask_for_help.from_bt := Fallback_node.to_right_bt;
+  CONNECTION Robot_env.req_Ask_for_help := Ask_for_help.req_Ask_for_help;
+  CONNECTION Ask_for_help.is_help_given := Robot_env.is_help_given;
+
+  CONNECTION mission := Robot_env.is_bottle_fetched;
+  -- CONNECTION mission := (Robot_env.is_bottle_fetched or Robot_env.is_help_given);
+
+  CONTRACT mission REFINEDBY Fallback_node.fallback_contract, Sequence_node_1.sequence_contract, Sequence_node_2.sequence_contract, Robot_env.env_contract, Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
+
+--COMPONENT BT_FSM
+-- INTERFACE
+--  INPUT PORT from_Go_to_kitchen: {none, running, failed, succeeded};
+--  OUTPUT PORT to_Go_to_kitchen: {Enable, Reset};
+--  INPUT PORT from_Find_bottle: {none, running, failed, succeeded};
+--  OUTPUT PORT to_Find_bottle: {Enable, Reset};
+--  INPUT PORT from_Fetch_bottle: {none, running, failed, succeeded};
+--  OUTPUT PORT to_Fetch_bottle: {Enable, Reset};
+--  INPUT PORT from_Ask_for_help: {none, running, failed, succeeded};
+--  OUTPUT PORT to_Ask_for_help: {Enable, Reset};
+
+--  CONTRACT bt_contract
+--   assume:
+--    always ((to_Go_to_kitchen = Enable) iff (next(from_Go_to_kitchen) != none))
+--    and always ((to_Find_bottle = Enable) iff (next(from_Find_bottle) != none))
+--    and always ((to_Fetch_bottle = Enable) iff (next(from_Fetch_bottle) != none))
+--    and always ((to_Ask_for_help = Enable) iff (next(from_Ask_for_help) != none));
+--   guarantee:
+--      to_Go_to_kitchen = Enable
+--      and always(next(to_Find_bottle) = Enable iff (from_Go_to_kitchen = succeeded))
+--      and always(next(to_Fetch_bottle) = Enable iff (from_Find_bottle = succeeded))
+--      and always(next(to_Ask_for_help) = Enable iff (from_Go_to_kitchen = failed or from_Find_bottle = failed or from_Fetch_bottle = failed))
+--      -- Repeated ticking required: G F (one of skill is enabled)
+--      and always in the future (to_Go_to_kitchen = Enable or to_Find_bottle = Enable or to_Fetch_bottle = Enable or to_Ask_for_help = Enable);
+
+COMPONENT FALLBACK_NODE
+ INTERFACE
+  INPUT PORT visit: {no, enable, disable};
+  INPUT PORT from_left_bt: {none, disable, running, failed, succeeded};
+  INPUT PORT from_right_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT to_left_bt: {no, enable, disable};
+  OUTPUT PORT to_right_bt: {no, enable, disable};
+  OUTPUT PORT output: {none, disable, running, failed, succeeded};
+  CONTRACT fallback_contract
+   assume: 
+   from_left_bt = none
+    and always ((to_left_bt = enable) iff in the future (from_left_bt != none))
+    and always ((to_right_bt = enable) iff in the future (from_right_bt != none))
+    and always ((visit = no) iff (to_left_bt = no))
+    and always ((visit = enable) iff (to_left_bt = enable))
+    and always ((visit = disable) iff (to_left_bt = disable))
+    and always ((visit = enable and ((from_left_bt = running) or (from_right_bt = running)) -> (next(output = running))))
+    and always ((visit = enable and ((from_left_bt = failed) or (from_right_bt = failed)) -> (next(output = failed))))
+    and always ((visit = enable and ((from_left_bt = succeeded) or (from_right_bt = succeeded)) -> (next(output = succeeded))))
+    and always ((visit = disable and ((from_left_bt = disable) or (from_right_bt = disable)) -> (next(output = disable))))
+    and always ((visit = no and ((from_left_bt = none) or (from_right_bt = none)) -> (next(output = none))));
+   guarantee: 
+    --always ((visit = enable) iff in the future (output != none))
+     always ((from_left_bt = succeeded or from_right_bt = succeeded) iff (next(output = succeeded)))
+    and always ((from_left_bt = failed) -> (next(to_right_bt = enable)))
+    and always ((from_left_bt = disable) -> (next(to_right_bt = disable)))
+    and always ((from_left_bt = none) -> (next(to_right_bt = no)))
+    and always ((to_left_bt != enable) or (to_right_bt != enable));
+
+COMPONENT SEQUENCE_NODE
+ INTERFACE
+  INPUT PORT visit: {no, enable, disable};
+  INPUT PORT from_left_bt: {none, disable, running, failed, succeeded};
+  INPUT PORT from_right_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT to_left_bt: {no, enable, disable};
+  OUTPUT PORT to_right_bt: {no, enable, disable};
+  OUTPUT PORT output: {none, disable, running, failed, succeeded};
+  CONTRACT sequence_contract
+   assume: 
+    always ((to_left_bt = enable) iff in the future (from_left_bt != none))
+    and always ((to_right_bt = enable) iff in the future (from_right_bt != none));
+   guarantee: 
+    always ((visit = enable) iff in the future (output != none))
+    and always ((from_left_bt = succeeded and from_right_bt = succeeded) iff (next(output = succeeded)))
+    and always ((from_left_bt = succeeded) iff (next(to_right_bt = enable)))
+    and always ((from_left_bt = disable) iff (next(to_right_bt = disable)))
+    and always ((from_left_bt = running) iff (next(to_right_bt = disable)))
+    and always ((from_left_bt = failed) iff (next(to_right_bt = disable)))
+    and always ((from_left_bt = none) iff (next(to_right_bt = no)));
+
+COMPONENT ROBOT_AND_ENVIRONMENT
+ INTERFACE
+  INPUT PORT req_Ask_for_help: boolean;
+  INPUT PORT req_Fetch_bottle: boolean;
+  INPUT PORT req_Find_bottle: boolean;
+  INPUT PORT req_Go_to_kitchen: boolean;
+  OUTPUT PORT is_help_given: boolean;
+  OUTPUT PORT is_bottle_fetched: boolean;
+  OUTPUT PORT is_bottle_found: boolean;
+  OUTPUT PORT is_bottle_visible: boolean;
+  OUTPUT PORT is_robot_in_kitchen: boolean;
+
+  CONTRACT env_contract
+   assume: true;
+   guarantee:
+    is_help_given = FALSE
+    and is_bottle_fetched = FALSE
+    and is_bottle_found = FALSE
+    and is_bottle_visible = FALSE
+    and is_robot_in_kitchen = FALSE
+    --
+    and (((not is_robot_in_kitchen) until req_Go_to_kitchen) or never is_robot_in_kitchen)
+    and ((always in the future req_Go_to_kitchen) -> always in the future (req_Go_to_kitchen and is_robot_in_kitchen))
+    and always(is_robot_in_kitchen -> always is_robot_in_kitchen)
+    --
+    and always(is_bottle_visible iff is_robot_in_kitchen)
+    --
+    and (((not is_bottle_found) until (req_Find_bottle and is_bottle_visible)) or never is_bottle_found)
+    and ((always in the future req_Find_bottle) -> always in the future (req_Find_bottle and is_bottle_found))
+    and always(is_bottle_found -> always is_bottle_found)
+    --
+    and (((not is_bottle_fetched) until (req_Fetch_bottle and is_bottle_found)) or never is_bottle_fetched)
+    and ((always in the future req_Fetch_bottle) -> always in the future (req_Fetch_bottle and is_bottle_fetched))
+    and always(is_bottle_fetched -> always is_bottle_fetched)
+    --
+    and (((not is_help_given) until req_Ask_for_help) or never is_help_given)
+    and ((always in the future req_Ask_for_help) -> always in the future (req_Ask_for_help and is_help_given))
+    and always(is_help_given -> always is_help_given);
+    --
+
+COMPONENT GO_TO_KITCHEN
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_robot_in_kitchen: boolean;
+  OUTPUT PORT to_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT req_Go_to_kitchen: boolean;
+  CONTRACT skill_contract
+   assume:
+    TRUE;
+   guarantee:
+    to_bt = no
+    and always ((from_bt = enable) iff (next(to_bt) != no))
+    and always (from_bt = enable iff req_Go_to_kitchen)
+    and always (is_robot_in_kitchen -> (to_bt = no or to_bt = succeeded));
+
+COMPONENT FIND_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_found: boolean;
+  INPUT PORT is_bottle_visible: boolean;
+  OUTPUT PORT to_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT req_Find_bottle: boolean;
+  CONTRACT skill_contract
+   assume:
+    TRUE;
+   guarantee:
+    to_bt = no
+    and always ((from_bt = enable) iff (next(to_bt) != no))
+    and always (from_bt = enable iff req_Find_bottle)
+    and always (is_bottle_found -> (to_bt = no or to_bt = succeeded));
+
+COMPONENT FETCH_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_fetched: boolean;
+  INPUT PORT is_bottle_found: boolean;
+  OUTPUT PORT to_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT req_Fetch_bottle: boolean;
+  CONTRACT skill_contract
+   assume:
+    TRUE;
+   guarantee:
+    to_bt = no
+    and always ((from_bt = enable) iff (next(to_bt) != no))
+    and always (from_bt = enable iff req_Fetch_bottle)
+    and always (is_bottle_fetched -> (to_bt = no or to_bt = succeeded));
+
+COMPONENT ASK_FOR_HELP
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_help_given: boolean;
+  OUTPUT PORT to_bt: {none, disable, running, failed, succeeded};
+  OUTPUT PORT req_Ask_for_help: boolean;
+  CONTRACT skill_contract
+   assume:
+    TRUE;
+   guarantee:
+    to_bt = no
+    and always ((from_bt = enable) iff (next(to_bt) != no))
+    and always (from_bt = enable iff req_Ask_for_help)
+    and always (is_help_given -> (to_bt = no or to_bt = succeeded));
