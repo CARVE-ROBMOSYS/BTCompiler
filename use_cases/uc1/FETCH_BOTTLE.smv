@@ -1,0 +1,30 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        FETCH_BOTTLE_inst : FETCH_BOTTLE(from_bt, is_bottle_fetched);
+    VAR
+        from_bt : {disable, enable, no};
+        is_bottle_fetched : {succeeded, failed, running};
+
+    DEFINE
+        to_bt := FETCH_BOTTLE_inst.to_bt;
+        req_Fetch_bottle := FETCH_BOTTLE_inst.req_Fetch_bottle;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Fetch_bottle : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := (TRUE -> TRUE);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

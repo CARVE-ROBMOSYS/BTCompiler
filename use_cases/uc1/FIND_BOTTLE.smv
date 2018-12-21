@@ -1,0 +1,30 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        FIND_BOTTLE_inst : FIND_BOTTLE(from_bt, is_bottle_found);
+    VAR
+        from_bt : {disable, enable, no};
+        is_bottle_found : {succeeded, failed, running};
+
+    DEFINE
+        to_bt := FIND_BOTTLE_inst.to_bt;
+        req_Find_bottle := FIND_BOTTLE_inst.req_Find_bottle;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FIND_BOTTLE(from_bt, is_bottle_found)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Find_bottle : boolean;
+
+    LTLSPEC NAME skill_contract_norm_guarantee := (TRUE -> TRUE);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
