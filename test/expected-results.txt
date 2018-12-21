@@ -1,33 +1,44 @@
-Expected result for unit tests:
-
-bt0001: Success, no reset
-bt0002: Failure, reset Action1SecondSuccess
-bt0003: Success, reset Action1SecondSuccess
-bt0004: Success, no reset
-bt0005: Success, no reset
-bt0006: Failure, reset Action1SecondSuccess
-bt0007: Success, no reset
-bt0008: Success, reset Action1SecondFailure
-bt0009: Running, reset Action1SecondFailure
-bt0010: Running, no reset
-bt0011: Running, reset Action1SecondFailure
-bt0012: Failure, reset ActionRunning, Action1SecondSuccess
-bt0013: Running, reset Action1SecondFailure
-bt0014: Running, no reset
-bt0015: Success, no reset
-bt0016: Failure, no reset
-bt0017: Success, reset ActionRunning
-bt0018: Running, no reset
-bt0019: Success, reset ActionRunning
-bt0020: Running, reset Action1SecondSuccess
-bt0021: Failure, no reset
-bt0022: Success, no reset
-bt0023: Success, reset Action1SecondSuccess
-bt0024: Running, no reset
-bt0025: Failure, reset ActionRunning
-bt0026: Failure, reset ActionRunning
-bt0027: Running, no reset
-bt0028: Running, reset Action1SecondFailure
-bt0029: Running, reset Action1SecondFailure, ActionRunning
-bt0030: Running, reset ActionRunning, Action1SecondFailure
-
+bt0001.xml:  Success, no-reset
+bt0002.xml:  Failure, reset-Action1SecondSuccess
+bt0003.xml:  Success, reset-Action1SecondSuccess
+bt0004.xml:  Success, no-reset
+bt0005.xml:  Success, no-reset
+bt0006.xml:  Failure, reset-Action1SecondSuccess
+bt0007.xml:  Success, no-reset
+bt0008.xml:  Success, reset-Action1SecondFailure
+bt0009.xml:  Running, reset-Action1SecondFailure
+bt0010.xml:  Running, no-reset
+bt0011.xml:  Running, reset-Action1SecondFailure
+bt0012.xml:  Failure, reset-ActionRunning,-Action1SecondSuccess
+bt0013.xml:  Running, reset-Action1SecondFailure
+bt0014.xml:  Running, no-reset
+bt0015.xml:  Success, no-reset
+bt0016.xml:  Failure, no-reset
+bt0017.xml:  Success, reset-ActionRunning
+bt0018.xml:  Running, no-reset
+bt0019.xml:  Success, reset-ActionRunning
+bt0020.xml:  Running, reset-Action1SecondSuccess
+bt0021.xml:  Failure, no-reset
+bt0022.xml:  Success, no-reset
+bt0023.xml:  Success, reset-Action1SecondSuccess
+bt0024.xml:  Running, no-reset
+bt0025.xml:  Failure, reset-ActionRunning
+bt0026.xml:  Failure, reset-ActionRunning
+bt0027.xml:  Running, no-reset
+bt0028.xml:  Running, reset-Action1SecondFailure
+bt0029.xml:  Running, reset-Action1SecondFailure,-ActionRunning
+bt0030.xml:  Running, reset-ActionRunning,-Action1SecondFailure
+bt0031.xml:  Success, no-reset
+bt0032.xml:  Failure, reset-Action1SecondSuccess
+bt0033.xml:  Success, no-reset
+bt0034.xml:  Failure, reset-Action1SecondSuccess
+bt0035.xml:  Failure, reset-Action1SecondSuccess,-ConditionTrue,-Action1SecondSuccess
+bt0036.xml:  Running, reset-ConditionFalse,-ConditionTrue,-ConditionTrue,-Action1SecondSuccess
+bt0037.xml:  Success, no-reset
+bt0038.xml:  Running, reset-Action1SecondSuccess
+bt0039.xml:  Success, no-reset
+bt0040.xml:  Failure, reset-Action1SecondSuccess
+bt0041.xml:  Failure, reset-Action1SecondSuccess,-ConditionTrue,-Action1SecondFailure,-ActionRunning,-Action1SecondSuccess
+bt0042.xml:  Running, no-reset
+bt0043.xml:  Failure, reset-ConditionTrue,-Action1SecondSuccess
+bt0044.xml:  Running, reset-ConditionTrue,-Action1SecondSuccess,-ConditionFalse,-ConditionTrue,-Action1SecondSuccess

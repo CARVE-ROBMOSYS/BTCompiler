@@ -1,0 +1,41 @@
+<root>
+
+    <BehaviorTree ID="bt0042">
+      <Sequence name="seq0042">
+            <Fallback name="fb0042a">
+                <Action ID="ConditionFalse" />
+                <Action ID="ConditionTrue" />
+            </Fallback>
+
+       <Fallback name="fb0042b">
+         <Action ID="Action1SecondFailure" />
+         <Action ID="Action1SecondSuccess" />
+       </Fallback>
+
+       <Sequence name="seq0042">
+         <Action ID="ConditionTrue" />
+         <Action ID="Action1SecondSuccess" />
+    
+          <Sequence name="seq0042">
+             <Decorator ID="Negation" name="seq0042">
+               <Action ID="ConditionFalse" />
+             </Decorator>
+               <Action ID="Action1SecondSuccess" />
+          </Sequence>
+
+       </Sequence>
+
+      <Parallel name="par0042" threshold="2">
+        <Decorator ID="Negation" name="seq0042">
+           <Action ID="ConditionTrue" />
+        </Decorator>
+
+         <Action ID="Action1SecondFailure" />
+         <Action ID="ActionRunning" />
+         <Action ID="Action1SecondSuccess" /> 
+        
+      </Parallel>
+     </Sequence>
+  </BehaviorTree>
+  
+  </root>
