@@ -47,7 +47,7 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
 	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : none;
 	  (state = failed_kitchen & req_Ask_for_help) : none;
 	  (state = help_stand_by) : none;
-	  TRUE : succeeded
+	  TRUE : succeeded;
 	esac;
 
       next(is_bottle_found) :=
@@ -62,19 +62,22 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
 	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : none;
 	  (state = failed_find & req_Ask_for_help) : none;
 	  (state = help_kitchen) : none;
-	  TRUE : succeeded
+	  TRUE : succeeded;
 	esac;
 
       next(is_bottle_fetched) :=
         case
 	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {succeeded, failed};
 	  (state = failed_fetch & req_Find_bottle & !req_Ask_for_help) : failed;
-	TRUE : none
+	  (state = bottle_fetched) : succeeded;
+	  (state = help_fetched) : succeeded;
+	  TRUE : none;
 	esac;
 
       next(is_help_given) :=
         case
-
+	  
+	  TRUE : none;
 	esac;
 
 
