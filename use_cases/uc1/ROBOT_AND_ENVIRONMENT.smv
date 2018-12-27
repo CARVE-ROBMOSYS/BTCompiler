@@ -23,12 +23,59 @@ MODULE main
 -- ===============================================================================
 MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle, req_Go_to_kitchen)
     VAR
-        is_help_given : {running, failed, succeeded};
-        is_bottle_fetched : {running, failed, succeeded};
-        is_bottle_found : {running, failed, succeeded};
-        is_robot_in_kitchen : {running, failed, succeeded};
+        is_help_given : {none, failed, succeeded};
+        is_bottle_fetched : {none, failed, succeeded};
+        is_bottle_found : {none, failed, succeeded};
+        is_robot_in_kitchen : {none, failed, succeeded};
+	state = {stand_by, in_kitchen, bottle_found, bottle_fetched,
+	         help_stand_by, help_kitchen, help_found, hep_fetched,
+		 failed_kitchen, failed_find, failed_fetch};
 
-    LTLSPEC NAME env_contract_norm_guarantee := (TRUE -> TRUE);
+    ASSIGN
+      init(is_robot_in_kitchen) := none;
+      init(is_bottle_found) := none;
+      init(is_bottle_fetched) := none;
+      init(is_help_given) := none;
+      init(state) := stand_by;
+
+      next(is_robot_in_kitchen) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {succeeded, failed};
+	  (state = stand_by & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = stand_by & req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Go_to_kitchen & !req_Ask_for_help) : failed;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Ask_for_help) : none;
+	  (state = help_stand_by) : none;
+	  TRUE : succeeded
+	esac;
+
+      next(is_bottle_found) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = in_kitchen & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = in_kitchen & req_Ask_for_help) : none;
+	  (state = failed_find & req_Find_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = failed_find & req_Ask_for_help) : none;
+	  (state = help_kitchen) : none;
+	  TRUE : succeeded
+	esac;
+
+      next(is_bottle_fetched) :=
+        case
+	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = failed_fetch & req_Find_bottle & !req_Ask_for_help) : failed;
+	TRUE : none
+	esac;
+
+      next(is_help_given) :=
+        case
+
+	esac;
 
 
 -- ===============================================================================

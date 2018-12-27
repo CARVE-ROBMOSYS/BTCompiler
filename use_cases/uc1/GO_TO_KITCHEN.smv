@@ -5,7 +5,7 @@ MODULE main
         GO_TO_KITCHEN_inst : GO_TO_KITCHEN(from_bt, is_robot_in_kitchen);
     VAR
         from_bt : {disable, enable, no};
-        is_robot_in_kitchen : {succeeded, failed, running};
+        is_robot_in_kitchen : {none, succeeded, failed};
 
     DEFINE
         to_bt := GO_TO_KITCHEN_inst.to_bt;
@@ -21,11 +21,63 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Go_to_kitchen : boolean;
-	state : {away, going, in_kitchen}
+	state : {away, going, failing, in_kitchen, disabled_away, disabled_in_kitchen}
 
     ASSIGN
-	init
+	init(to_bt) := none;
+	init(req_Go_to_kitchen) := false;
+	init(state) := away;
 
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : running;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = going & from_bt = disable): disabled;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failed;
+	    (state = failing & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failed;
+    	    (state = failing & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : running;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = in_kitchen & (from_bt = enable | from_bt = no)) : succeeded;
+	    (state = in_kitchen & from_bt = disable) : disabled;
+	    (state = disabled_away & from_bt = disable) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_in_kitchen & from_bt = disable) : disabled;
+	    (state = disabled_in_kitchen & from_bt = enable) : succeeded;
+	    TRUE: none
+	  esac;
+
+	next(req_Go_to_kitchen) :=
+	  case
+	    (state = away & from_bt = enable) : true;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : true;
+	    (state = failing & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : true;
+	    (state = disabled_away & from_bt = enable) : true;
+	    TRUE: false
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : going;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : in_kitchen;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+	    (state = failing & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : going;
+	    (state = failing & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failing;
+	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+	    (state = in_kitchen & (from_bt = enable | from_bt = no)) : in_kitchen;
+	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
+	    (state = disabled_away & from_bt = disable) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_in_kitchen & from_bt = disable) : disabled_in_kitchen;
+	    (state = disabled_in_kitchen & (from_bt = enable | from_bt = no)) : in_kitchen;
+	    TRUE: away
+	  esac;
 
 -- ===============================================================================
 --                               End of module

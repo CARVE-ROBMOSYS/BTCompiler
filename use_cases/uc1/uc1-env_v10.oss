@@ -102,10 +102,10 @@ COMPONENT ROBOT_AND_ENVIRONMENT
   INPUT PORT req_Fetch_bottle: boolean;
   INPUT PORT req_Find_bottle: boolean;
   INPUT PORT req_Go_to_kitchen: boolean;
-  OUTPUT PORT is_help_given: {running, failed, succeeded};
-  OUTPUT PORT is_bottle_fetched: {running, failed, succeeded};
-  OUTPUT PORT is_bottle_found: {running, failed, succeeded};
-  OUTPUT PORT is_robot_in_kitchen: {running, failed, succeeded};
+  OUTPUT PORT is_help_given: {none, succeeded, failed};
+  OUTPUT PORT is_bottle_fetched: {none, succeeded, failed};
+  OUTPUT PORT is_bottle_found: {none, succeeded, failed};
+  OUTPUT PORT is_robot_in_kitchen: {none, succeeded, failed};
 
   CONTRACT env_contract
    assume: true;
@@ -114,7 +114,7 @@ COMPONENT ROBOT_AND_ENVIRONMENT
 COMPONENT GO_TO_KITCHEN
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_robot_in_kitchen: {running, failed, succeeded};
+  INPUT PORT is_robot_in_kitchen: {none, succeeded, failed};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Go_to_kitchen: boolean;
   CONTRACT skill_contract
@@ -125,7 +125,7 @@ COMPONENT GO_TO_KITCHEN
 COMPONENT FIND_BOTTLE
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_bottle_found: {running, failed, succeeded};
+  INPUT PORT is_bottle_found: {none, succeeded, failed};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Find_bottle: boolean;
   CONTRACT skill_contract
@@ -136,7 +136,7 @@ COMPONENT FIND_BOTTLE
 COMPONENT FETCH_BOTTLE
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_bottle_fetched: {running, failed, succeeded};
+  INPUT PORT is_bottle_fetched: {none, succeeded, failed};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Fetch_bottle: boolean;
   CONTRACT skill_contract
@@ -147,7 +147,7 @@ COMPONENT FETCH_BOTTLE
 COMPONENT ASK_FOR_HELP
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_help_given: {running, failed, succeeded};
+  INPUT PORT is_help_given: {none, succeeded, failed};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Ask_for_help: boolean;
   CONTRACT skill_contract
