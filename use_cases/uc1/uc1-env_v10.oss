@@ -125,7 +125,9 @@ COMPONENT GO_TO_KITCHEN
   OUTPUT PORT req_Go_to_kitchen: boolean;
   CONTRACT skill_contract
    assume: true;
-   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled));
+   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
+   	      always (from_bt = disable -> in the future to_bt = disabled) and
+	      always (from_bt = enable -> in the future req_Go_to_kitchen);
 
 COMPONENT FIND_BOTTLE
  INTERFACE
