@@ -21,8 +21,10 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Go_to_kitchen : boolean;
+	state : {away, going, in_kitchen}
 
-    LTLSPEC NAME skill_contract_norm_guarantee := (TRUE -> TRUE);
+    ASSIGN
+	init
 
 
 -- ===============================================================================
