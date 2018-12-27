@@ -102,56 +102,58 @@ COMPONENT ROBOT_AND_ENVIRONMENT
   INPUT PORT req_Fetch_bottle: boolean;
   INPUT PORT req_Find_bottle: boolean;
   INPUT PORT req_Go_to_kitchen: boolean;
-  OUTPUT PORT is_help_given: {none, succeeded, failed};
-  OUTPUT PORT is_bottle_fetched: {none, succeeded, failed};
-  OUTPUT PORT is_bottle_found: {none, succeeded, failed};
-  OUTPUT PORT is_robot_in_kitchen: {none, succeeded, failed};
+  OUTPUT PORT is_help_given: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_fetched: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
 
   CONTRACT env_contract
-   assume: true;
-   guarantee: true;
+   assume: always ((req_Go_to_kitchen or req_Find_bottle or req_Fetch_bottle) -> !req_Ask_for_help);
+   guarantee: (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and
+   	      (always (is_robot_in_kitchen = succeeded and req_Find_bottle and is_bottle_found != failed) -> in the future is_bottle_found = succeeded) and
+	      (always (is_bottle_found = succeeded and req_Fetch_bottle and is_bottle_fetched != failed) -> in the future is_bottle_fetched = succeeded) and
+	      (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and
+              (always (is_robot_in_kitchen = succeeded -> always is_robot_in_kitchen = succeeded)) and
+	      (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded)) and
+	      (always (is_bottle_fetched = succeeded -> always is_bottle_fetched = succeeded));
 
 COMPONENT GO_TO_KITCHEN
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_robot_in_kitchen: {none, succeeded, failed};
+  INPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Go_to_kitchen: boolean;
   CONTRACT skill_contract
-   assume:
-    TRUE;
-   guarantee: true;
+   assume: true;
+   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled));
 
 COMPONENT FIND_BOTTLE
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_bottle_found: {none, succeeded, failed};
+  INPUT PORT is_bottle_found: {none, failed, succeeded};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Find_bottle: boolean;
   CONTRACT skill_contract
-   assume:
-    TRUE;
+   assume: true;
    guarantee: true;
 
 COMPONENT FETCH_BOTTLE
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_bottle_fetched: {none, succeeded, failed};
+  INPUT PORT is_bottle_fetched: {none, failed, succeeded};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Fetch_bottle: boolean;
   CONTRACT skill_contract
-   assume:
-    TRUE;
+   assume: true;
    guarantee: true;
 
 COMPONENT ASK_FOR_HELP
  INTERFACE
   INPUT PORT from_bt: {no, enable, disable};
-  INPUT PORT is_help_given: {none, succeeded, failed};
+  INPUT PORT is_help_given: {none, failed, succeeded};
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Ask_for_help: boolean;
   CONTRACT skill_contract
-   assume:
-    TRUE;
+   assume: true;
    guarantee: true;
 

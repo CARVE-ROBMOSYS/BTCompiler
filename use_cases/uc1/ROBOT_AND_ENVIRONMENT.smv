@@ -27,9 +27,17 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
         is_bottle_fetched : {none, failed, succeeded};
         is_bottle_found : {none, failed, succeeded};
         is_robot_in_kitchen : {none, failed, succeeded};
-	state = {stand_by, in_kitchen, bottle_found, bottle_fetched,
-	         help_stand_by, help_kitchen, help_found, hep_fetched,
+	state : {stand_by, in_kitchen, bottle_found, bottle_fetched,
+	         help_stand_by, help_kitchen, help_found, help_fetched,
 		 failed_kitchen, failed_find, failed_fetch};
+	
+    INVAR
+      (state = in_kitchen -> is_robot_in_kitchen = succeeded) &
+      (state = failed_kitchen -> is_robot_in_kitchen = failed) &
+      (state = bottle_found -> is_bottle_found = succeeded) &
+      (state = failed_find -> is_bottle_found = failed) &
+      (state = bottle_fetched -> is_bottle_fetched = succeeded) &
+      (state = failed_fetch -> is_bottle_fetched = failed);
 
     ASSIGN
       init(is_robot_in_kitchen) := none;
@@ -68,7 +76,7 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
       next(is_bottle_fetched) :=
         case
 	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {succeeded, failed};
-	  (state = failed_fetch & req_Find_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_fetch & req_Fetch_bottle & !req_Ask_for_help) : failed;
 	  (state = bottle_fetched) : succeeded;
 	  (state = help_fetched) : succeeded;
 	  TRUE : none;
@@ -76,10 +84,35 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
 
       next(is_help_given) :=
         case
-	  
+	  req_Ask_for_help : succeeded;	  
 	  TRUE : none;
 	esac;
 
+      next(state) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {in_kitchen, failed_kitchen};
+	  (state = stand_by & req_Ask_for_help) : help_stand_by;
+	  (state = help_stand_by & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & req_Ask_for_help) : help_stand_by;
+
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {bottle_found, failed_find};
+	  (state = in_kitchen & req_Ask_for_help) : help_kitchen;
+  	  (state = help_kitchen & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & req_Ask_for_help) : help_kitchen;
+
+	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {bottle_fetched, failed_fetch};
+	  (state = bottle_found & req_Ask_for_help) : help_found;
+    	  (state = help_found & !req_Ask_for_help) : bottle_found;	
+	  (state = failed_fetch & !req_Fetch_bottle & !req_Ask_for_help) : bottle_found;
+	  (state = failed_fetch & req_Ask_for_help) : help_found;
+
+	  (state = failed_find & req_Ask_for_help) : help_fetched;
+    	  (state = help_fetched & !req_Ask_for_help) : bottle_fetched;
+	  
+	  TRUE : state;
+	esac;
 
 -- ===============================================================================
 --                               End of module
