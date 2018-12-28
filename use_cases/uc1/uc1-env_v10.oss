@@ -68,13 +68,14 @@ COMPONENT FALLBACK_NODE
    assume: 
     always ((to_left_bt = enable) -> in the future (from_left_bt != none)) and
     always ((to_right_bt = enable) -> in the future (from_right_bt != none));
+    always (to_left_bt = disable -> in the future from_left_bt = disabled) and
+    always (to_right_bt = disable -> in the future from_right_bt = disabled) and
+    always (visit = disable -> (visit = disable until output = disabled));
    guarantee: 
-    always ((visit = enable) -> in the future (output != none)) and
-    always ((from_left_bt = succeeded or from_right_bt = succeeded) iff (next(output = succeeded))) and
-    always ((from_left_bt = failed) iff (to_right_bt = enable)) and
-    always ((from_left_bt = disable) iff (to_right_bt = disable)) and
-    always ((from_left_bt = none) iff (to_right_bt = no)) and
-    always ((to_left_bt != enable) or (to_right_bt != enable));
+    always (visit = enable -> in the future output != none) and
+    always (visit = disable -> in the future output = disabled);
+-- These are just basic assumptions/guarantees from the SEQUENCE node
+-- To be validated!!!
 
 COMPONENT SEQUENCE_NODE
  INTERFACE
@@ -86,15 +87,16 @@ COMPONENT SEQUENCE_NODE
   OUTPUT PORT output: {none, disabled, running, failed, succeeded};
   CONTRACT sequence_contract
    assume: 
-    always ((to_left_bt = enable) -> in the future (from_left_bt != none)) and
-    always ((to_right_bt = enable) -> in the future (from_right_bt != none));
+    always (to_left_bt = enable -> in the future from_left_bt != none) and
+    always (to_right_bt = enable -> in the future from_right_bt != none) and
+    always (to_left_bt = disable -> in the future from_left_bt = disabled) and
+    always (to_right_bt = disable -> in the future from_right_bt = disabled) and
+    always (visit = disable -> (visit = disable until output = disabled));
    guarantee: 
-    always ((visit = enable) -> in the future (output != none)) and
-    always ((from_right_bt = succeeded) iff (next(output = succeeded))) and
-    always ((from_left_bt = failed) iff (to_right_bt = disable)) and
-    always ((from_left_bt = disable) iff (to_right_bt = disable)) and
-    always ((from_left_bt = none) iff (to_right_bt = no)) and
-    always ((to_left_bt != enable) or (to_right_bt != enable));
+    always (visit = enable -> in the future output != none) and
+    always (visit = disable -> in the future output = disabled) and
+    always (((to_left_bt = enable and in the future from_left_bt = succeeded) and always visit != disable) -> in the future to_right_bt = enable);
+-- The last guarantee IS NO fullfilled by the implementation!!
 
 COMPONENT ROBOT_AND_ENVIRONMENT
  INTERFACE

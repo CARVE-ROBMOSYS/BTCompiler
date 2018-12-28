@@ -47,7 +47,7 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
 	next(to_right_bt) :=
 	  case
 	    (state = enabling_left & from_left_bt = succeeded) : enable;
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disable;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disable;
 	    (state = enabling_right & from_right_bt = none): enable;
 	    (state = disabling_right & from_right_bt != disable): disable;
 	    TRUE : no;
@@ -57,6 +57,7 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
 	  case
 	    (state = initial & visit = enable) : running;
 	    (state = enabling_left & from_left_bt = succeeded) : running;
+	    (state = enabling_left & from_left_bt = none) : running;	
 	    (state = enabling_right & from_right_bt != none) : from_right_bt;
 	    (state = enabling_right & from_right_bt = none) : running;
 	    (state = disabling_right & from_right_bt = disabled) : cached_left;
@@ -82,8 +83,8 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
 	    (state = enabling_right & from_right_bt != none) : return_right;
 	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
 	    (state = disabling_right & from_right_bt = disabled) : return_left;
-	    (state = disabling_left & from_left_bt != disabled) ; disabling_left;
-	    (state = disabling_left & from_left_bt = disabled) ; disabling_right;
+	    (state = disabling_left & from_left_bt != disabled) : disabling_left;
+	    (state = disabling_left & from_left_bt = disabled) : disabling_right;
 	    TRUE : initial;
 	  esac;
 
