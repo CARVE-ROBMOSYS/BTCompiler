@@ -76,7 +76,7 @@ COMPONENT FALLBACK_NODE
    guarantee: 
     always (visit = enable -> in the future output != none) and
     always (visit = disable -> in the future output = disabled) and 
-    always visit != disable -> always (from_left_bt = failed -> in the future to_right_bt = enable);
+    (always visit != disable) -> (always (from_left_bt = failed -> in the future to_right_bt = enable));
 
 COMPONENT SEQUENCE_NODE
  INTERFACE
