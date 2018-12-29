@@ -141,8 +141,11 @@ COMPONENT FIND_BOTTLE
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Find_bottle: boolean;
   CONTRACT skill_contract
-   assume: true;
-   guarantee: true;
+   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
+   	      always (from_bt = disable -> in the future to_bt = disabled) and
+	      always (from_bt = enable -> in the future req_Find_bottle) and
+	      always from_bt = no -> always to_bt = none;
 
 COMPONENT FETCH_BOTTLE
  INTERFACE
@@ -151,8 +154,11 @@ COMPONENT FETCH_BOTTLE
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Fetch_bottle: boolean;
   CONTRACT skill_contract
-   assume: true;
-   guarantee: true;
+   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
+   	      always (from_bt = disable -> in the future to_bt = disabled) and
+	      always (from_bt = enable -> in the future req_Fetch_bottle) and
+	      always from_bt = no -> always to_bt = none;
 
 COMPONENT ASK_FOR_HELP
  INTERFACE
@@ -161,6 +167,10 @@ COMPONENT ASK_FOR_HELP
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Ask_for_help: boolean;
   CONTRACT skill_contract
-   assume: true;
-   guarantee: true;
+   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
+   	      always (from_bt = disable -> in the future to_bt = disabled) and
+	      always (from_bt = enable -> in the future req_Ask_for_help) and
+	      always from_bt = no -> always to_bt = none;
+
 
