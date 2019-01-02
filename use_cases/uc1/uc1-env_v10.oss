@@ -76,7 +76,8 @@ COMPONENT FALLBACK_NODE
    guarantee: 
     always (visit = enable -> in the future output != none) and
     always (visit = disable -> in the future output = disabled) and 
-    (always visit != disable) -> (always (from_left_bt = failed -> in the future to_right_bt = enable));
+    (always visit != disable) -> (always (from_left_bt = failed -> in the future to_right_bt = enable)) and 
+    never (to_left_bt = enable and to_right_bt = enable);
 
 COMPONENT SEQUENCE_NODE
  INTERFACE
@@ -98,7 +99,8 @@ COMPONENT SEQUENCE_NODE
    guarantee: 
     always (visit = enable -> in the future output != none) and
     always (visit = disable -> in the future output = disabled) and
-    always visit != disable -> always (from_left_bt = succeeded -> in the future to_right_bt = enable);
+    always visit != disable -> always (from_left_bt = succeeded -> in the future to_right_bt = enable) and
+    never (to_left_bt = enable and to_right_bt = enable);
 
 COMPONENT ROBOT_AND_ENVIRONMENT
  INTERFACE
@@ -113,7 +115,10 @@ COMPONENT ROBOT_AND_ENVIRONMENT
 
   CONTRACT env_contract
    assume: always ((req_Go_to_kitchen or req_Find_bottle or req_Fetch_bottle) -> !req_Ask_for_help);
-   guarantee: (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and
+   guarantee: (always ((is_robot_in_kitchen != succeeded until req_Go_to_kitchen) or !req_Go_to_kitchen)) and
+              (always ((is_bottle_found != succeeded until req_Find_bottle) or !req_Find_bottle)) and
+              (always ((is_bottle_fetched != succeeded until req_Fetch_bottle) or !req_Fetch_bottle)) and
+	      (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and
    	      (always (is_robot_in_kitchen = succeeded and req_Find_bottle and is_bottle_found != failed) -> in the future is_bottle_found = succeeded) and
 	      (always (is_bottle_found = succeeded and req_Fetch_bottle and is_bottle_fetched != failed) -> in the future is_bottle_fetched = succeeded) and
 	      (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and
@@ -132,7 +137,9 @@ COMPONENT GO_TO_KITCHEN
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Go_to_kitchen) and
-	      always from_bt = no -> always to_bt = none;
+	      always (from_bt != enable -> never req_Go_to_kitchen) and
+	      always from_bt = no -> always to_bt = none and
+	      always (from_bt != enable -> always (to_bt != succeeded));
 
 COMPONENT FIND_BOTTLE
  INTERFACE
@@ -145,7 +152,9 @@ COMPONENT FIND_BOTTLE
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Find_bottle) and
-	      always from_bt = no -> always to_bt = none;
+	      always (from_bt != enable -> never req_Find_bottle) and	
+	      always from_bt = no -> always to_bt = none and
+      	      always (from_bt != enable -> always (to_bt != succeeded));	
 
 COMPONENT FETCH_BOTTLE
  INTERFACE
@@ -158,7 +167,9 @@ COMPONENT FETCH_BOTTLE
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Fetch_bottle) and
-	      always from_bt = no -> always to_bt = none;
+	      always (from_bt != enable -> never req_Fetch_bottle) and	
+	      always from_bt = no -> always to_bt = none and
+      	      always (from_bt != enable -> always (to_bt != succeeded));
 
 COMPONENT ASK_FOR_HELP
  INTERFACE
@@ -171,6 +182,8 @@ COMPONENT ASK_FOR_HELP
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Ask_for_help) and
-	      always from_bt = no -> always to_bt = none;
+	      always (from_bt != enable -> never req_Ask_for_help) and	
+	      always from_bt = no -> always to_bt = none and
+      	      always (from_bt != enable -> always (to_bt != succeeded));	
 
 
