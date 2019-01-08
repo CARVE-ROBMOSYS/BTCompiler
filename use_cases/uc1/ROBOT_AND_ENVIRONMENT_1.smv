@@ -1,0 +1,72 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(req_Ask_for_help,  req_Go_to_kitchen);
+    VAR
+        req_Ask_for_help : boolean;
+        req_Go_to_kitchen : boolean;
+
+    DEFINE
+        is_help_given := ROBOT_AND_ENVIRONMENT_inst.is_help_given;
+        is_robot_in_kitchen := ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Go_to_kitchen)
+    VAR
+        is_help_given : {none, failed, succeeded};
+        is_robot_in_kitchen : {none, failed, succeeded};
+	state : {stand_by, in_kitchen, help_stand_by, help_kitchen, failed_kitchen};
+	
+    INVAR
+      (state = in_kitchen -> is_robot_in_kitchen = succeeded) &
+      (state = failed_kitchen -> is_robot_in_kitchen = failed);
+
+    ASSIGN
+      init(is_robot_in_kitchen) := none;
+      init(is_help_given) := none;
+      init(state) := stand_by;
+
+      next(is_robot_in_kitchen) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {succeeded, failed};
+	  (state = stand_by & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = stand_by & req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Go_to_kitchen & !req_Ask_for_help) : failed;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Ask_for_help) : none;
+	  (state = help_stand_by) : none;
+	  TRUE : succeeded;
+	esac;
+
+
+      next(is_help_given) :=
+        case
+	  req_Ask_for_help : succeeded;	  
+	  TRUE : none;
+	esac;
+
+      next(state) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {in_kitchen, failed_kitchen};
+	  (state = stand_by & req_Ask_for_help) : help_stand_by;
+	  (state = help_stand_by & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & req_Ask_for_help) : help_stand_by;
+
+	
+	  (state = in_kitchen & req_Ask_for_help) : help_kitchen;
+  	  (state = help_kitchen & !req_Ask_for_help) : in_kitchen;
+
+	  
+	  TRUE : state;
+	esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
