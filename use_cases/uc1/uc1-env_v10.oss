@@ -47,14 +47,15 @@ COMPONENT uc1 system
 
   CONNECTION mission := Fallback_node.output;
 
-  CONTRACT mission REFINEDBY Fallback_node.fallback_contract, Sequence_node_1.sequence_contract, Sequence_node_2.sequence_contract, Robot_env.env_contract, Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
+  CONTRACT mission REFINEDBY Tick_generator.tick_contract ,Fallback_node.fallback_contract, Sequence_node_1.sequence_contract, Sequence_node_2.sequence_contract, Robot_env.env_contract,
+                             Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
 
 COMPONENT TICK_GENERATOR
   INTERFACE
     OUTPUT PORT tick: {no, enable, disable};
   CONTRACT tick_contract
     assume: true;
-    guarantee: always tick=enable;
+    guarantee: tick=enable and always tick=enable;
 
 COMPONENT FALLBACK_NODE
  INTERFACE
@@ -66,14 +67,15 @@ COMPONENT FALLBACK_NODE
   OUTPUT PORT output: {none, disabled, running, failed, succeeded};
   CONTRACT fallback_contract
    assume: 
-    always ((to_left_bt = enable) -> in the future (from_left_bt != none)) and
-    always ((to_right_bt = enable) -> in the future (from_right_bt != none)) and
-    always (to_left_bt = disable -> in the future from_left_bt = disabled) and
-    always (to_right_bt = disable -> in the future from_right_bt = disabled) and
-    always (visit = disable -> (visit = disable until output = disabled)) and
+    --always ((to_left_bt = enable) -> in the future (from_left_bt != none)) and
+   -- always ((to_right_bt = enable) -> in the future (from_right_bt != none)) and
+  --  always (to_left_bt = disable -> in the future from_left_bt = disabled) and
+  --  always (to_right_bt = disable -> in the future from_right_bt = disabled) and
+ --   always (visit = disable -> (visit = disable until output = disabled)) and
     always (from_left_bt = none until (to_left_bt = enable or to_left_bt = disable)) and
     always (from_right_bt = none until (to_right_bt = enable or to_right_bt = disable));
    guarantee: 
+    always((from_left_bt = succeeded or from_right_bt = succeeded) -> in the future output = succeeded) and
     always (visit = enable -> in the future output != none) and
     always (visit = disable -> in the future output = disabled) and 
     (always visit != disable) -> (always (from_left_bt = failed -> in the future to_right_bt = enable)) and 
@@ -89,14 +91,15 @@ COMPONENT SEQUENCE_NODE
   OUTPUT PORT output: {none, disabled, running, failed, succeeded};
   CONTRACT sequence_contract
    assume: 
-    always (to_left_bt = enable -> in the future from_left_bt != none) and
-    always (to_right_bt = enable -> in the future from_right_bt != none) and
-    always (to_left_bt = disable -> in the future from_left_bt = disabled) and
-    always (to_right_bt = disable -> in the future from_right_bt = disabled) and
-    always (visit = disable -> (visit = disable until output = disabled)) and
+   -- always (to_left_bt = enable -> in the future from_left_bt != none) and
+   -- always (to_right_bt = enable -> in the future from_right_bt != none) and
+   -- always (to_left_bt = disable -> in the future from_left_bt = disabled) and
+   -- always (to_right_bt = disable -> in the future from_right_bt = disabled) and
+   -- always (visit = disable -> (visit = disable until output = disabled)) and
     always (from_left_bt = none until (to_left_bt = enable or to_left_bt = disable)) and
     always (from_right_bt = none until (to_right_bt = enable or to_right_bt = disable));
    guarantee: 
+    always((from_left_bt = succeeded and from_right_bt = succeeded) -> in the future output = succeeded) and
     always (visit = enable -> in the future output != none) and
     always (visit = disable -> in the future output = disabled) and
     always visit != disable -> always (from_left_bt = succeeded -> in the future to_right_bt = enable) and
@@ -114,7 +117,7 @@ COMPONENT ROBOT_AND_ENVIRONMENT
   OUTPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
 
   CONTRACT env_contract
-   assume: always ((req_Go_to_kitchen or req_Find_bottle or req_Fetch_bottle) -> !req_Ask_for_help);
+   assume:  always ((req_Go_to_kitchen or req_Find_bottle or req_Fetch_bottle) -> !req_Ask_for_help);
    guarantee: (always ((is_robot_in_kitchen != succeeded until req_Go_to_kitchen) or !req_Go_to_kitchen)) and
               (always ((is_bottle_found != succeeded until req_Find_bottle) or !req_Find_bottle)) and
               (always ((is_bottle_fetched != succeeded until req_Fetch_bottle) or !req_Fetch_bottle)) and
@@ -133,7 +136,7 @@ COMPONENT GO_TO_KITCHEN
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Go_to_kitchen: boolean;
   CONTRACT skill_contract
-   assume:    always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   assume: true;--    always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Go_to_kitchen) and
@@ -148,7 +151,7 @@ COMPONENT FIND_BOTTLE
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Find_bottle: boolean;
   CONTRACT skill_contract
-   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   assume: true; --always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Find_bottle) and
@@ -163,7 +166,7 @@ COMPONENT FETCH_BOTTLE
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Fetch_bottle: boolean;
   CONTRACT skill_contract
-   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   assume: true; --always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Fetch_bottle) and
@@ -178,7 +181,7 @@ COMPONENT ASK_FOR_HELP
   OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
   OUTPUT PORT req_Ask_for_help: boolean;
   CONTRACT skill_contract
-   assume: always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
+   assume: true; --always (from_bt = disable -> (from_bt = disable until to_bt = disabled));
    guarantee: always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled)) and
    	      always (from_bt = disable -> in the future to_bt = disabled) and
 	      always (from_bt = enable -> in the future req_Ask_for_help) and

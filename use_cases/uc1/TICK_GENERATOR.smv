@@ -16,7 +16,10 @@ MODULE TICK_GENERATOR
     VAR
         tick : {no, enable, disable};
 
-    LTLSPEC NAME tick_contract_norm_guarantee := (TRUE ->  G tick = enable);
+    ASSIGN
+      init(tick) := enable;
+
+      next(tick) := enable;
 
 
 -- ===============================================================================

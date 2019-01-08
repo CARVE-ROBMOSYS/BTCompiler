@@ -48,16 +48,13 @@ MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
 	    (state = enabling_left & from_left_bt = failed) : enable;
 	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disable;
 	    (state = enabling_right & from_right_bt = none): enable;
-	    (state = disabling_right & from_right_bt != disable): disable;
+	    (state = disabling_right & from_right_bt != disabled): disable;
 	    TRUE : no;
 	  esac;
 
 	next(output) :=
 	  case
-	    (state = initial & visit = enable) : running;
-	    (state = enabling_left & (from_left_bt = failed | from_left_bt = none)) : running;
 	    (state = enabling_right & from_right_bt != none) : from_right_bt;
-	    (state = enabling_right & from_right_bt = none) : running;
 	    (state = disabling_right & from_right_bt = disabled) : cached_left;
 	    TRUE : none;
 	  esac;
