@@ -12,18 +12,20 @@
             guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
                        always (is_robot_in_kitchen iff (to_bt = none or to_bt = succeeded))"
             />
-        <Action
-            ID="Find_bottle"
-            assume="true"
-            guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
-                       always (is_bottle_found iff (to_bt = none or to_bt = succeeded))"
-            />
-        <Action
-            ID="Fetch_bottle"
-            assume="true"
-            guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
-                       always (is_bottle_fetched iff (to_bt = none or to_bt = succeeded))"
-            />
+        <Sequence name="s2">
+          <Action
+              ID="Find_bottle"
+              assume="true"
+              guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
+                         always (is_bottle_found iff (to_bt = none or to_bt = succeeded))"
+              />
+          <Action
+              ID="Fetch_bottle"
+              assume="true"
+              guarantee="always ((from_bt = Enable) iff next (to_bt != none)) and
+                         always (is_bottle_fetched iff (to_bt = none or to_bt = succeeded))"
+              />
+        </Sequence>
       </Sequence>
       <Action
           ID="Ask_for_help"
@@ -74,6 +76,6 @@
     </InSignal>  
 
   </Environment>
-  
+
 </root>
 

@@ -24,5 +24,8 @@ interp: checkpkg
 mkspec: checkpkg
 	$(OCB) -pkg str 'mkspec.native'
 
+mkspec2: checkpkg
+	$(OCB) -pkg str 'mkspec2.native'
+
 clean:
 	$(OCB) -clean
