@@ -72,7 +72,6 @@
     <OutSignal name="is_robot_in_kitchen">
       <Destination ID="Go_to_kitchen"/>
     </OutSignal>
-    <OutSignal name="is_bottle_visible" />
     <OutSignal name="is_bottle_found">
       <Destination ID="Find_bottle"/>
     </OutSignal>
