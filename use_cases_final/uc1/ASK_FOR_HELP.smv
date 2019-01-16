@@ -1,0 +1,91 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        ASK_FOR_HELP_inst : ASK_FOR_HELP(from_bt, is_help_given);
+    VAR
+        from_bt : {disable, enable, no};
+        is_help_given : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := ASK_FOR_HELP_inst.to_bt;
+        req_Ask_for_help := ASK_FOR_HELP_inst.req_Ask_for_help;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ASK_FOR_HELP(from_bt, is_help_given)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Ask_for_help : boolean;
+	state : {not_asked, asking, failing, asked, disabled_not_asked, disabled_asked};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Ask_for_help) := FALSE;
+	init(state) := not_asked;
+
+	next(to_bt) :=
+	  case
+	    (state = not_asked & from_bt = enable) : running;
+	    (state = not_asked & from_bt = disable) : disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : running;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : succeeded;
+	    (state = asking & from_bt = disable): disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = asked & from_bt = enable) : running;
+	    (state = asked & from_bt = no) : succeeded;
+	    (state = asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = disable) : disabled;
+	    (state = disabled_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Ask_for_help) :=
+	  case
+	    (state = not_asked & from_bt = enable) : TRUE;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_asked & from_bt = enable) : TRUE;
+	    (state = asked & from_bt = enable): TRUE;
+	    (state = disabled_asked & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_asked & from_bt = enable) : asking;
+	    (state = not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : asking;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failing;
+	    (state = asking & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = asking & from_bt = disable & is_help_given = succeeded): disabled_asked;
+	    (state = failing & from_bt = enable) : asking;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = failing & from_bt = disable & is_help_given = succeeded): disabled_asked;
+	    (state = asked & from_bt = enable) : asking;
+    	    (state = asked & from_bt = no) : asked;	
+	    (state = asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = disabled_not_asked & from_bt = enable) : asking;
+	    (state = disabled_asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_asked & from_bt = no) : asked;
+    	    (state = disabled_asked & from_bt = enable) : asking;
+	    TRUE: not_asked;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
