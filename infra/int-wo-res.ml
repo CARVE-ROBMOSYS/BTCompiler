@@ -69,38 +69,47 @@ let f2 s =
 
 (* Parses a BT using the Xmlm input_tree facility *)
 let input_bt i =
-  Xmlm.input_tree ~el:f1 ~data:f2 i
+  match Xmlm.peek i with
+  | `El_start t ->
+    if (extract_node t) = "Root" then
+      let _ = Xmlm.input i in                (* opening Root tag *)
+      let bt = Xmlm.input_tree ~el:f1 ~data:f2 i in
+      let _ = Xmlm.input i in                (* closing Root tag *)
+      bt
+    else
+      Xmlm.input_tree ~el:f1 ~data:f2 i
+  | _ -> raise (Parsing "ill-formed BehaviorTree tag")
 
 (* Loads a BT from an XML file *)
 let load_bt filename =
   try
     let input_ch = open_in filename in
     let i = Xmlm.make_input ~strip:true (`Channel input_ch) in
-    let _ = Xmlm.input i in                   (* discard the dtd *)
+    let _ = Xmlm.input i in                  (* discard the dtd *)
     let root_tag = Xmlm.input i in
     match root_tag with
     | `El_start t1 ->
-       if (extract_node t1) = "root" then
-         let bt = ref None in
-         while (Xmlm.peek i <> `El_end) do    (* end of root node *)
-           let next_tag = Xmlm.input i in
-           match next_tag with
-           | `El_start t2 ->
-              (match (extract_node t2) with
-               | "BehaviorTree" ->
-                  if !bt = None then
-                    bt := Some (input_bt i)
-                  else
-                    raise (Parsing "too many BehaviorTree tags")
-               | _ -> ());              (* unknown tags are silently ignored *)
-              discard_tag i 1           (* jump to closing tag *)
-           | _ -> raise (Parsing "ill-formed input file")
-         done;
-         close_in input_ch;
-         match !bt with
-         | Some x -> x
-         | None -> raise (Parsing "cannot find BehaviorTree node")
-       else raise (Parsing "cannot find root node")
+      if (extract_node t1) = "root" then     (* root node found *)
+        let bt = ref None in
+        while (Xmlm.peek i <> `El_end) do    (* repeat until end of root node *)
+          let next_tag = Xmlm.input i in
+          match next_tag with
+          | `El_start t2 ->
+            (match (extract_node t2) with
+             | "BehaviorTree" ->
+               if !bt = None then
+                 bt := Some (input_bt i)
+               else
+                 raise (Parsing "too many BehaviorTree tags")
+             | _ -> ());                (* unknown tags are silently ignored *)
+            discard_tag i 1             (* jump to closing tag *)
+          | _ -> raise (Parsing "ill-formed input file")
+        done;
+        close_in input_ch;
+        match !bt with
+        | Some x -> x
+        | None -> raise (Parsing "cannot find BehaviorTree node")
+      else raise (Parsing "cannot find root node")
     | _ -> raise (Parsing "ill-formed input file")
   with
     Sys_error s -> Printf.eprintf "System error: %s\n" s;
