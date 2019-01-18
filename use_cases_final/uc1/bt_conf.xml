@@ -4,26 +4,15 @@
 
   <System
       assume="true"
-      guarantee="(always in the future (output = succeeded)) and ;
-		 (in the future req_Fetch_bottle ->  (!req_Fetch_bottle until (is_bottle_found = succeeded  and !req_Fetch_bottle))) and
-		 ((in the future output = succeeded -> (output != succeeded U (Go_to_kitchen.to_bt = succeeded and
-		                                                               Find_bottle.to_bt = succeeded and
-									       Fetch_bottle.to_bt = succeeded) and  output != succeeded)) |
- 	          (in the future output = succeeded -> (output != succeeded U (Ask_for_help.to_bt = succeeded and output != succeeded))))"
+      guarantee="(always in the future (output = succeeded)) and 
+		 (in the future Fetch_bottle.req_Fetch_bottle ->  (!Fetch_bottle.req_Fetch_bottle until (Robot_env.is_bottle_found = succeeded  and !Fetch_bottle.req_Fetch_bottle))) and
+		 ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen.to_bt = succeeded and
+		                                                                   Find_bottle.to_bt = succeeded and
+									           Fetch_bottle.to_bt = succeeded) and  output != succeeded)) or
+ 	          (in the future output = succeeded -> (output != succeeded until (Ask_for_help.to_bt = succeeded and output != succeeded))))"
    />
 
   <SkillList>
-    <Action
-        ID="Ask_for_help"
-        assume="true"
-        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
-   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
-		   (always (from_bt = enable -> in the future req_Ask_for_help)) and
-		   (always (from_bt != enable -> never req_Ask_for_help)) and	
-		   ((always from_bt = no) -> (always to_bt = none) and
-      		   (always (from_bt != enable -> always (to_bt != succeeded)))"      
-        />
-
     <Action
         ID="Go_to_kitchen"
         assume="true"
@@ -32,7 +21,7 @@
 		   (always (from_bt = enable -> in the future req_Go_to_kitchen)) and
 		   (always (from_bt != enable -> never req_Go_to_kitchen)) and
 		   ((always from_bt = no) -> (always to_bt = none)) and
-		   (always (from_bt != enable -> always (to_bt != succeeded))"
+		   (always (from_bt != enable -> always (to_bt != succeeded)))"
         />
 
     <Action
@@ -57,17 +46,31 @@
       		   (always (from_bt != enable -> always (to_bt != succeeded)))"
         />
 
+    <Action
+        ID="Ask_for_help"
+        assume="true"
+        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
+   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
+		   (always (from_bt = enable -> in the future req_Ask_for_help)) and
+		   (always (from_bt != enable -> never req_Ask_for_help)) and	
+		   ((always from_bt = no) -> (always to_bt = none)) and
+      		   (always (from_bt != enable -> always (to_bt != succeeded)))"      
+        />
   </SkillList>
 
   <Environment
-      assume="always ((req_Go_to_kitchen or req_Find_bottle) -> !req_Ask_for_help)"
+      ID = "Robot_env"
+      assume="always ((req_Go_to_kitchen or req_Find_bottle or req_Fetch_bottle) -> !req_Ask_for_help)"
       guarantee="(always ((is_robot_in_kitchen != succeeded until req_Go_to_kitchen) or !req_Go_to_kitchen)) and
                  (always ((is_bottle_found != succeeded until req_Find_bottle) or !req_Find_bottle)) and
+		 (always ((is_bottle_fetched != succeeded until req_Fetch_bottle) or !req_Fetch_bottle)) and
 		 (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and
    		 (always (is_robot_in_kitchen = succeeded and req_Find_bottle and is_bottle_found != failed) -> in the future is_bottle_found = succeeded) and
+ 		 (always (is_bottle_found = succeeded and req_Fetch_bottle and is_bottle_fetched != failed) -> in the future is_bottle_fetched = succeeded) and
 		 (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and
 		 (always (is_robot_in_kitchen = succeeded -> always is_robot_in_kitchen = succeeded)) and
-		 (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded))">
+		 (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded)) and
+		 (always (is_bottle_fetched = succeeded -> always is_bottle_fetched = succeeded));">
 
     <OutSignal name="is_robot_in_kitchen">
       <Destination ID="Go_to_kitchen"/>
