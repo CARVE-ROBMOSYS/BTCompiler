@@ -1,11 +1,16 @@
 (* This program reads a list of "basic skills" from an input XML file
    and writes the corresponding definitions needed for the BT interpreter
-   in the OCaml module "skills.ml". 
+   in the OCaml module "skills.ml".
 
-   Possible improvements:
-   * accept more than one input file (concatenating the resulting lists)
-   * relax the syntax of the input file by ignoring unknown top-level tags
-     (this allows e.g. having the skill list and the BT in a single file)
+   Two syntaxes are supported:
+   - The XML file contains a single SkillList tag. In this case the program
+     reads the tags' contents and stops.
+   - The XML file contains a root node whose name is not "SkillList". In 
+     this case the program reads every SkillList tag which is found inside
+     the root node (there may be any number of them). Unknown tags are ignored.
+
+   The program does NOT signal an error if no skills are actually given 
+   (i.e., the SkillList tag is empty).
 *)
 
 open Utils
@@ -68,14 +73,31 @@ let make_skills_module l =
 let read_skills filename =
   let input_ch = open_in filename in
   let i = Xmlm.make_input ~strip:true (`Channel input_ch) in
-  let _ = Xmlm.input i in               (* discard the dtd *)
+  let _ = Xmlm.input i in                    (* discard the dtd *)
   let first_tag = Xmlm.input i in
   match first_tag with
-    `El_start t -> let n = extract_node t in
-                   if n = "SkillList" then
-                     read_skill_list [] i
-                   else
-                     raise (Parsing ("expected SkillList tag, found " ^ n))
+  | `El_start t ->
+    let n = extract_node t in
+    if n = "SkillList" then
+      read_skill_list [] i
+    else                                     (* there may be a root tag *)
+      let sklist_found = ref false in
+      let sklist = ref [] in
+      while (Xmlm.peek i <> `El_end) do
+        let next_tag = Xmlm.input i in
+        match next_tag with
+        | `El_start t2 ->
+          (match extract_node t2 with
+           | "SkillList" ->
+             sklist_found := true;
+             sklist := read_skill_list !sklist i
+           | _ -> discard_tag i 1)
+        | _ -> raise (Parsing "ill-formed input file")
+      done;
+      if !sklist_found then
+        !sklist
+      else
+        raise (Parsing "could not find SkillList tag")
   | _ -> raise (Parsing "ill-formed input file")
 
 let _ =
