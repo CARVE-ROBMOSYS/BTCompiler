@@ -217,19 +217,6 @@ val bp_not : smv_module
 
 val bp_isRunning : smv_module
 
-type modtype =
-| Skmod
-| TRUEmod
-| Seqmod of int
-| Fbmod of int
-| Parmod of int * int
-| Notmod
-| Runmod
-
-val modtype_dec : modtype -> modtype -> bool
-
-val bp_identity : char list -> smv_module
-
 module BT_gen_spec :
  functor (X:BT_SIG) ->
  sig
@@ -282,6 +269,27 @@ module BT_gen_spec :
   val normalize : btree -> btree
 
   val normalize_forest : btforest -> btforest
+
+  type modtype =
+  | Skmod
+  | TRUEmod
+  | Seqmod of int
+  | Fbmod of int
+  | Parmod of int * int
+  | Notmod
+  | Runmod
+
+  val modtype_rect :
+    'a1 -> 'a1 -> (int -> 'a1) -> (int -> 'a1) -> (int -> int -> 'a1) -> 'a1
+    -> 'a1 -> modtype -> 'a1
+
+  val modtype_rec :
+    'a1 -> 'a1 -> (int -> 'a1) -> (int -> 'a1) -> (int -> int -> 'a1) -> 'a1
+    -> 'a1 -> modtype -> 'a1
+
+  val modtype_dec : modtype -> modtype -> bool
+
+  val bp_identity : char list -> smv_module
 
   val rootName : btree -> char list
 

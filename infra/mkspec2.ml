@@ -405,17 +405,16 @@ let make_comp_system lst =
   let disc_time_head = "@requires discrete-time\n" in
   let header =
     String.concat "" ["COMPONENT uc1 system\n INTERFACE\n";
-                      "  OUTPUT PORT mission: boolean;\n\n";
-                      "  CONTRACT mission\n";
-                      "   assume: true;\n";
-                      "   guarantee: in the future mission;\n\n";
-                      " REFINEMENT\n";
-                      "  SUB Bt_fsm: BT_FSM;\n";
-                      "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "] in
+                      "  OUTPUT PORT output: {none, disabled, running, failed, succeeded};\n\n";
+                      "  CONTRACT mission\n"] in
+  let system_guar = "   assume: true;\n   guarantee: in the future mission;\n\n" in
+  let refin = String.concat "" [" REFINEMENT\n";
+               "  SUB Bt_fsm: BT_FSM;\n";
+               "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "] in
   let subs = String.concat "" (mksubs lst) in
   let connections = String.concat "" (mkconn lst) in
 
-  String.concat "" [disc_time_head; header; subs; connections]
+  String.concat "" [disc_time_head; header; system_guar; refin; subs; connections]
 
 let rec mkports_bt = function
   | [] -> ["\n"]

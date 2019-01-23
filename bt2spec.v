@@ -50,10 +50,15 @@ Definition bt_input_type :=
   (TEnum ("Runn"::"Fail"::"Succ"::nil)).
 
 Definition bt_output_type :=
-  (TEnum ("none"::"running"::"failed"::"succeeded"::nil)).
+  (TEnum ("none"::"disabled"::"running"::"failed"::"succeeded"::nil)).
 
 Definition bt_action_type :=
-  (TEnum ("Enable"::"Reset"::nil)).
+  (TEnum ("no"::"enable"::"disable"::nil)).
+
+Definition bt_seq_state :=
+  (TEnum ("initial"::"enabling_left"::"enabling_right"::"return_left"::
+          "return_right"::"disabling_left"::"disabling_right"::nil)).
+
 
 (* Boilerplate modules *)
 
@@ -160,126 +165,22 @@ Definition bp_isRunning :=
     (Some (LastA (invar (Mod "child_bt" (Id "enable"))
                         (Qual (Id "enable"))))).
 
+(* Binary-branching implementation *)
+
 Module BT_bin_spec (X: BT_SIG).
 
   Include BT_binary X.
 
-  (* Boilerplate modules specific for the binary case *)
+  (* Possible SMV modules to be generated *)
+  Inductive modtype :=
+    Skmod | TRUEmod | Seqmod | Fbmod | Par1mod | Par2mod | Notmod | Runmod.
+  
+  Theorem modtype_dec: forall x y:modtype, {x = y} + {x <> y}.
+    decide equality.
+  Defined.
 
-  Definition bp_bin_seq :=
-    Build_smv_module
-      "bt_sequence"
-      ("left_bt"::"right_bt"::nil)
-      (Some (LastV "enable" (TSimp TBool)))
-      None
-      (Some (LastD "output"
-                   (Case
-                      (AddCexp (Equal (Qual (Mod "left_bt" (Id "output")))
-                                      (SConst "succeeded"))
-                               (Qual (Mod "right_bt" (Id "output")))
-                               (Cexp (BConst smvT)
-                                     (Qual (Mod "left_bt" (Id "output"))))))))
-      (Some (AddA (invar (Mod "left_bt" (Id "enable"))
-                         (Qual (Id "enable")))
-                  (LastA (invar (Mod "right_bt" (Id "enable"))
-                                (Equal (Qual (Mod "left_bt" (Id "output")))
-                                       (SConst "succeeded")))))).
-
-  Definition bp_bin_fb :=
-    Build_smv_module
-      "bt_fallback"
-      ("left_bt"::"right_bt"::nil)
-      (Some (LastV "enable" (TSimp TBool)))
-      None
-      (Some (LastD "output"
-                   (Case
-                      (AddCexp (Equal (Qual (Mod "left_bt" (Id "output")))
-                                      (SConst "failed"))
-                               (Qual (Mod "right_bt" (Id "output")))
-                               (Cexp (BConst smvT)
-                                     (Qual (Mod "left_bt" (Id "output"))))))))
-      (Some (AddA (invar (Mod "left_bt" (Id "enable"))
-                         (Qual (Id "enable")))
-                  (LastA (invar (Mod "right_bt" (Id "enable"))
-                                (Equal (Qual (Mod "left_bt" (Id "output")))
-                                       (SConst "failed")))))).
-
-  Definition bp_par1 :=
-  Build_smv_module
-    "bt_parallel1"
-    ("left_bt"::"right_bt"::nil)
-    (Some (LastV "enable" (TSimp TBool)))
-    None
-    (Some (AddD "true_output_count"
-                (Count (AddSexp
-                          (Equal (Qual (Mod "left_bt" (Id "output")))
-                                 (SConst "succeeded"))
-                          (Sexp
-                             (Equal (Qual (Mod "right_bt" (Id "output")))
-                                    (SConst "succeeded")))))
-                (AddD "fail_output_count"
-                      (Count (AddSexp
-                                (Equal (Qual (Mod "left_bt" (Id "output")))
-                                       (SConst "failed"))
-                                (Sexp
-                                   (Equal (Qual (Mod "right_bt" (Id "output")))
-                                          (SConst "failed")))))
-                      (LastD "output"
-                             (Case
-                                (AddCexp
-                                   (Less (SConst "0")
-                                         (Qual (Id "true_output_count")))
-                                   (SConst "succeeded")
-                                   (AddCexp
-                                      (Less (SConst "1")
-                                            (Qual (Id "fail_output_count")))
-                                      (SConst "failed")
-                                      (Cexp
-                                         (BConst smvT)
-                                         (SConst "running")))))))))
-    (Some (AddA (invar (Mod "left_bt" (Id "enable"))
-                       (Qual (Id "enable")))
-                (LastA (invar (Mod "right_bt" (Id "enable"))
-                              (Qual (Id "enable")))))).
-
-  Definition bp_par2 :=
-  Build_smv_module
-    "bt_parallel2"
-    ("left_bt"::"right_bt"::nil)
-    (Some (LastV "enable" (TSimp TBool)))
-    None
-    (Some (AddD "true_output_count"
-                (Count (AddSexp
-                          (Equal (Qual (Mod "left_bt" (Id "output")))
-                                 (SConst "succeeded"))
-                          (Sexp
-                             (Equal (Qual (Mod "right_bt" (Id "output")))
-                                    (SConst "succeeded")))))
-                (AddD "fail_output_count"
-                      (Count (AddSexp
-                                (Equal (Qual (Mod "left_bt" (Id "output")))
-                                       (SConst "failed"))
-                                (Sexp
-                                   (Equal (Qual (Mod "right_bt" (Id "output")))
-                                          (SConst "failed")))))
-                      (LastD "output"
-                             (Case
-                                (AddCexp
-                                   (Less (SConst "1")
-                                         (Qual (Id "true_output_count")))
-                                   (SConst "succeeded")
-                                   (AddCexp
-                                      (Less (SConst "0")
-                                            (Qual (Id "fail_output_count")))
-                                      (SConst "failed")
-                                      (Cexp
-                                         (BConst smvT)
-                                         (SConst "running")))))))))
-    (Some (AddA (invar (Mod "left_bt" (Id "enable"))
-                       (Qual (Id "enable")))
-                (LastA (invar (Mod "right_bt" (Id "enable"))
-                              (Qual (Id "enable")))))).
-
+  (* Definition of module names *)
+  
   Definition rootName (t: btree) :=
     match t with
     | Skill s => X.skillName s
@@ -290,16 +191,459 @@ Module BT_bin_spec (X: BT_SIG).
 
   Definition nodeName (k: nodeKind) :=
     match k with
-    | Sequence => "bt_sequence"
-    | Fallback => "bt_fallback"
-    | Parallel1 => "bt_parallel1"
-    | Parallel2 => "bt_parallel2"
+    | Sequence => "SEQUENCE_NODE"
+    | Fallback => "FALLBACK_NODE"
+    | Parallel1 => "PARALLEL1_NODE"
+    | Parallel2 => "PARALLEL2_NODE"
     end.
   
   Definition decName (d: decKind) :=
     match d with
-    | Not => "bt_not"
-    | IsRunning => "bt_is_running"
+    | Not => "NOT_NODE"
+    | IsRunning => "ISRUNNING_NODE"
+    end.
+
+  (* Boilerplate modules specific for the binary case *)
+
+  Definition bp_bin_seq :=
+    Build_smv_module
+      (nodeName Sequence)
+      ("visit"::"from_left_bt"::"from_right_bt"::nil)
+      (Some (AddV "to_left_bt" (TSimp bt_action_type)
+                  (AddV "to_right_bt" (TSimp bt_action_type)
+                        (AddV "output" (TSimp bt_output_type)
+                              (AddV "cached_left" (TSimp bt_output_type)
+                                    (LastV "state" (TSimp bt_seq_state)))))))
+      None
+      None
+      (Some (AddA (init (Id "to_left_bt") (SConst "no"))
+                  (AddA (init (Id "to_right_bt") (SConst "no"))
+                        (AddA (init (Id "output") (SConst "none"))
+                              (AddA (init (Id "cached_left") (SConst "none"))
+                                    (AddA (init (Id "state") (SConst "initial"))
+            (AddA (next (Id "to_left_bt")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "initial"))
+                                      (Equal (Qual (Id "visit"))
+                                             (SConst "enable")))
+                                 (SConst "enable")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "initial"))
+                                               (Equal (Qual (Id "visit"))
+                                                      (SConst "disable")))
+                                          (SConst "disable")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "enabling_left"))
+                                                        (Equal (Qual (Id "from_left_bt"))
+                                                               (SConst "none")))
+                                                   (SConst "enable")
+                                                   (AddCexp (And (Equal (Qual (Id "state"))
+                                                                        (SConst "disabling_left"))
+                                                                 (Neg (Equal (Qual (Id "from_left_bt"))
+                                                                             (SConst "disabled"))))
+                                                            (SConst "disable")
+                                                            (Cexp (BConst smvT) (SConst "no"))))))))
+            (AddA (next (Id "to_right_bt")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_left"))
+                                      (Equal (Qual (Id "from_left_bt"))
+                                             (SConst "succeeded")))
+                                 (SConst "enable")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "enabling_left"))
+                                               (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                                 (SConst "running"))
+                                                          (Equal (Qual (Id "from_left_bt"))
+                                                                 (SConst "failed")))))
+                                          (SConst "disable")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "enabling_right"))
+                                                        (Equal (Qual (Id "from_left_bt"))
+                                                               (SConst "none")))
+                                                   (SConst "enable")
+                                                   (AddCexp (And (Equal (Qual (Id "state"))
+                                                                        (SConst "disabling_right"))
+                                                                 (Neg (Equal (Qual (Id "from_right_bt"))
+                                                                             (SConst "disabled"))))
+                                                            (SConst "disable")
+                                                            (Cexp (BConst smvT) (SConst "no"))))))))
+            (AddA (next (Id "output")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_right"))
+                                      (Neg (Equal (Qual (Id "from_right_bt"))
+                                                  (SConst "none"))))
+                                 (SConst "from_right_bt")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "disabling_right"))
+                                               (Equal (Qual (Id "from_right_bt"))
+                                                      (SConst "disabled")))
+                                          (SConst "cached_left")
+                                          (Cexp (BConst smvT) (SConst "none"))))))
+            (AddA (next (Id "cached_left")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_left"))
+                                      (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                        (SConst "running"))
+                                                 (Equal (Qual (Id "from_left_bt"))
+                                                        (SConst "failed")))))
+                                 (SConst "from_left_bt")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "disabling_left"))
+                                               (Equal (Qual (Id "from_left_bt"))
+                                                      (SConst "disabled")))
+                                          (SConst "from_left_bt")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "disabling_right"))
+                                                        (Neg (Equal (Qual (Id "from_right_bt"))
+                                                                    (SConst "disabled"))))
+                                                   (SConst "cached_left")
+                                                   (Cexp (BConst smvT) (SConst "none")))))))
+                  (LastA (next (Id "state")
+                         (Case
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "initial"))
+                                       (Equal (Qual (Id "visit"))
+                                              (SConst "enable")))
+                                  (SConst "enabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "initial"))
+                                       (Equal (Qual (Id "visit"))
+                                              (SConst "disable")))
+                                  (SConst "disabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "succeeded")))
+                                  (SConst "enabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "none")))
+                                  (SConst "enabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                         (SConst "running"))
+                                                  (Equal (Qual (Id "from_left_bt"))
+                                                         (SConst "failed")))))
+                                  (SConst "disabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_right"))
+                                       (Equal (Qual (Id "from_right_bt"))
+                                              (SConst "none")))
+                                  (SConst "enabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_right"))
+                                       (Neg (Equal (Qual (Id "from_right_bt"))
+                                                   (SConst "none"))))
+                                  (SConst "return_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_right"))
+                                       (Neg (Equal (Qual (Id "from_right_bt"))
+                                                   (SConst "disabled"))))
+                                  (SConst "disabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_right"))
+                                       (Equal (Qual (Id "from_right_bt"))
+                                              (SConst "disabled")))
+                                  (SConst "return_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_left"))
+                                       (Neg (Equal (Qual (Id "from_left_bt"))
+                                                   (SConst "disabled"))))
+                                  (SConst "disabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "disabled")))
+                                  (SConst "disabling_right")
+                         (Cexp (BConst smvT) (SConst "initial")))))))))))))))))))))))))).
+
+  Definition bp_bin_fb :=
+    Build_smv_module
+      (nodeName Fallback)
+      ("visit"::"from_left_bt"::"from_right_bt"::nil)
+      (Some (AddV "to_left_bt" (TSimp bt_action_type)
+                  (AddV "to_right_bt" (TSimp bt_action_type)
+                        (AddV "output" (TSimp bt_output_type)
+                              (AddV "cached_left" (TSimp bt_output_type)
+                                    (LastV "state" (TSimp bt_seq_state)))))))
+      None
+      None
+      (Some (AddA (init (Id "to_left_bt") (SConst "no"))
+                  (AddA (init (Id "to_right_bt") (SConst "no"))
+                        (AddA (init (Id "output") (SConst "none"))
+                              (AddA (init (Id "cached_left") (SConst "none"))
+                                    (AddA (init (Id "state") (SConst "initial"))
+            (AddA (next (Id "to_left_bt")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "initial"))
+                                      (Equal (Qual (Id "visit"))
+                                             (SConst "enable")))
+                                 (SConst "enable")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "initial"))
+                                               (Equal (Qual (Id "visit"))
+                                                      (SConst "disable")))
+                                          (SConst "disable")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "enabling_left"))
+                                                        (Equal (Qual (Id "from_left_bt"))
+                                                               (SConst "none")))
+                                                   (SConst "enable")
+                                                   (AddCexp (And (Equal (Qual (Id "state"))
+                                                                        (SConst "disabling_left"))
+                                                                 (Neg (Equal (Qual (Id "from_left_bt"))
+                                                                             (SConst "disabled"))))
+                                                            (SConst "disable")
+                                                            (Cexp (BConst smvT) (SConst "no"))))))))
+            (AddA (next (Id "to_right_bt")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_left"))
+                                      (Equal (Qual (Id "from_left_bt"))
+                                             (SConst "failed")))
+                                 (SConst "enable")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "enabling_left"))
+                                               (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                                 (SConst "running"))
+                                                          (Equal (Qual (Id "from_left_bt"))
+                                                                 (SConst "succeeded")))))
+                                          (SConst "disable")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "enabling_right"))
+                                                        (Equal (Qual (Id "from_right_bt"))
+                                                               (SConst "none")))
+                                                   (SConst "enable")
+                                                   (AddCexp (And (Equal (Qual (Id "state"))
+                                                                        (SConst "disabling_right"))
+                                                                 (Neg (Equal (Qual (Id "from_right_bt"))
+                                                                             (SConst "disabled"))))
+                                                            (SConst "disable")
+                                                            (Cexp (BConst smvT) (SConst "no"))))))))
+            (AddA (next (Id "output")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_right"))
+                                      (Neg (Equal (Qual (Id "from_right_bt"))
+                                                  (SConst "none"))))
+                                 (SConst "from_right_bt")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "disabling_right"))
+                                               (Equal (Qual (Id "from_right_bt"))
+                                                      (SConst "disabled")))
+                                          (SConst "cached_left")
+                                          (Cexp (BConst smvT) (SConst "none"))))))
+            (AddA (next (Id "cached_left")
+                        (Case
+                        (AddCexp (And (Equal (Qual (Id "state"))
+                                             (SConst "enabling_left"))
+                                      (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                        (SConst "running"))
+                                                 (Equal (Qual (Id "from_left_bt"))
+                                                        (SConst "succeeded")))))
+                                 (SConst "from_left_bt")
+                                 (AddCexp (And (Equal (Qual (Id "state"))
+                                                      (SConst "disabling_left"))
+                                               (Equal (Qual (Id "from_left_bt"))
+                                                      (SConst "disabled")))
+                                          (SConst "from_left_bt")
+                                          (AddCexp (And (Equal (Qual (Id "state"))
+                                                               (SConst "disabling_right"))
+                                                        (Neg (Equal (Qual (Id "from_right_bt"))
+                                                                    (SConst "disabled"))))
+                                                   (SConst "cached_left")
+                                                   (Cexp (BConst smvT) (SConst "none")))))))
+                  (LastA (next (Id "state")
+                         (Case
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "initial"))
+                                       (Equal (Qual (Id "visit"))
+                                              (SConst "enable")))
+                                  (SConst "enabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "initial"))
+                                       (Equal (Qual (Id "visit"))
+                                              (SConst "disable")))
+                                  (SConst "disabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "failed")))
+                                  (SConst "enabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "none")))
+                                  (SConst "enabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_left"))
+                                       (Paren (Or (Equal (Qual (Id "from_left_bt"))
+                                                         (SConst "running"))
+                                                  (Equal (Qual (Id "from_left_bt"))
+                                                         (SConst "succeeded")))))
+                                  (SConst "disabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_right"))
+                                       (Equal (Qual (Id "from_right_bt"))
+                                              (SConst "none")))
+                                  (SConst "enabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "enabling_right"))
+                                       (Neg (Equal (Qual (Id "from_right_bt"))
+                                                   (SConst "none"))))
+                                  (SConst "return_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_right"))
+                                       (Neg (Equal (Qual (Id "from_right_bt"))
+                                                   (SConst "disabled"))))
+                                  (SConst "disabling_right")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_right"))
+                                       (Equal (Qual (Id "from_right_bt"))
+                                              (SConst "disabled")))
+                                  (SConst "return_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_left"))
+                                       (Neg (Equal (Qual (Id "from_left_bt"))
+                                                   (SConst "disabled"))))
+                                  (SConst "disabling_left")
+                         (AddCexp (And (Equal (Qual (Id "state"))
+                                              (SConst "disabling_left"))
+                                       (Equal (Qual (Id "from_left_bt"))
+                                              (SConst "disabled")))
+                                  (SConst "disabling_right")
+                         (Cexp (BConst smvT) (SConst "initial")))))))))))))))))))))))))).
+  
+  Definition bp_par1 :=
+    Build_smv_module
+      (nodeName Parallel1)
+      ("left_bt"::"right_bt"::nil)
+      (Some (LastV "enable" (TSimp TBool)))
+      None
+      (Some (AddD "true_output_count"
+                  (Count (AddSexp
+                            (Equal (Qual (Mod "left_bt" (Id "output")))
+                                   (SConst "succeeded"))
+                            (Sexp
+                               (Equal (Qual (Mod "right_bt" (Id "output")))
+                                      (SConst "succeeded")))))
+                  (AddD "fail_output_count"
+                        (Count (AddSexp
+                                  (Equal (Qual (Mod "left_bt" (Id "output")))
+                                         (SConst "failed"))
+                                  (Sexp
+                                     (Equal (Qual (Mod "right_bt" (Id "output")))
+                                            (SConst "failed")))))
+                        (LastD "output"
+                               (Case
+                                  (AddCexp
+                                     (Less (SConst "0")
+                                           (Qual (Id "true_output_count")))
+                                     (SConst "succeeded")
+                                     (AddCexp
+                                        (Less (SConst "1")
+                                              (Qual (Id "fail_output_count")))
+                                        (SConst "failed")
+                                        (Cexp
+                                           (BConst smvT)
+                                           (SConst "running")))))))))
+      (Some (AddA (invar (Mod "left_bt" (Id "enable"))
+                         (Qual (Id "enable")))
+                  (LastA (invar (Mod "right_bt" (Id "enable"))
+                                (Qual (Id "enable")))))).
+
+  Definition bp_par2 :=
+    Build_smv_module
+      (nodeName Parallel2)
+      ("left_bt"::"right_bt"::nil)
+      (Some (LastV "enable" (TSimp TBool)))
+      None
+      (Some (AddD "true_output_count"
+                  (Count (AddSexp
+                            (Equal (Qual (Mod "left_bt" (Id "output")))
+                                   (SConst "succeeded"))
+                            (Sexp
+                               (Equal (Qual (Mod "right_bt" (Id "output")))
+                                      (SConst "succeeded")))))
+                  (AddD "fail_output_count"
+                        (Count (AddSexp
+                                  (Equal (Qual (Mod "left_bt" (Id "output")))
+                                         (SConst "failed"))
+                                  (Sexp
+                                     (Equal (Qual (Mod "right_bt" (Id "output")))
+                                            (SConst "failed")))))
+                        (LastD "output"
+                               (Case
+                                  (AddCexp
+                                     (Less (SConst "1")
+                                           (Qual (Id "true_output_count")))
+                                     (SConst "succeeded")
+                                     (AddCexp
+                                        (Less (SConst "0")
+                                              (Qual (Id "fail_output_count")))
+                                        (SConst "failed")
+                                        (Cexp
+                                           (BConst smvT)
+                                           (SConst "running")))))))))
+      (Some (AddA (invar (Mod "left_bt" (Id "enable"))
+                         (Qual (Id "enable")))
+                  (LastA (invar (Mod "right_bt" (Id "enable"))
+                                (Qual (Id "enable")))))).
+
+  (* This function scans a BT compiling a list of the needed modules *)
+  Fixpoint addmod (t: btree) (s: ListSet.set modtype) :=
+    match t with
+    | Skill _ => set_add modtype_dec Skmod s
+    | TRUE => set_add modtype_dec TRUEmod s
+    | Node k _ t1 t2 =>
+      let nodemod := match k with
+                     | Sequence => Seqmod
+                     | Fallback => Fbmod
+                     | Parallel1 => Par1mod
+                     | Parallel2 => Par2mod
+                     end in
+      let left_modules := addmod t1 s in
+      let right_modules := addmod t2 s in
+      set_add modtype_dec nodemod
+              (set_union modtype_dec left_modules right_modules)
+    | Dec k _ t' =>
+      let decmod := match k with
+                    | Not => Notmod
+                    | IsRunning => Runmod
+                    end in
+      set_add modtype_dec decmod (addmod t' s)
+    end.
+
+  (* Functions to generate the SMV specification *)
+
+  Definition make_mod (t: modtype) (aut:bool): smv_module :=
+    match t with
+    | Skmod => if aut then bp_skill_autonomous else bp_skill
+    | TRUEmod => bp_TRUE
+    | Seqmod => bp_bin_seq
+    | Fbmod => bp_bin_fb
+    | Par1mod => bp_par1
+    | Par2mod => bp_par2
+    | Notmod => bp_not
+    | Runmod => bp_isRunning
+    end.
+  
+  Fixpoint make_mod_list (l: list modtype) (aut: bool): list smv_module :=
+    match l with
+    | nil => nil
+    | m :: rest =>
+      (* D5.3 workflow: skills are implemented independently *)
+      match m with
+      | Skmod => (make_mod_list rest aut)
+      | _ => cons (make_mod m aut) (make_mod_list rest aut)
+      end
     end.
 
   Fixpoint make_vars (t: btree): varlist :=
@@ -335,9 +679,9 @@ Module BT_bin_spec (X: BT_SIG).
       None.
 
   Definition make_spec (t: btree): list smv_module :=
-    bp_skill_autonomous :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
-    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "main") :: nil.
-
+    let needed := addmod t (empty_set modtype) in
+    let modlist := make_mod_list needed true in
+    app modlist (bp_tick_generator :: (make_main t "main") :: nil).
 
   (* Modules for OCRA inteface *)
 
@@ -347,65 +691,131 @@ Module BT_bin_spec (X: BT_SIG).
     | s :: rest => cons ("from_" ++ (X.skillName s)) (mkop rest)
     end.
 
-  Fixpoint mkov (lst: list X.skillSet) :=
-    match lst with
-    | nil => LastV "bt_main_inst" (TComp (TMod "bt_main"))
-    | s :: rest => AddV ("to_" ++ (X.skillName s))
-                        (TSimp bt_action_type)
-                        (mkov rest)
+  Definition build_parameters (p: identifier) (t1 t2: btree) :=
+    match t1 with
+    | Skill s1 =>
+      match t2 with
+      | Skill s2 =>           (* skill, skill *)
+        (AddP (Qual (Id p))
+              (AddP (Qual (Id ("from_" ++ X.skillName s1)))
+                    (LastP (Qual (Id ("from_" ++ X.skillName s2))))))
+      | TRUE => LastP (Qual (Id "dummy"))         (* TBD *)
+      | Node k2 n2 _ _ =>     (* skill, node *)
+        (AddP (Qual (Id p))
+              (AddP (Qual (Id ("from_" ++ X.skillName s1)))
+                    (LastP (Qual (Mod n2 (Id "output"))))))
+      | Dec k2 _ _ => LastP (Qual (Id "dummy"))   (* TBD *)
+      end
+    | TRUE => LastP (Qual (Id "dummy"))           (* TBD *)
+    | Node k1 n1 _ _ =>
+      match t2 with
+      | Skill s2 =>           (* node, skill *)
+        (AddP (Qual (Id p))
+              (AddP (Qual (Mod n1 (Id "output")))
+                    (LastP (Qual (Id ("from_" ++ X.skillName s2))))))
+      | TRUE => LastP (Qual (Id "dummy"))         (* TBD *)
+      | Node k2 n2 _ _ =>     (* node, node *)
+        (AddP (Qual (Id p))
+              (AddP (Qual (Mod n1 (Id "output")))
+                    (LastP (Qual (Mod n2 (Id "output"))))))
+      | Dec k2 _ _ => LastP (Qual (Id "dummy"))   (* TBD *)
+      end
+    | Dec k1 _ _ => LastP (Qual (Id "dummy"))     (* TBD *)
+    end.
+    
+  Fixpoint mkov (t: btree) (l: option varlist) (parent: identifier) :=
+    match t with
+    | Skill s => l
+    | TRUE => l
+    | Node k name t1 t2 =>
+      match k with
+      | Sequence =>
+        let parameters := build_parameters parent t1 t2 in
+        let newlist :=
+            let vl_left := mkov t1 l (name ++ ".to_left_bt") in
+            let vl_right := mkov t2 l (name ++ ".to_right_bt") in
+            match vl_left, vl_right with
+            | Some vl, Some vl' => Some (varlist_app vl vl')
+            | Some _, None => vl_left
+            | None, _ => vl_right
+            end in
+        match newlist with
+        | Some vl =>
+          (Some (AddV name
+                      (TComp (TModPar (nodeName Sequence) parameters))
+                      vl))
+        | None =>
+          (Some (LastV name
+                       (TComp (TModPar (nodeName Sequence) parameters))))
+        end
+      | Fallback =>
+        let parameters := build_parameters parent t1 t2 in
+        let newlist :=
+            let vl_left := mkov t1 l (name ++ ".to_left_bt") in
+            let vl_right := mkov t2 l (name ++ ".to_right_bt") in
+            match vl_left, vl_right with
+            | Some vl, Some vl' => Some (varlist_app vl vl')
+            | Some _, None => vl_left
+            | None, _ => vl_right
+            end in
+        match newlist with
+        | Some vl =>
+          (Some (AddV name
+                      (TComp (TModPar (nodeName Fallback) parameters))
+                      vl))
+        | None =>
+          (Some (LastV name
+                       (TComp (TModPar (nodeName Fallback) parameters))))
+        end
+      | Parallel1 => None  (* TBD *)
+      | Parallel2 => None  (* TBD *)
+      end
+    | Dec k _ t' => None  (* TBD *)
     end.
 
-  Fixpoint mkot (lst: list X.skillSet) :=
-    match lst with
-    | nil => (* will never happen *)
-      (LastA (invar (Id "bt_main_inst") (BConst smvF)))
-    | s :: nil =>
-      (AddA
-         (invar (Mod "bt_main_inst"
-                     (Mod (X.skillName s)
-                          (Id "output")))
-                (Qual (Id ("from_" ++ (X.skillName s)))))
-         (LastA (invar (Id ("to_" ++ (X.skillName s)))
-                       (Case
-                          (AddCexp (Equal (Qual (Mod "bt_main_inst"
-                                                     (Mod (X.skillName s)
-                                                          (Id "enable"))))
-                                          (BConst smvT))
-                                   (SConst "Enable")
-                                   (Cexp (Equal (Qual (Mod "bt_main_inst"
-                                                           (Mod (X.skillName s)
-                                                                (Id "enable"))))
-                                                (BConst smvF))
-                                         (SConst "Reset")))))))
-    | s :: rest =>
-      (AddA
-         (invar (Mod "bt_main_inst"
-                     (Mod (X.skillName s)
-                          (Id "output")))
-                (Qual (Id ("from_" ++ (X.skillName s)))))
-         (AddA (invar (Id ("to_" ++ (X.skillName s)))
-                      (Case
-                         (AddCexp (Equal (Qual (Mod "bt_main_inst"
-                                                    (Mod (X.skillName s)
-                                                         (Id "enable"))))
-                                         (BConst smvT))
-                                  (SConst "Enable")
-                                  (Cexp (Equal (Qual (Mod "bt_main_inst"
-                                                          (Mod (X.skillName s)
-                                                               (Id "enable"))))
-                                               (BConst smvF))
-                                        (SConst "Reset")))))
-               (mkot rest)))
+  Inductive direction := From_left | From_right.
+
+  Fixpoint mkod (t: btree) (d: deflist) (parent: identifier) (dir: direction) :=
+    match t with
+    | Skill s =>
+      (AddD ("to_" ++ X.skillName s)
+            (Qual (Mod parent
+                       (Id (match dir with
+                            | From_left => "to_left_bt"
+                            | From_right => "to_right_bt"
+                            end))))
+            d)
+    | TRUE => d
+    | Node _ n t1 t2 =>
+      let dl_left := mkod t1 d n From_left in
+      mkod t2 dl_left n From_right
+    | Dec k _ t' => d
     end.
-  
+
+(*    (LastD "pippo" (Qual (Id "pluto"))).*)
+
   Definition ocra_bt_fsm (t: btree) :=
     Build_smv_module
       "BT_FSM"
-      (mkop (sklist t))
-      (Some (mkov (sklist t)))
+      ("visit" :: (mkop (sklist t)))
+      (mkov t None "visit")
       None
-      None
-      (Some (mkot (sklist t))).
+      (match t with
+       | Skill s => None        (* TBD *)
+       | TRUE => None           (* TBD *)
+       | Node _ n t1 t2 =>
+         let dl_left := mkod t1
+                             (LastD "output" (Qual (Mod n (Id "output"))))
+                             n
+                             From_left in
+         let dl_tot := mkod t2
+                            dl_left
+                            n
+                            From_right in
+         Some dl_tot
+       | Dec _ n t' => None     (* TBD *)
+       end)
+      None.
 
   Fixpoint mkparomain (l: list X.skillSet) :=
     match l with
@@ -445,56 +855,59 @@ Module BT_bin_spec (X: BT_SIG).
                       (Id ("to_" ++ (X.skillName s)))))
            (mkdefomain rest)
     end.
-  
+
   Definition ocra_main (t: btree) :=
     Build_smv_module
       "main"
       nil
       (Some (AddV "BT_FSM_inst" (TComp (TModPar "BT_FSM"
-                                                (mkparomain (sklist t))))
-                  (mkvaromain (sklist t))))
+                                                (AddP (Qual (Id "visit"))
+                                                      (mkparomain (sklist t)))))
+                  (AddV "visit" (TSimp bt_action_type)
+                        (mkvaromain (sklist t)))))
       None
-      (Some (mkdefomain (sklist t)))
+      (Some (AddD "output" (Qual (Mod "BT_FSM_inst" (Id "output")))
+                  (mkdefomain (sklist t))))
       None.
 
   Definition make_spec_ocra (t: btree): list smv_module :=
-    bp_skill :: bp_TRUE :: bp_bin_seq :: bp_bin_fb :: bp_par1 :: bp_par2
-    :: bp_not :: bp_isRunning :: bp_tick_generator :: (make_main t "bt_main")
-    :: (ocra_bt_fsm t) :: (ocra_main t) :: nil.
+    let needed := addmod t (empty_set modtype) in
+    let modlist := make_mod_list needed false in
+    app modlist ((ocra_bt_fsm t) :: (ocra_main t) :: nil).
 
 End BT_bin_spec.
 
-(* For arbitrary-branching BTs we adopt a more fine-grained approach:
-   we generate on the fly only the modules which are really needed *)
-
-Inductive modtype :=
-| Skmod: modtype
-| TRUEmod: modtype
-| Seqmod: nat -> modtype
-| Fbmod: nat -> modtype
-| Parmod: nat -> nat -> modtype   (* threshold, n. of args *)
-| Notmod: modtype
-| Runmod: modtype.
-
-Theorem modtype_dec: forall x y:modtype, {x = y} + {x <> y}.
-  decide equality; apply PeanoNat.Nat.eq_dec.
-Defined.
-
-(* This is used for placeholders when translating non-normalized BTs *)
-Definition bp_identity (name: string) :=
-  Build_smv_module
-    name
-    ("bt"::nil)
-    (Some (LastV "enable" (TSimp TBool)))
-    None
-    (Some (LastD "output" (Qual (Mod "bt" (Id "output")))))
-    (Some (LastA (invar (Mod "bt" (Id "enable"))
-                        (Qual (Id "enable"))))).
+(* Arbitrary-branching implementation *)
 
 Module BT_gen_spec (X: BT_SIG).
 
   Include BT_general X.
 
+  (* Possible SMV modules to be generated *)
+  Inductive modtype :=
+  | Skmod: modtype
+  | TRUEmod: modtype
+  | Seqmod: nat -> modtype
+  | Fbmod: nat -> modtype
+  | Parmod: nat -> nat -> modtype   (* threshold, n. of args *)
+  | Notmod: modtype
+  | Runmod: modtype.
+
+  Theorem modtype_dec: forall x y:modtype, {x = y} + {x <> y}.
+    decide equality; apply PeanoNat.Nat.eq_dec.
+  Defined.
+
+  (* This is used for placeholders when translating non-normalized BTs *)
+  Definition bp_identity (name: string) :=
+    Build_smv_module
+      name
+      ("bt"::nil)
+      (Some (LastV "enable" (TSimp TBool)))
+      None
+      (Some (LastD "output" (Qual (Mod "bt" (Id "output")))))
+      (Some (LastA (invar (Mod "bt" (Id "enable"))
+                          (Qual (Id "enable"))))).
+  
   Definition rootName (t: btree) :=
     match t with
     | Skill s => X.skillName s
@@ -522,7 +935,6 @@ Module BT_gen_spec (X: BT_SIG).
     end.
 
   (* This function scans a BT compiling a list of the needed modules *)
-  
   Fixpoint addmod (t: btree) (s: ListSet.set modtype) :=
     match t with
     | Skill _ => set_add modtype_dec Skmod s
@@ -726,13 +1138,13 @@ Module BT_gen_spec (X: BT_SIG).
     | Runmod => bp_isRunning
     end.
 
-  (* Functions to generate the main module *)
-
   Fixpoint make_mod_list (l: list modtype) (aut: bool): list smv_module :=
     match l with
     | nil => nil
     | m :: rest => cons (make_mod m aut) (make_mod_list rest aut)
     end.
+
+  (* Functions to generate the main module *)
 
   Fixpoint make_paramlist (f: btforest) :=
     match f with

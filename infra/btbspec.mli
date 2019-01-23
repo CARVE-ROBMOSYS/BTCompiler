@@ -135,11 +135,21 @@ val translate : smv_module -> char list
 
 val translate_spec : smv_spec -> char list
 
+type 'a set = 'a list
+
+val empty_set : 'a1 set
+
+val set_add : ('a1 -> 'a1 -> bool) -> 'a1 -> 'a1 set -> 'a1 set
+
+val set_union : ('a1 -> 'a1 -> bool) -> 'a1 set -> 'a1 set -> 'a1 set
+
 val bt_input_type : simp_type_spec
 
 val bt_output_type : simp_type_spec
 
 val bt_action_type : simp_type_spec
+
+val bt_seq_state : simp_type_spec
 
 val bp_tick_generator : smv_module
 
@@ -192,6 +202,30 @@ module BT_bin_spec :
 
   val sklist : btree -> X.skillSet list
 
+  type modtype =
+  | Skmod
+  | TRUEmod
+  | Seqmod
+  | Fbmod
+  | Par1mod
+  | Par2mod
+  | Notmod
+  | Runmod
+
+  val modtype_rect :
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> modtype -> 'a1
+
+  val modtype_rec :
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> modtype -> 'a1
+
+  val modtype_dec : modtype -> modtype -> bool
+
+  val rootName : btree -> char list
+
+  val nodeName : nodeKind -> char list
+
+  val decName : decKind -> char list
+
   val bp_bin_seq : smv_module
 
   val bp_bin_fb : smv_module
@@ -200,11 +234,11 @@ module BT_bin_spec :
 
   val bp_par2 : smv_module
 
-  val rootName : btree -> char list
+  val addmod : btree -> modtype set -> modtype set
 
-  val nodeName : nodeKind -> char list
+  val make_mod : modtype -> bool -> smv_module
 
-  val decName : decKind -> char list
+  val make_mod_list : modtype list -> bool -> smv_module list
 
   val make_vars : btree -> varlist
 
@@ -214,9 +248,19 @@ module BT_bin_spec :
 
   val mkop : X.skillSet list -> char list list
 
-  val mkov : X.skillSet list -> varlist
+  val build_parameters : identifier -> btree -> btree -> param_list
 
-  val mkot : X.skillSet list -> asslist
+  val mkov : btree -> varlist option -> identifier -> varlist option
+
+  type direction =
+  | From_left
+  | From_right
+
+  val direction_rect : 'a1 -> 'a1 -> direction -> 'a1
+
+  val direction_rec : 'a1 -> 'a1 -> direction -> 'a1
+
+  val mkod : btree -> deflist -> identifier -> direction -> deflist
 
   val ocra_bt_fsm : btree -> smv_module
 
