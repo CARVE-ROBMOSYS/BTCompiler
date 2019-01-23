@@ -11,10 +11,8 @@
                         </Sequence>
                         <Action ID="Follow_human"/>
                     </Fallback>
-                    <Sequence name="S2">
-                        <Action ID="Find_bottle"/>
-                        <Action ID="Fetch_bottle"/>
-                    </Sequence>
+                    <Action ID="Find_bottle"/>
+                    <Action ID="Fetch_bottle"/>
                 </Sequence>
                 <Action ID="Ask_for_help"/>
             </Fallback>
