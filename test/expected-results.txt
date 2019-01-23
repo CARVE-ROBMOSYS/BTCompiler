@@ -40,5 +40,5 @@ bt0039.xml:  Success, no-reset
 bt0040.xml:  Failure, reset-Action1SecondSuccess
 bt0041.xml:  Failure, reset-Action1SecondSuccess,-ConditionTrue,-Action1SecondFailure,-ActionRunning,-Action1SecondSuccess
 bt0042.xml:  Running, no-reset
-bt0043.xml:  Failure, reset-ConditionTrue,-Action1SecondSuccess
+bt0043.xml:  Running, reset-ConditionTrue,-Action1SecondSuccess
 bt0044.xml:  Running, reset-ConditionTrue,-Action1SecondSuccess,-ConditionFalse,-ConditionTrue,-Action1SecondSuccess
