@@ -236,6 +236,9 @@ module BT_bin_spec :
 
   val addmod : btree -> modtype set -> modtype set
 
+  val inlist :
+    btree -> (identifier * char list) list -> (identifier * char list) list
+
   val make_mod : modtype -> bool -> smv_module
 
   val make_mod_list : modtype list -> bool -> smv_module list

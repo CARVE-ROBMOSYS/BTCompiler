@@ -196,7 +196,7 @@ Module BT_bin_spec (X: BT_SIG).
     | Parallel1 => "PARALLEL1_NODE"
     | Parallel2 => "PARALLEL2_NODE"
     end.
-  
+
   Definition decName (d: decKind) :=
     match d with
     | Not => "NOT_NODE"
@@ -621,6 +621,24 @@ Module BT_bin_spec (X: BT_SIG).
       set_add modtype_dec decmod (addmod t' s)
     end.
 
+  (* This function returns a list of the names of all the inner nodes of a BT,
+     together with its kind. It is needed for the OSS file generation. *)
+  Fixpoint inlist (t: btree) (s: list (identifier * string)) :=
+    match t with
+    | Skill _ => s
+    | TRUE => s
+    | Node k n t1 t2 =>
+      let s' := inlist t1 s in
+      let s'' := inlist t2 s' in
+      (pair n (nodeName k)) :: s''
+    | Dec k n t' =>
+      let decmod := match k with
+                    | Not => Notmod
+                    | IsRunning => Runmod
+                    end in
+      (pair n (decName k)) :: (inlist t' s)
+    end.
+  
   (* Functions to generate the SMV specification *)
 
   Definition make_mod (t: modtype) (aut:bool): smv_module :=

@@ -1232,6 +1232,17 @@ module BT_bin_spec =
                    | IsRunning -> Runmod in
       set_add modtype_dec decmod (addmod t' s)
 
+  (** val inlist :
+      btree -> (identifier * char list) list -> (identifier * char list) list **)
+
+  let rec inlist t s =
+    match t with
+    | Node (k, n, t1, t2) ->
+      let s' = inlist t1 s in
+      let s'' = inlist t2 s' in (n, (nodeName k)) :: s''
+    | Dec (k, n, t') -> (n, (decName k)) :: (inlist t' s)
+    | _ -> s
+
   (** val make_mod : modtype -> bool -> smv_module **)
 
   let make_mod t aut =

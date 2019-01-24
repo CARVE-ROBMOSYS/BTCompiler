@@ -70,7 +70,7 @@
 		 (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and
 		 (always (is_robot_in_kitchen = succeeded -> always is_robot_in_kitchen = succeeded)) and
 		 (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded)) and
-		 (always (is_bottle_fetched = succeeded -> always is_bottle_fetched = succeeded));">
+		 (always (is_bottle_fetched = succeeded -> always is_bottle_fetched = succeeded))">
 
     <OutSignal name="is_robot_in_kitchen">
       <Destination ID="Go_to_kitchen"/>

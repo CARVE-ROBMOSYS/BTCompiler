@@ -178,7 +178,9 @@ let rec binbt_of_genbt gbt =
      in
      Btbin.Dec (new_dec,name,binbt_of_genbt t)
 
-(*** Code for reading the configuration file (contracts and signals) ***)
+(*** Code for reading the configuration file ***)
+
+(*** Contracts ***)
 
 type contract = {
     name: string;
@@ -201,6 +203,16 @@ let read_contract id tag =
     guarantees = (match gua with
                   | Some s -> s
                   | None -> "true") }
+
+let retrieve_contract id =
+  try
+    List.find (fun x -> x.name = id) !contract_stack
+  with
+    Not_found ->
+    Printf.eprintf "Could not find a contract for component %s" id;
+    exit 1
+
+(*** Signals ***)
 
 type signal = {
     id: string;
@@ -226,7 +238,6 @@ let rec get_skill_contracts acc i =
           if not (List.mem id acc) then      (* new skill? *)
             begin
               push_contract (read_contract id t);
-              Printf.printf "got contract for %s\n" id;
               get_skill_contracts (id :: acc) i
             end
           else
@@ -305,7 +316,6 @@ let load_conf filename =
                if not !sys_found then
                  begin
                    sys_found := true;
-                   Printf.printf "Found System tag\n";
                    push_contract (read_contract "System" t2)
                  end
                else
@@ -314,7 +324,6 @@ let load_conf filename =
                if not !sklist_found then
                  begin
                    sklist_found := true;
-                   Printf.printf "Found SkillList tag\n";
                    get_skill_contracts [] i;
                  end
                else
@@ -323,7 +332,6 @@ let load_conf filename =
                if not !env_found then
                  begin
                    env_found := true;
-                   Printf.printf "Found Environment tag\n";
                    push_contract (read_contract "Environment" t2);
                    read_signals i
                  end
@@ -359,18 +367,29 @@ let load_conf filename =
                           exit 1
 
 
-(*** Code for OSS-file generation ***)
+(*** Code for OSS file generation ***)
+
+let vis_type_text = "{no, enable, disable}"
+let out_type_text = "{none, disabled, running, failed, succeeded}"
+let sig_type_text = "{none, failed, succeeded}"
+
+let rec mksubs_inner = function
+  | [] -> ["\n"]
+  | inname :: rest ->
+    ["SUB "; camlstring_of_coqstring (fst inname); ": ";
+     camlstring_of_coqstring (snd inname); ";\n  "]
+    @ mksubs_inner rest
 
 let rec skills_to_names = function
   | [] -> []
   | s :: rest -> (camlstring_of_coqstring (Skills.skillName s))
                  :: skills_to_names rest
 
-let rec mksubs = function
+let rec mksubs_skills = function
   | [] -> ["\n  "]
   | skname :: rest ->
      ["SUB "; skname; ": "; String.uppercase_ascii skname; ";\n  "]
-     @ mksubs rest
+     @ mksubs_skills rest
 
 let rec in_conn skname = function
   | [] -> [""]
@@ -401,63 +420,81 @@ let rec mktail = function
   | [] -> [";\n  "]
   | skname :: rest -> [", "; skname; ".skill_contract"] @ mktail rest
 
-let make_comp_system lst =
+let make_comp_system in_list sk_list =
   let disc_time_head = "@requires discrete-time\n" in
   let header =
     String.concat "" ["COMPONENT uc1 system\n INTERFACE\n";
-                      "  OUTPUT PORT output: {none, disabled, running, failed, succeeded};\n\n";
-                      "  CONTRACT mission\n"] in
-  let system_guar = "   assume: true;\n   guarantee: in the future mission;\n\n" in
-  let refin = String.concat "" [" REFINEMENT\n";
-               "  SUB Bt_fsm: BT_FSM;\n";
-               "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "] in
-  let subs = String.concat "" (mksubs lst) in
-  let connections = String.concat "" (mkconn lst) in
+                      "  OUTPUT PORT output: "; out_type_text; ";\n\n"] in
+  let c = retrieve_contract "System" in
+  let contract =
+    String.concat "" ["  CONTRACT mission\n";
+                      "    assume: "; c.assumptions; ";\n";
+                      "    guarantee: "; c.guarantees; ";\n"] in
+  let subs
+    = String.concat "" (["\n REFINEMENT\n";
+                         "  SUB Tick_generator: TICK_GENERATOR;\n  "]
+                        @ (mksubs_inner in_list) @
+                        ["  SUB Bt_fsm: BT_FSM;\n";
+                         "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "]
+                        @ (mksubs_skills sk_list)) in
+  let connections =
+    String.concat "" (["CONNECTION Bt_fsm.visit := Tick_generator.tick;\n\n  "]
+                      @ (mkconn sk_list) @
+                      ["CONNECTION output := Bt_fsm.output;\n\n  ";]) in
+  let refinement =
+    String.concat "" (["CONTRACT mission REFINEDBY Tick_generator.tick_contract, ";
+                       "Bt_fsm.bt_fsm_contract, ";
+                       "Robot_env.env_contract"] @ mktail sk_list) in
 
-  String.concat "" [disc_time_head; header; system_guar; refin; subs; connections]
+  String.concat "" [disc_time_head; header; contract; subs; connections; refinement]
+
+let component_tick_generator =
+  "COMPONENT TICK_GENERATOR\n INTERFACE\n  OUTPUT PORT tick: {no, enable, disable};\n  CONTRACT tick_contract\n    assume: true;\n    guarantee: tick=enable and always tick=enable;\n"
 
 let rec mkports_bt = function
-  | [] -> ["\n"]
+  | [] -> ["INPUT PORT visit: "; vis_type_text; ";\n  OUTPUT PORT output: ";
+          out_type_text; ";\n"]
   | skname :: rest ->
-     ["INPUT PORT from_"; skname; ": {none, running, failed, succeeded};\n  ";
-      "OUTPUT PORT to_"; skname; ": {Enable, Reset};\n  "]
+     ["INPUT PORT from_"; skname; ": "; out_type_text; ";\n  ";
+      "OUTPUT PORT to_"; skname; ": "; vis_type_text; ";\n  "]
      @ mkports_bt rest
 
 let make_comp_bt lst =
   let header = "COMPONENT BT_FSM\n INTERFACE\n  " in
   let ports = String.concat "" (mkports_bt lst) in
+  let contract = "  CONTRACT bt_fsm_contract\n    assume: true;\n    guarantee: true;\n" in
 
-  String.concat "" [header; ports]
+  String.concat "" [header; ports; contract]
 
-let rec mkinports_env = function
-  | [] -> []
-  | signal :: rest ->
-     ["INPUT PORT "; signal.id; ": boolean;\n  "]
-     @ mkinports_env rest
-
-let rec mkoutports_env = function
-  | [] -> ["\n"]
-  | signal :: rest ->
-     ["OUTPUT PORT "; signal.id; ": boolean;\n  "]
-    @ mkoutports_env rest
-    
 let make_comp_robot lst =
+  let rec mkinports_env = function
+    | [] -> []
+    | signal :: rest ->
+      ["INPUT PORT "; signal.id; ": boolean;\n  "]
+      @ mkinports_env rest
+  in
+  let rec mkoutports_env = function
+    | [] -> ["\n"]
+    | signal :: rest ->
+      ["OUTPUT PORT "; signal.id; ": "; sig_type_text; ";\n  "]
+      @ mkoutports_env rest
+  in
   let header = "COMPONENT ROBOT_AND_ENVIRONMENT\n INTERFACE\n  " in
   let ports = String.concat "" ((mkinports_env !in_signals)
                                 @ (mkoutports_env !out_signals)) in
-(*  let c = List.find (fun x -> x.name = "Environment") !contract_stack in
+  let c = retrieve_contract "Environment" in
   let contract = String.concat "" ["  CONTRACT env_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
-                                   "   guarantee: "; c.guarantees; ";\n"] in*)
+                                   "   guarantee: "; c.guarantees; ";\n"] in
 
-  String.concat "" [header; ports] (*; contract]*)
+  String.concat "" [header; ports; contract]
 
 let make_comp_skill skname =
   let rec mkinport_sk = function
     | [] -> []
     | signal :: rest ->
        if List.mem skname signal.target then
-         ["INPUT PORT "; signal.id; ": boolean;\n  "] @ mkinport_sk rest
+         ["INPUT PORT "; signal.id; ": "; sig_type_text; ";\n  "] @ mkinport_sk rest
        else mkinport_sk rest
   in
   let rec mkoutport_sk = function
@@ -470,16 +507,16 @@ let make_comp_skill skname =
   let header =
     String.concat "" ["COMPONENT "; String.uppercase_ascii skname; "\n INTERFACE\n  "] in
   let ports =
-    String.concat "" (["INPUT PORT from_bt: {Enable, Reset};\n  "]
+    String.concat "" (["INPUT PORT from_bt: "; vis_type_text; ";\n  "]
                       @ mkinport_sk !out_signals
-                      @ ["OUTPUT PORT to_bt: {none, running, failed, succeeded};\n  "]
+                      @ ["OUTPUT PORT to_bt: "; out_type_text; ";\n  "]
                       @ mkoutport_sk !in_signals) in
-(*  let c = List.find (fun x -> x.name = skname) !contract_stack in
+  let c = List.find (fun x -> x.name = skname) !contract_stack in
   let contract = String.concat "" ["CONTRACT skill_contract\n";
                                    "   assume: "; c.assumptions; ";\n";
-                                   "   guarantee: "; c.guarantees; ";\n"] in *)
+                                   "   guarantee: "; c.guarantees; ";\n"] in
 
-  String.concat "" [header; ports] (*; contract]*)
+  String.concat "" [header; ports; contract]
 
 (*** Main program ***)
 
@@ -492,20 +529,20 @@ let _ =
     else if !conf_filename = "" then conf_filename := s
     else
       begin
-        Printf.printf "Too many arguments on the command line: %s\n" s;
+        Printf.eprintf "Too many arguments on the command line: %s\n" s;
         exit 1
       end
   in
   Arg.parse [] set_filenames arg_usage;
   if !bt_filename = "" then
     begin
-      Printf.printf "Please specify the XML file containing the Behavior Tree\n";
+      Printf.eprintf "Please specify the XML file containing the Behavior Tree\n";
       exit 1
     end
   else
   if !conf_filename = "" then
     begin
-      Printf.printf "Please specify the configuration file\n";
+      Printf.eprintf "Please specify the configuration file\n";
       exit 1
     end
   else                                  (* parameters are ok *)
@@ -527,7 +564,9 @@ let _ =
 
       let _ = load_conf !conf_filename in
       let skill_list = skills_to_names (Btbin.sklist btb) in
-      let components_list = [make_comp_system skill_list;
+      let inner_list = Btbin.inlist btb [] in
+      let components_list = [make_comp_system inner_list skill_list;
+                             component_tick_generator;
                              make_comp_bt skill_list;
                              make_comp_robot skill_list]
                             @ List.map make_comp_skill skill_list in
@@ -542,5 +581,3 @@ let _ =
       exit 2
     | Unsupported -> Printf.eprintf "The supplied BT has a non-binary node, aborting\n";
       exit 1
-
-
