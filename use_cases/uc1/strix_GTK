@@ -1,0 +1,28 @@
+input
+fbn , fbe , fbd , isn , isf , iss
+
+output
+tbn , tbd , tbr , tbs , tbf , rk
+
+assume
+G((!fbn | !fbe) & (!fbn | !fbd) & (!fbe | !fbd) & (fbn | fbe | fbd))
+G((!isn | !isf) & (!isn | !iss) & (!isf | !iss) & (isn | isf | iss))
+G F fbe
+G F fbd
+G(rk -> F(isf | iss))
+
+guarantee
+G((!tbn | !tbd) & (!tbn | !tbr) & (!tbn | !tbf) & (!tbn | !tbs) & (!tbd | !tbr) & (!tbd | !tbf) & (!tbd | !tbs) & (!tbr | !tbf) & (!tbr | !tbs) & (!tbf | !tbs) & (tbn | tbd | tbr | tbs | tbf))
+G(fbe -> (tbn U (tbr|tbf|tbs)))
+G(fbd -> (tbn U tbd))
+G(fbe -> (F rk))
+G((G fbn) -> (G tbn))
+G(iss -> (tbn U tbs)) *
+G(isf -> (tbn U tbf)) *
+G(fbe -> ((tbn | tbr) U (iss | isf))) *
+
+
+S preceed P
+isf preceed tbf
+(F tbf) -> (!tbf U (isf & !tbf))
+(F tbs) -> (!tbs U (iss & !tbs))

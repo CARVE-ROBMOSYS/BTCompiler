@@ -35,7 +35,7 @@ MODULE TICK_GENERATOR(from_bt)
 
       next(tick) :=
       	case
-        	from_bt = none : no;
+                from_bt = none : no;
         	TRUE : enable;
       	esac;
 
@@ -65,8 +65,9 @@ MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
 	  case
 	    (state = initial & visit = enable) : enable;
 	    (state = initial & visit = disable) : disable;
-	    (state = enabling_left & from_left_bt = none) : enable;
+	    (state = enabling_left & (from_left_bt = none | from_left_bt = failed)) : enable;
 	    (state = disabling_left & from_left_bt != disabled) : disable;
+	    (state = enabling_right) : enable;
 	    TRUE : no;
 	  esac;
 
@@ -74,7 +75,7 @@ MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
 	  case
 	    (state = enabling_left & from_left_bt = failed) : enable;
 	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disable;
-	    (state = enabling_right & from_right_bt = none): enable;
+	    (state = enabling_right): enable;
 	    (state = disabling_right & from_right_bt != disabled): disable;
 	    TRUE : no;
 	  esac;
@@ -137,7 +138,8 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
 	  case
 	    (state = initial & visit = enable) : enable;
 	    (state = initial & visit = disable) : disable;
-	    (state = enabling_left & from_left_bt = none) : enable;
+	    (state = enabling_left & (from_left_bt = none | from_left_bt = succeeded)) : enable;
+	    (state = enabling_right) : enable;
 	    (state = disabling_left & from_left_bt != disabled) : disable;
 	    TRUE : no;
 	  esac;
@@ -146,7 +148,7 @@ MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
 	  case
 	    (state = enabling_left & from_left_bt = succeeded) : enable;
 	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disable;
-	    (state = enabling_right & from_right_bt = none): enable;
+	    (state = enabling_right): enable;
 	    (state = disabling_right & from_right_bt != disabled): disable;
 	    TRUE : no;
 	  esac;
@@ -193,7 +195,7 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Go_to_kitchen : boolean;
-	state : {away, going, failing, in_kitchen, disabled_away, disabled_in_kitchen};
+	state : {away, going, in_kitchen};
 
     ASSIGN
 	init(to_bt) := none;
@@ -202,60 +204,31 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 
 	next(to_bt) :=
 	  case
-	    (state = away & from_bt = enable) : running;
-	    (state = away & from_bt = disable) : disabled;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : running;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : succeeded;
-	    (state = going & from_bt = disable): disabled;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failed;
-	    (state = failing & from_bt = enable) : running;
-	    (state = failing & from_bt = no) : failed;
-	    (state = failing & from_bt = disable): disabled;
-	    (state = in_kitchen & from_bt = enable) : running;
-	    (state = in_kitchen & from_bt = no) : succeeded;
-	    (state = in_kitchen & from_bt = disable) : disabled;
-	    (state = disabled_away & from_bt = disable) : disabled;
-	    (state = disabled_away & from_bt = enable) : running;
-	    (state = disabled_in_kitchen & from_bt = disable) : disabled;
-	    (state = disabled_in_kitchen & from_bt = enable) : running;
-	    (state = disabled_in_kitchen & from_bt = no) : succeeded;	
-	    TRUE: none;
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = away : running;
+	    state = going & is_robot_in_kitchen = succeeded : succeeded;
+            state = going & is_robot_in_kitchen = failed : failed;
+            state = going & is_robot_in_kitchen = none : running;
+	    TRUE: succeeded; -- i.e. state = in_kitchen
 	  esac;
 
-	next(req_Go_to_kitchen) :=
+	next(req_Go_to_kitchen) := 
 	  case
-	    (state = away & from_bt = enable) : TRUE;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : TRUE;
-	    (state = failing & from_bt = enable) : TRUE;
-	    (state = disabled_away & from_bt = enable) : TRUE;
-	    (state = in_kitchen & from_bt = enable): TRUE;
-	    (state = disabled_in_kitchen & from_bt = enable) : TRUE;
-	    TRUE: FALSE;
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Go_to_kitchen;
 	  esac;
 
   	next(state) :=
 	  case
 	    (state = away & from_bt = enable) : going;
-	    (state = away & from_bt = disable) : disabled_away;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : going;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : in_kitchen;
-	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failing;
-	    (state = going & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
-    	    (state = going & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
-	    (state = failing & from_bt = enable) : going;
-	    (state = failing & from_bt = no) : failing;
-	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
-    	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
-	    (state = in_kitchen & from_bt = enable) : going;
-    	    (state = in_kitchen & from_bt = no) : in_kitchen;	
-	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
-	    (state = disabled_away & from_bt = disable) : disabled_away;
-	    (state = disabled_away & from_bt = enable) : going;
-	    (state = disabled_in_kitchen & from_bt = disable) : disabled_in_kitchen;
-	    (state = disabled_in_kitchen & from_bt = no) : in_kitchen;
-    	    (state = disabled_in_kitchen & from_bt = enable) : going;
-	    TRUE: away;
-	  esac;
+	    state = away : away;
+	    (state = going & is_robot_in_kitchen = succeeded) : in_kitchen;
+	    (state = going & is_robot_in_kitchen = failed) : away;
+	    state = going : going;
+	    TRUE: in_kitchen;
+    	  esac;
 
 -- ===============================================================================
 --                               End of module
@@ -266,7 +239,7 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Find_bottle : boolean;
-	state : {far, finding, failing, near, disabled_far, disabled_near};	
+	state : {far, finding, near};	
 
     ASSIGN
 	init(to_bt) := none;
@@ -275,60 +248,32 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
 
 	next(to_bt) :=
 	  case
-	    (state = far & from_bt = enable) : running;
-	    (state = far & from_bt = disable) : disabled;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : running;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : succeeded;
-	    (state = finding & from_bt = disable): disabled;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failed;
-	    (state = failing & from_bt = enable) : running;
-	    (state = failing & from_bt = no) : failed;
-	    (state = failing & from_bt = disable): disabled;
-	    (state = near & from_bt = enable) : running;
-	    (state = near & from_bt = no) : succeeded;
-	    (state = near & from_bt = disable) : disabled;
-	    (state = disabled_far & from_bt = disable) : disabled;
-	    (state = disabled_far & from_bt = enable) : running;
-	    (state = disabled_near & from_bt = disable) : disabled;
-	    (state = disabled_near & from_bt = enable) : running;
-	    (state = disabled_near & from_bt = no) : succeeded;	
-	    TRUE: none;
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = far : running;
+	    state = finding & is_bottle_found = succeeded : succeeded;
+            state = finding & is_bottle_found = failed : failed;
+            state = finding & is_bottle_found = none : running;
+	    TRUE: succeeded; -- i.e. state = near
 	  esac;
 
 	next(req_Find_bottle) :=
 	  case
-	    (state = far & from_bt = enable) : TRUE;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : TRUE;
-	    (state = failing & from_bt = enable) : TRUE;
-	    (state = disabled_far & from_bt = enable) : TRUE;
-	    (state = near & from_bt = enable): TRUE;
-	    (state = disabled_near & from_bt = enable) : TRUE;
-	    TRUE: FALSE;
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Find_bottle;
 	  esac;
 
   	next(state) :=
 	  case
 	    (state = far & from_bt = enable) : finding;
-	    (state = far & from_bt = disable) : disabled_far;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : finding;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : near;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failing;
-	    (state = finding & from_bt = disable & is_bottle_found != succeeded): disabled_far;
-    	    (state = finding & from_bt = disable & is_bottle_found = succeeded): disabled_near;
-	    (state = failing & from_bt = enable) : finding;
-	    (state = failing & from_bt = no) : failing;
-	    (state = failing & from_bt = disable & is_bottle_found != succeeded): disabled_far;
-    	    (state = failing & from_bt = disable & is_bottle_found = succeeded): disabled_near;
-	    (state = near & from_bt = enable) : finding;
-    	    (state = near & from_bt = no) : near;	
-	    (state = near & from_bt = disable) : disabled_near;
-	    (state = disabled_far & from_bt = disable) : disabled_far;
-	    (state = disabled_far & from_bt = enable) : finding;
-	    (state = disabled_near & from_bt = disable) : disabled_near;
-	    (state = disabled_near & from_bt = no) : near;
-    	    (state = disabled_near & from_bt = enable) : finding;
-	    TRUE: far;
+	    state = far : far;
+	    (state = finding & is_bottle_found = succeeded) : near;
+	    (state = finding & is_bottle_found = failed) : far;
+	    state = finding : finding;
+	    TRUE: near;
 	  esac;
+
 
 
 -- ===============================================================================
@@ -340,7 +285,7 @@ MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Fetch_bottle : boolean;
-	state : {not_grasped, fetching, failing, grasped, disabled_not_grasped, disabled_grasped};
+	state : {not_grasped, fetching, grasped};
 
     ASSIGN
 	init(to_bt) := none;
@@ -349,59 +294,30 @@ MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
 
 	next(to_bt) :=
 	  case
-	    (state = not_grasped & from_bt = enable) : running;
-	    (state = not_grasped & from_bt = disable) : disabled;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : running;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = succeeded)) : succeeded;
-	    (state = fetching & from_bt = disable): disabled;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = failed)) : failed;
-	    (state = failing & from_bt = enable) : running;
-	    (state = failing & from_bt = no) : failed;
-	    (state = failing & from_bt = disable): disabled;
-	    (state = grasped & from_bt = enable) : running;
-	    (state = grasped & from_bt = no) : succeeded;
-	    (state = grasped & from_bt = disable) : disabled;
-	    (state = disabled_not_grasped & from_bt = disable) : disabled;
-	    (state = disabled_not_grasped & from_bt = enable) : running;
-	    (state = disabled_grasped & from_bt = disable) : disabled;
-	    (state = disabled_grasped & from_bt = enable) : running;
-	    (state = disabled_grasped & from_bt = no) : succeeded;	
-	    TRUE: none;
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = not_grasped : running;
+	    state = fetching & is_bottle_fetched = succeeded : succeeded;
+            state = fetching & is_bottle_fetched = failed : failed;
+            state = fetching & is_bottle_fetched = none : running;
+	    TRUE: succeeded; -- i.e. state = grasped
 	  esac;
 
 	next(req_Fetch_bottle) :=
 	  case
-	    (state = not_grasped & from_bt = enable) : TRUE;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : TRUE;
-	    (state = failing & from_bt = enable) : TRUE;
-	    (state = disabled_not_grasped & from_bt = enable) : TRUE;
-	    (state = grasped & from_bt = enable): TRUE;
-	    (state = disabled_grasped & from_bt = enable) : TRUE;
-	    TRUE: FALSE;
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Fetch_bottle;
 	  esac;
 
   	next(state) :=
 	  case
 	    (state = not_grasped & from_bt = enable) : fetching;
-	    (state = not_grasped & from_bt = disable) : disabled_not_grasped;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : fetching;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = succeeded)) : grasped;
-	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = failed)) : failing;
-	    (state = fetching & from_bt = disable & is_bottle_fetched != succeeded): disabled_not_grasped;
-    	    (state = fetching & from_bt = disable & is_bottle_fetched = succeeded): disabled_grasped;
-	    (state = failing & from_bt = enable) : fetching;
-	    (state = failing & from_bt = no) : failing;
-	    (state = failing & from_bt = disable & is_bottle_fetched != succeeded): disabled_not_grasped;
-    	    (state = failing & from_bt = disable & is_bottle_fetched = succeeded): disabled_grasped;
-	    (state = grasped & from_bt = enable) : fetching;
-    	    (state = grasped & from_bt = no) : grasped;	
-	    (state = grasped & from_bt = disable) : disabled_grasped;
-	    (state = disabled_not_grasped & from_bt = disable) : disabled_not_grasped;
-	    (state = disabled_not_grasped & from_bt = enable) : fetching;
-	    (state = disabled_grasped & from_bt = disable) : disabled_grasped;
-	    (state = disabled_grasped & from_bt = no) : grasped;
-    	    (state = disabled_grasped & from_bt = enable) : fetching;
-	    TRUE: not_grasped;
+	    state = not_grasped : not_grasped;
+	    (state = fetching & is_bottle_fetched = succeeded) : grasped;
+	    (state = fetching & is_bottle_fetched = failed) : not_grasped;
+	    state = fetching : fetching;
+	    TRUE: grasped;
 	  esac;
 
 
@@ -416,7 +332,7 @@ MODULE ASK_FOR_HELP(from_bt, is_help_given)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Ask_for_help : boolean;
-	state : {not_asked, asking, failing, asked, disabled_not_asked, disabled_asked};	
+	state : {not_asked, asking, asked};	
 
     ASSIGN
 	init(to_bt) := none;
@@ -425,59 +341,30 @@ MODULE ASK_FOR_HELP(from_bt, is_help_given)
 
 	next(to_bt) :=
 	  case
-	    (state = not_asked & from_bt = enable) : running;
-	    (state = not_asked & from_bt = disable) : disabled;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : running;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : succeeded;
-	    (state = asking & from_bt = disable): disabled;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failed;
-	    (state = failing & from_bt = enable) : running;
-	    (state = failing & from_bt = no) : failed;
-	    (state = failing & from_bt = disable): disabled;
-	    (state = asked & from_bt = enable) : running;
-	    (state = asked & from_bt = no) : succeeded;
-	    (state = asked & from_bt = disable) : disabled;
-	    (state = disabled_not_asked & from_bt = disable) : disabled;
-	    (state = disabled_not_asked & from_bt = enable) : running;
-	    (state = disabled_asked & from_bt = disable) : disabled;
-	    (state = disabled_asked & from_bt = enable) : running;
-	    (state = disabled_asked & from_bt = no) : succeeded;	
-	    TRUE: none;
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = not_asked : running;
+	    state = asking & is_help_given = succeeded : succeeded;
+            state = asking & is_help_given = failed : failed;
+            state = asking & is_help_given = none : running;
+	    TRUE: succeeded; -- i.e. state = asked
 	  esac;
 
 	next(req_Ask_for_help) :=
 	  case
-	    (state = not_asked & from_bt = enable) : TRUE;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : TRUE;
-	    (state = failing & from_bt = enable) : TRUE;
-	    (state = disabled_not_asked & from_bt = enable) : TRUE;
-	    (state = asked & from_bt = enable): TRUE;
-	    (state = disabled_asked & from_bt = enable) : TRUE;
-	    TRUE: FALSE;
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Ask_for_help;
 	  esac;
 
   	next(state) :=
 	  case
 	    (state = not_asked & from_bt = enable) : asking;
-	    (state = not_asked & from_bt = disable) : disabled_not_asked;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : asking;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : asked;
-	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failing;
-	    (state = asking & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
-    	    (state = asking & from_bt = disable & is_help_given = succeeded): disabled_asked;
-	    (state = failing & from_bt = enable) : asking;
-	    (state = failing & from_bt = no) : failing;
-	    (state = failing & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
-    	    (state = failing & from_bt = disable & is_help_given = succeeded): disabled_asked;
-	    (state = asked & from_bt = enable) : asking;
-    	    (state = asked & from_bt = no) : asked;	
-	    (state = asked & from_bt = disable) : disabled_asked;
-	    (state = disabled_not_asked & from_bt = disable) : disabled_not_asked;
-	    (state = disabled_not_asked & from_bt = enable) : asking;
-	    (state = disabled_asked & from_bt = disable) : disabled_asked;
-	    (state = disabled_asked & from_bt = no) : asked;
-    	    (state = disabled_asked & from_bt = enable) : asking;
-	    TRUE: not_asked;
+	    state = not_asked : not_asked;
+	    (state = asking & is_help_given = succeeded) : asked;
+	    (state = asking & is_help_given = failed) : not_asked;
+	    state = asking : asking;
+	    TRUE: asked;
 	  esac;
 
 

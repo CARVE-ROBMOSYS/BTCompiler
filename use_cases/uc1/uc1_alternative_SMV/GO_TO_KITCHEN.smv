@@ -1,0 +1,61 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        GO_TO_KITCHEN_inst : GO_TO_KITCHEN(from_bt, is_robot_in_kitchen);
+    VAR
+        from_bt : {disable, enable, no};
+        is_robot_in_kitchen : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := GO_TO_KITCHEN_inst.to_bt;
+        req_Go_to_kitchen := GO_TO_KITCHEN_inst.req_Go_to_kitchen;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_kitchen : boolean;
+	state : {away, going, in_kitchen};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_kitchen) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = away : running;
+	    state = going & is_robot_in_kitchen = succeeded : succeeded;
+            state = going & is_robot_in_kitchen = failed : failed;
+            state = going & is_robot_in_kitchen = none : running;
+	    TRUE: succeeded; -- i.e. state = in_kitchen
+	  esac;
+
+	next(req_Go_to_kitchen) := 
+	  case
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Go_to_kitchen;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    state = away : away;
+	    (state = going & is_robot_in_kitchen = succeeded) : in_kitchen;
+	    (state = going & is_robot_in_kitchen = failed) : away;
+	    state = going : going;
+	    TRUE: in_kitchen;
+    	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
