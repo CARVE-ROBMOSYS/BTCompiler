@@ -558,13 +558,13 @@ let bt_input_type =
 
 let bt_output_type =
   TEnum
-    (('n'::('o'::('n'::('e'::[])))) :: (('r'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))) :: (('f'::('a'::('i'::('l'::('e'::('d'::[])))))) :: (('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))) :: []))))
+    (('n'::('o'::('n'::('e'::[])))) :: (('d'::('i'::('s'::('a'::('b'::('l'::('e'::('d'::[])))))))) :: (('r'::('u'::('n'::('n'::('i'::('n'::('g'::[]))))))) :: (('f'::('a'::('i'::('l'::('e'::('d'::[])))))) :: (('s'::('u'::('c'::('c'::('e'::('e'::('d'::('e'::('d'::[]))))))))) :: [])))))
 
 (** val bt_action_type : simp_type_spec **)
 
 let bt_action_type =
   TEnum
-    (('E'::('n'::('a'::('b'::('l'::('e'::[])))))) :: (('R'::('e'::('s'::('e'::('t'::[]))))) :: []))
+    (('n'::('o'::[])) :: (('e'::('n'::('a'::('b'::('l'::('e'::[])))))) :: (('d'::('i'::('s'::('a'::('b'::('l'::('e'::[]))))))) :: [])))
 
 (** val bp_tick_generator : smv_module **)
 
@@ -675,54 +675,6 @@ let bp_isRunning =
     ('f'::('a'::('i'::('l'::('e'::('d'::[]))))))))))))))))); assigns = (Some
     (LastA (Invar ((Mod
     (('c'::('h'::('i'::('l'::('d'::('_'::('b'::('t'::[])))))))), (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
-    ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) }
-
-type modtype =
-| Skmod
-| TRUEmod
-| Seqmod of int
-| Fbmod of int
-| Parmod of int * int
-| Notmod
-| Runmod
-
-(** val modtype_dec : modtype -> modtype -> bool **)
-
-let modtype_dec x y =
-  match x with
-  | Skmod -> (match y with
-              | Skmod -> true
-              | _ -> false)
-  | TRUEmod -> (match y with
-                | TRUEmod -> true
-                | _ -> false)
-  | Seqmod x0 -> (match y with
-                  | Seqmod n0 -> Nat.eq_dec x0 n0
-                  | _ -> false)
-  | Fbmod x0 -> (match y with
-                 | Fbmod n0 -> Nat.eq_dec x0 n0
-                 | _ -> false)
-  | Parmod (x0, x1) ->
-    (match y with
-     | Parmod (n1, n2) -> if Nat.eq_dec x0 n1 then Nat.eq_dec x1 n2 else false
-     | _ -> false)
-  | Notmod -> (match y with
-               | Notmod -> true
-               | _ -> false)
-  | Runmod -> (match y with
-               | Runmod -> true
-               | _ -> false)
-
-(** val bp_identity : char list -> smv_module **)
-
-let bp_identity name0 =
-  { name = name0; params = (('b'::('t'::[])) :: []); vars = (Some (LastV
-    (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp TBool)))); ivars =
-    None; defs = (Some (LastD (('o'::('u'::('t'::('p'::('u'::('t'::[])))))),
-    (Qual (Mod (('b'::('t'::[])), (Id
-    ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))))))))); assigns = (Some
-    (LastA (Invar ((Mod (('b'::('t'::[])), (Id
     ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
     ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) }
 
@@ -854,6 +806,82 @@ module BT_gen_spec =
   and normalize_forest = function
   | Child t -> Child (normalize t)
   | Add (t, ts) -> Add ((normalize t), (normalize_forest ts))
+
+  type modtype =
+  | Skmod
+  | TRUEmod
+  | Seqmod of int
+  | Fbmod of int
+  | Parmod of int * int
+  | Notmod
+  | Runmod
+
+  (** val modtype_rect :
+      'a1 -> 'a1 -> (int -> 'a1) -> (int -> 'a1) -> (int -> int -> 'a1) ->
+      'a1 -> 'a1 -> modtype -> 'a1 **)
+
+  let modtype_rect f f0 f1 f2 f3 f4 f5 = function
+  | Skmod -> f
+  | TRUEmod -> f0
+  | Seqmod x -> f1 x
+  | Fbmod x -> f2 x
+  | Parmod (x, x0) -> f3 x x0
+  | Notmod -> f4
+  | Runmod -> f5
+
+  (** val modtype_rec :
+      'a1 -> 'a1 -> (int -> 'a1) -> (int -> 'a1) -> (int -> int -> 'a1) ->
+      'a1 -> 'a1 -> modtype -> 'a1 **)
+
+  let modtype_rec f f0 f1 f2 f3 f4 f5 = function
+  | Skmod -> f
+  | TRUEmod -> f0
+  | Seqmod x -> f1 x
+  | Fbmod x -> f2 x
+  | Parmod (x, x0) -> f3 x x0
+  | Notmod -> f4
+  | Runmod -> f5
+
+  (** val modtype_dec : modtype -> modtype -> bool **)
+
+  let modtype_dec x y =
+    match x with
+    | Skmod -> (match y with
+                | Skmod -> true
+                | _ -> false)
+    | TRUEmod -> (match y with
+                  | TRUEmod -> true
+                  | _ -> false)
+    | Seqmod x0 -> (match y with
+                    | Seqmod n0 -> Nat.eq_dec x0 n0
+                    | _ -> false)
+    | Fbmod x0 -> (match y with
+                   | Fbmod n0 -> Nat.eq_dec x0 n0
+                   | _ -> false)
+    | Parmod (x0, x1) ->
+      (match y with
+       | Parmod (n1, n2) ->
+         if Nat.eq_dec x0 n1 then Nat.eq_dec x1 n2 else false
+       | _ -> false)
+    | Notmod -> (match y with
+                 | Notmod -> true
+                 | _ -> false)
+    | Runmod -> (match y with
+                 | Runmod -> true
+                 | _ -> false)
+
+  (** val bp_identity : char list -> smv_module **)
+
+  let bp_identity name0 =
+    { name = name0; params = (('b'::('t'::[])) :: []); vars = (Some (LastV
+      (('e'::('n'::('a'::('b'::('l'::('e'::[])))))), (TSimp TBool))));
+      ivars = None; defs = (Some (LastD
+      (('o'::('u'::('t'::('p'::('u'::('t'::[])))))), (Qual (Mod
+      (('b'::('t'::[])), (Id
+      ('o'::('u'::('t'::('p'::('u'::('t'::[]))))))))))))); assigns = (Some
+      (LastA (Invar ((Mod (('b'::('t'::[])), (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[]))))))))), (Qual (Id
+      ('e'::('n'::('a'::('b'::('l'::('e'::[])))))))))))) }
 
   (** val rootName : btree -> char list **)
 
