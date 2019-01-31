@@ -14,10 +14,6 @@ COMPONENT uc1 system
 
  REFINEMENT
   SUB Tick_generator: TICK_GENERATOR;
-  SUB Fallback_node: FALLBACK_NODE;
-  SUB Sequence_node_1: SEQUENCE_NODE;
-  SUB Sequence_node_2: SEQUENCE_NODE;
-
   SUB Bt_fsm: BT_FSM;
   SUB Robot_env: ROBOT_AND_ENVIRONMENT;
   SUB Go_to_kitchen: GO_TO_KITCHEN;
