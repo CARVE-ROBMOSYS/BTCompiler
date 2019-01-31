@@ -373,13 +373,6 @@ let vis_type_text = "{no, enable, disable}"
 let out_type_text = "{none, disabled, running, failed, succeeded}"
 let sig_type_text = "{none, failed, succeeded}"
 
-let rec mksubs_inner = function
-  | [] -> ["\n"]
-  | inname :: rest ->
-    ["SUB "; camlstring_of_coqstring (fst inname); ": ";
-     camlstring_of_coqstring (snd inname); ";\n  "]
-    @ mksubs_inner rest
-
 let rec skills_to_names = function
   | [] -> []
   | s :: rest -> (camlstring_of_coqstring (Skills.skillName s))
@@ -432,9 +425,8 @@ let make_comp_system in_list sk_list =
                       "    guarantee: "; c.guarantees; ";\n"] in
   let subs
     = String.concat "" (["\n REFINEMENT\n";
-                         "  SUB Tick_generator: TICK_GENERATOR;\n  "]
-                        @ (mksubs_inner in_list) @
-                        ["  SUB Bt_fsm: BT_FSM;\n";
+                         "  SUB Tick_generator: TICK_GENERATOR;\n";
+                         "  SUB Bt_fsm: BT_FSM;\n";
                          "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "]
                         @ (mksubs_skills sk_list)) in
   let connections =
