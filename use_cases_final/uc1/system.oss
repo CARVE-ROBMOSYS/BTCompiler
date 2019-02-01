@@ -2,15 +2,20 @@
 COMPONENT uc1 system
  INTERFACE
   OUTPUT PORT output: {none, disabled, running, failed, succeeded};
-
+  OUTPUT PORT Fetch_bottle_req_Fetch_bottle: boolean;
+  OUTPUT PORT Robot_env_is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT Go_to_kitchen_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Find_bottle_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Fetch_bottle_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Ask_for_help_to_bt: {none, disabled, running, failed, succeeded};
   CONTRACT mission
    assume: true;
    guarantee: (always in the future (output = succeeded)) and 
-              (in the future Fetch_bottle.req_Fetch_bottle ->  (!Fetch_bottle.req_Fetch_bottle until (Robot_env.is_bottle_found = succeeded  and !Fetch_bottle.req_Fetch_bottle))) and
-	      ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen.to_bt = succeeded and
-		                                                                Find_bottle.to_bt = succeeded and
-									        Fetch_bottle.to_bt = succeeded) and  output != succeeded)) or
- 	       (in the future output = succeeded -> (output != succeeded until (Ask_for_help.to_bt = succeeded and output != succeeded))));
+              (in the future Fetch_bottle_req_Fetch_bottle ->  (!Fetch_bottle_req_Fetch_bottle until (Robot_env_is_bottle_found = succeeded  and !Fetch_bottle_req_Fetch_bottle))) and
+	      ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen_to_bt = succeeded and
+		                                                                Find_bottle_to_bt = succeeded and
+									        Fetch_bottle_to_bt = succeeded) and  output != succeeded)) or
+ 	       (in the future output = succeeded -> (output != succeeded until (Ask_for_help_to_bt = succeeded and output != succeeded))));
 
  REFINEMENT
   SUB Tick_generator: TICK_GENERATOR;
@@ -22,9 +27,10 @@ COMPONENT uc1 system
   SUB Ask_for_help: ASK_FOR_HELP;
   
   CONNECTION Bt_fsm.visit := Tick_generator.tick;
+  CONNECTION Tick_generator.from_bt := Bt_fsm.output;
 
   CONNECTION Bt_fsm.from_Go_to_kitchen := Go_to_kitchen.to_bt;
-  CONNECTION Go_to_kitchen.from_bt := Bt_fms.to_Go_to_kitchen;
+  CONNECTION Go_to_kitchen.from_bt := Bt_fsm.to_Go_to_kitchen;
   CONNECTION Robot_env.req_Go_to_kitchen := Go_to_kitchen.req_Go_to_kitchen;
   CONNECTION Go_to_kitchen.is_robot_in_kitchen := Robot_env.is_robot_in_kitchen;
 
@@ -50,18 +56,19 @@ COMPONENT uc1 system
 
 COMPONENT TICK_GENERATOR
   INTERFACE
-    OUTPUT PORT tick: {no, enable, disable};
+    INPUT PORT from_bt : {none, disabled, running, failed, succeeded};
+    OUTPUT PORT tick: {no, enable};
   CONTRACT tick_contract
     assume: true;
-    guarantee: tick=enable and always tick=enable;
+    guarantee: (always in the future (((from_bt=none) -> (tick=no)) and ((from_bt != none) -> (tick=enable))));
 
 COMPONENT BT_FSM
  INTERFACE
-  INPUT PORT visit: {no, enable, disable};
+  INPUT PORT visit: {no, enable};
   INPUT PORT from_Go_to_kitchen: {none, disabled, running, failed, succeeded};
   INPUT PORT from_Find_bottle: {none, disabled, running, failed, succeeded};
   INPUT PORT from_Fetch_bottle: {none, disabled, running, failed, succeeded};
-  INPUT PORT from_Ask_for_help: {none, disabled, running, failed, succeeded}
+  INPUT PORT from_Ask_for_help: {none, disabled, running, failed, succeeded};
   OUTPUT PORT to_Go_to_kitchen: {no, enable, disable};
   OUTPUT PORT to_Find_bottle: {no, enable, disable};
   OUTPUT PORT to_Fetch_bottle: {no, enable, disable};
@@ -111,8 +118,8 @@ COMPONENT FETCH_BOTTLE
    assume: true; 
    guarantee: (always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
               (always (from_bt = disable -> in the future to_bt = disabled)) and
-	      (always (from_bt = enable -> in the future req_Find_bottle)) and
-	      (always (from_bt != enable -> never req_Find_bottle)) and	
+	      (always (from_bt = enable -> in the future req_Fetch_bottle)) and
+	      (always (from_bt != enable -> never req_Fetch_bottle)) and	
 	      ((always from_bt = no) -> (always to_bt = none)) and
 	      (always (from_bt != enable -> always (to_bt != succeeded)));
 
