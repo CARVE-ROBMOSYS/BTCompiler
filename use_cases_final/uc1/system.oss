@@ -50,6 +50,13 @@ COMPONENT uc1 system
   CONNECTION Ask_for_help.is_help_given := Robot_env.is_help_given;
 
   CONNECTION output := Bt_fsm.output;
+  CONNECTION Fetch_bottle_req_Fetch_bottle := Fetch_bottle.req_Fetch_bottle;
+  CONNECTION Robot_env_is_bottle_found := Robot_env.is_bottle_found;
+  CONNECTION Go_to_kitchen_to_bt := Go_to_kitchen.to_bt;
+  CONNECTION Find_bottle_to_bt := Find_bottle.to_bt;
+  CONNECTION Fetch_bottle_to_bt := Fetch_bottle.to_bt;
+  CONNECTION Ask_for_help_to_bt := Ask_for_help.to_bt;
+ 
 
   CONTRACT mission REFINEDBY Tick_generator.tick_contract , Bt_fsm.bt_fsm_contract, Robot_env.env_contract,
                              Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
