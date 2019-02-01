@@ -2,7 +2,9 @@
 -- ===============================================================================
 MODULE main
     VAR
-        TICK_GENERATOR_inst : TICK_GENERATOR;
+        TICK_GENERATOR_inst : TICK_GENERATOR(from_bt);
+    VAR 
+	from_bt : {none, disabled, running, failed, succeeded};
     DEFINE
         tick := TICK_GENERATOR_inst.tick;
 
@@ -12,14 +14,18 @@ MODULE main
 -- ===============================================================================
 
 -- ===============================================================================
-MODULE TICK_GENERATOR
+MODULE TICK_GENERATOR(from_bt)
     VAR
-        tick : {no, enable, disable};
+        tick : {no, enable};
 
     ASSIGN
-      init(tick) := enable;
+            init(tick) := enable;
 
-      next(tick) := enable;
+      next(tick) :=
+      	case
+        	from_bt = none : no;
+        	TRUE : enable;
+      	esac;
 
 
 -- ===============================================================================
