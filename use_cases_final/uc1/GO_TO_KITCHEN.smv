@@ -39,8 +39,8 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = in_kitchen & from_bt = enable) : running;
-	    (state = in_kitchen & from_bt = no) : succeeded;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : succeeded;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failed;
 	    (state = in_kitchen & from_bt = disable) : disabled;
 	    (state = disabled_away & from_bt = disable) : disabled;
 	    (state = disabled_away & from_bt = enable) : running;
@@ -74,8 +74,8 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 	    (state = failing & from_bt = no) : failing;
 	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
     	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
-	    (state = in_kitchen & from_bt = enable) : going;
-    	    (state = in_kitchen & from_bt = no) : in_kitchen;	
+    	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : in_kitchen;	
+	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failing;
 	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
 	    (state = disabled_away & from_bt = disable) : disabled_away;
 	    (state = disabled_away & from_bt = enable) : going;

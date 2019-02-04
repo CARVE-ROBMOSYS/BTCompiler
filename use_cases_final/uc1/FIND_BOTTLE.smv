@@ -21,7 +21,7 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
         req_Find_bottle : boolean;
-	state : {far, finding, failing, near, disabled_far, disabled_near};	
+	state : {far, finding, near};	
 
     ASSIGN
 	init(to_bt) := none;
@@ -30,59 +30,30 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
 
 	next(to_bt) :=
 	  case
-	    (state = far & from_bt = enable) : running;
-	    (state = far & from_bt = disable) : disabled;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : running;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : succeeded;
-	    (state = finding & from_bt = disable): disabled;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failed;
-	    (state = failing & from_bt = enable) : running;
-	    (state = failing & from_bt = no) : failed;
-	    (state = failing & from_bt = disable): disabled;
-	    (state = near & from_bt = enable) : running;
-	    (state = near & from_bt = no) : succeeded;
-	    (state = near & from_bt = disable) : disabled;
-	    (state = disabled_far & from_bt = disable) : disabled;
-	    (state = disabled_far & from_bt = enable) : running;
-	    (state = disabled_near & from_bt = disable) : disabled;
-	    (state = disabled_near & from_bt = enable) : running;
-	    (state = disabled_near & from_bt = no) : succeeded;	
-	    TRUE: none;
+	    from_bt = disable : disabled;
+	    from_bt = no : none;
+	    state = far : running;
+	    state = finding & is_bottle_found = succeeded : succeeded;
+            state = finding & is_bottle_found = failed : failed;
+            state = finding & is_bottle_found = none : running;
+	    TRUE: succeeded; -- i.e. state = near
 	  esac;
 
 	next(req_Find_bottle) :=
 	  case
-	    (state = far & from_bt = enable) : TRUE;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : TRUE;
-	    (state = failing & from_bt = enable) : TRUE;
-	    (state = disabled_far & from_bt = enable) : TRUE;
-	    (state = near & from_bt = enable): TRUE;
-	    (state = disabled_near & from_bt = enable) : TRUE;
-	    TRUE: FALSE;
+	    from_bt = enable : TRUE;
+	    from_bt = disable : FALSE;
+	    TRUE : req_Find_bottle;
 	  esac;
 
   	next(state) :=
 	  case
 	    (state = far & from_bt = enable) : finding;
-	    (state = far & from_bt = disable) : disabled_far;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : finding;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : near;
-	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failing;
-	    (state = finding & from_bt = disable & is_bottle_found != succeeded): disabled_far;
-    	    (state = finding & from_bt = disable & is_bottle_found = succeeded): disabled_near;
-	    (state = failing & from_bt = enable) : finding;
-	    (state = failing & from_bt = no) : failing;
-	    (state = failing & from_bt = disable & is_bottle_found != succeeded): disabled_far;
-    	    (state = failing & from_bt = disable & is_bottle_found = succeeded): disabled_near;
-	    (state = near & from_bt = enable) : finding;
-    	    (state = near & from_bt = no) : near;	
-	    (state = near & from_bt = disable) : disabled_near;
-	    (state = disabled_far & from_bt = disable) : disabled_far;
-	    (state = disabled_far & from_bt = enable) : finding;
-	    (state = disabled_near & from_bt = disable) : disabled_near;
-	    (state = disabled_near & from_bt = no) : near;
-    	    (state = disabled_near & from_bt = enable) : finding;
-	    TRUE: far;
+	    state = far : far;
+	    (state = finding & is_bottle_found = succeeded) : near;
+	    (state = finding & is_bottle_found = failed) : far;
+	    state = finding : finding;
+	    TRUE: near;
 	  esac;
 
 

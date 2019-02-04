@@ -13,7 +13,10 @@ MODULE main
 
 
         LTLSPEC G F (BT_FSM_inst.output = succeeded);
-        -- F FETCH_BOTTLE_inst.req_Fetch_bottle ->  ( ! FETCH_BOTTLE_inst.req_Fetch_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & ! FETCH_BOTTLE_inst.req_Fetch_bottle));
+     --LTLSPEC F FETCH_BOTTLE_inst.req_Fetch_bottle ->  ( ! FETCH_BOTTLE_inst.req_Fetch_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & !FETCH_BOTTLE_inst.req_Fetch_bottle));
+        --LTLSPEC (F (FALLBACK_NODE_inst.output = succeeded) -> ( FALLBACK_NODE_inst.output != succeeded U ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
+          --         FETCH_BOTTLE_inst.to_bt=succeeded) &  FALLBACK_NODE_inst.output != succeeded))) |
+          --      (F (FALLBACK_NODE_inst.output = succeeded) ->  (FALLBACK_NODE_inst.output != succeeded U (ASK_FOR_HELP_inst.to_bt=succeeded & FALLBACK_NODE_inst.output != succeeded) ));
       
 
 -- ===============================================================================
@@ -21,14 +24,18 @@ MODULE main
 -- ===============================================================================
 
 -- ===============================================================================
-MODULE TICK_GENERATOR
+MODULE TICK_GENERATOR(from_bt)
     VAR
-        tick : {no, enable, disable};
+        tick : {no, enable};
 
     ASSIGN
       init(tick) := enable;
 
-      next(tick) := enable;
+      next(tick) :=
+      	case
+        	from_bt = none : no;
+        	TRUE : enable;
+      	esac;
 
 
 -- ===============================================================================

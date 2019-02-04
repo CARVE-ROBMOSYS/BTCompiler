@@ -5,12 +5,20 @@
   <System
       assume="true"
       guarantee="(always in the future (output = succeeded)) and 
-		 (in the future Fetch_bottle.req_Fetch_bottle ->  (!Fetch_bottle.req_Fetch_bottle until (Robot_env.is_bottle_found = succeeded  and !Fetch_bottle.req_Fetch_bottle))) and
-		 ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen.to_bt = succeeded and
-		                                                                   Find_bottle.to_bt = succeeded and
-									           Fetch_bottle.to_bt = succeeded) and  output != succeeded)) or
- 	          (in the future output = succeeded -> (output != succeeded until (Ask_for_help.to_bt = succeeded and output != succeeded))))"
-   />
+		 (in the future Fetch_bottle_req_Fetch_bottle ->  (!Fetch_bottle_req_Fetch_bottle until (Robot_env_is_bottle_found = succeeded  and !Fetch_bottle_req_Fetch_bottle))) and
+		 ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen_to_bt = succeeded and
+		                                                                   Find_bottle_to_bt = succeeded and
+									           Fetch_bottle_to_bt = succeeded) and  output != succeeded)) or
+ 	          (in the future output = succeeded -> (output != succeeded until (Ask_for_help_to_bt = succeeded and output != succeeded))))">
+
+	<Export name="req_Fetch_bottle" from="Fetch_bottle">
+	<Export name="is_bottle_found" from="Robot_env">
+	<Export name="to_bt" from="Go_to_kitchen">
+	<Export name="to_bt" from="Find_bottle">
+	<Export name="to_bt" from="Fetch_bottle">
+	<Export name="to_bt" from="Ask_for_help">
+	
+   </System>
 
   <SkillList>
     <Action
