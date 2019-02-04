@@ -223,6 +223,11 @@ let in_signals: signal list ref = ref []
 
 let out_signals: signal list ref = ref []
 
+(*** Other globals ***)
+
+let sys_name = ref ""
+
+let exports = ref []
 
 (* The following functions are taken (with changes) from readskill.ml *)
 let rec get_skill_contracts acc i =
@@ -267,32 +272,51 @@ let rec read_taglist i name attr acc =
   | `El_end -> List.rev acc
   | _ -> raise (Parsing "ill-formed input file")
 
-(* This function reads a list of InSignal and OutSignal inside an
-   Environment tag *)
+(* This function is used to read the list of InSignal and OutSignal
+   inside the Environment tag *)
 let read_signals i =
   while (Xmlm.peek i <> `El_end) do
     let next_tag = Xmlm.input i in
     match next_tag with
     | `El_start t ->
-       let n = extract_node t in
-       begin
-         match n with
-         | "OutSignal" ->
-            let n = extract "name" t in
-            let dests = read_taglist i "Destination" "ID" [] in
-            let signal = {
-                id = n;
-                target = dests } in
-            out_signals := signal :: !out_signals
-         | "InSignal" ->
-            let n = extract "name" t in
-            let srcs = read_taglist i "Source" "ID" [] in
-            let signal = {
-                id = n;
-                target = srcs } in
-            in_signals := signal :: !in_signals
-         | _ -> raise (Parsing ("unknown tag in Environment: " ^ n))
-       end
+      let n = extract_node t in
+      begin
+        match n with
+        | "OutSignal" ->
+          let name = extract "name" t in
+          let dests = read_taglist i "Destination" "ID" [] in
+          let signal = {
+            id = name;
+            target = dests } in
+          out_signals := signal :: !out_signals
+        | "InSignal" ->
+          let name = extract "name" t in
+          let srcs = read_taglist i "Source" "ID" [] in
+          let signal = {
+            id = name;
+            target = srcs } in
+          in_signals := signal :: !in_signals
+        | _ -> raise (Parsing ("unknown tag in Environment: " ^ n))
+      end
+    | _ -> raise (Parsing "ill-formed input file")
+  done
+
+(* This function is used to read the list of Export inside the System tag *)
+let read_exports i =
+  while (Xmlm.peek i <> `El_end) do
+    let next_tag = Xmlm.input i in
+    match next_tag with
+    | `El_start t ->
+      let n = extract_node t in
+      begin
+        match n with
+        | "Export" ->
+          let a = extract "name" t in
+          let b = extract "from" t in
+          exports := (a, b) :: !exports
+        | _ -> raise (Parsing ("unknown tag in System: " ^ n))
+      end;
+      discard_tag i 1
     | _ -> raise (Parsing "ill-formed input file")
   done
 
@@ -312,22 +336,24 @@ let load_conf filename =
           match Xmlm.input i with
           | `El_start t2 ->
             (match extract_node t2 with
-             | "System" ->
-               if not !sys_found then
-                 begin
-                   sys_found := true;
-                   push_contract (read_contract "System" t2)
-                 end
-               else
-                 raise (Parsing "too many System tags")
              | "SkillList" ->
                if not !sklist_found then
                  begin
                    sklist_found := true;
-                   get_skill_contracts [] i;
+                   get_skill_contracts [] i
                  end
                else
                  raise (Parsing "too many SkillList tags")
+             | "System" ->
+               if not !sys_found then
+                 begin
+                   sys_found := true;
+                   sys_name := extract "ID" t2;
+                   push_contract (read_contract "System" t2);
+                   read_exports i
+                 end
+               else
+                 raise (Parsing "too many System tags")
              | "Environment" ->
                if not !env_found then
                  begin
@@ -378,6 +404,27 @@ let rec skills_to_names = function
   | s :: rest -> (camlstring_of_coqstring (Skills.skillName s))
                  :: skills_to_names rest
 
+(* System component *)
+
+let rec mk_sysout = function
+  | [] -> []
+  | export :: rest ->
+    let (name, component) = export in
+    (* Signals skill -> Environment (of type boolean) *)
+    match List.find_opt (fun x -> x.id = name) !in_signals with
+    | Some _ -> ["  OUTPUT PORT "; (component ^ "_" ^ name); ": boolean;\n"]
+                @ mk_sysout rest
+    | None ->
+      (* Signals Environment -> skill (of type sig_type) *)
+      match List.find_opt (fun x -> x.id = name) !out_signals with
+      | Some _ -> ["  OUTPUT PORT "; (component ^ "_" ^ name); ": "; sig_type_text; ";\n"]
+                  @ mk_sysout rest
+      | None ->
+        (* Internal signals (of type out_type) *)
+        (* Note: we do not test whether the signal really exists... *)
+        ["  OUTPUT PORT "; (component ^ "_" ^ name); ": "; out_type_text; ";\n"]
+        @ mk_sysout rest
+
 let rec mksubs_skills = function
   | [] -> ["\n  "]
   | skname :: rest ->
@@ -385,7 +432,7 @@ let rec mksubs_skills = function
      @ mksubs_skills rest
 
 let rec in_conn skname = function
-  | [] -> [""]
+  | [] -> []
   | signal :: rest ->
      if List.mem skname signal.target then
        ["CONNECTION Robot_env."; signal.id; " := "; skname; "."; signal.id; ";\n  "]
@@ -393,7 +440,7 @@ let rec in_conn skname = function
      else in_conn skname rest
 
 let rec out_conn skname = function
-  | [] -> [""]
+  | [] -> []
   | signal :: rest ->
      if List.mem skname signal.target then
        ["CONNECTION "; skname; "."; signal.id; " := Robot_env."; signal.id; ";\n\n  "]
@@ -401,13 +448,20 @@ let rec out_conn skname = function
      else out_conn skname rest
     
 let rec mkconn = function
-  | [] -> [""]
+  | [] -> []
   | skname :: rest ->
      ["CONNECTION Bt_fsm.from_"; skname; " := "; skname; ".to_bt;\n  ";
       "CONNECTION "; skname; ".from_bt := Bt_fsm.to_"; skname; ";\n  "]
      @ in_conn skname !in_signals
      @ out_conn skname !out_signals
      @ mkconn rest
+
+let rec mkconn_exp = function
+  | [] -> ["CONNECTION output := Bt_fsm.output;\n\n  ";]
+  | export :: rest ->
+    let (name, component) = export in
+    ["CONNECTION "; component; "_"; name; " := "; component; "."; name; ";\n  "]
+    @ mkconn_exp rest
 
 let rec mktail = function
   | [] -> [";\n  "]
@@ -416,8 +470,9 @@ let rec mktail = function
 let make_comp_system in_list sk_list =
   let disc_time_head = "@requires discrete-time\n" in
   let header =
-    String.concat "" ["COMPONENT uc1 system\n INTERFACE\n";
-                      "  OUTPUT PORT output: "; out_type_text; ";\n\n"] in
+    String.concat "" (["COMPONENT "; !sys_name; " system\n INTERFACE\n";
+                       "  OUTPUT PORT output: "; out_type_text; ";\n"]
+                      @ mk_sysout !exports) in
   let c = retrieve_contract "System" in
   let contract =
     String.concat "" ["  CONTRACT mission\n";
@@ -430,9 +485,10 @@ let make_comp_system in_list sk_list =
                          "  SUB Robot_env: ROBOT_AND_ENVIRONMENT;\n  "]
                         @ (mksubs_skills sk_list)) in
   let connections =
-    String.concat "" (["CONNECTION Bt_fsm.visit := Tick_generator.tick;\n\n  "]
-                      @ (mkconn sk_list) @
-                      ["CONNECTION output := Bt_fsm.output;\n\n  ";]) in
+    String.concat "" (["CONNECTION Bt_fsm.visit := Tick_generator.tick;\n  ";
+                       "CONNECTION Tick_generator.from_bt := Bt_fsm.output;\n\n  "]
+                      @ (mkconn sk_list)
+                      @ (mkconn_exp !exports)) in
   let refinement =
     String.concat "" (["CONTRACT mission REFINEDBY Tick_generator.tick_contract, ";
                        "Bt_fsm.bt_fsm_contract, ";
@@ -441,11 +497,10 @@ let make_comp_system in_list sk_list =
   String.concat "" [disc_time_head; header; contract; subs; connections; refinement]
 
 let component_tick_generator =
-  "COMPONENT TICK_GENERATOR\n INTERFACE\n  OUTPUT PORT tick: {no, enable, disable};\n  CONTRACT tick_contract\n    assume: true;\n    guarantee: tick=enable and always tick=enable;\n"
+  "COMPONENT TICK_GENERATOR\n INTERFACE\n  INPUT PORT from_bt: {none, disabled, running, failed, succeeded};\n  OUTPUT PORT tick: {no, enable};\n  CONTRACT tick_contract\n    assume: true;\n    guarantee: always in the future ((from_bt = none -> tick = no) and (from_bt != none -> tick = enable));\n"
 
 let rec mkports_bt = function
-  | [] -> ["INPUT PORT visit: "; vis_type_text; ";\n  OUTPUT PORT output: ";
-          out_type_text; ";\n"]
+  | [] -> ["INPUT PORT visit: {no, enable};\n  OUTPUT PORT output: "; out_type_text; ";\n"]
   | skname :: rest ->
      ["INPUT PORT from_"; skname; ": "; out_type_text; ";\n  ";
       "OUTPUT PORT to_"; skname; ": "; vis_type_text; ";\n  "]

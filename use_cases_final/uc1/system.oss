@@ -62,12 +62,12 @@ COMPONENT uc1 system
                              Go_to_kitchen.skill_contract, Find_bottle.skill_contract, Fetch_bottle.skill_contract, Ask_for_help.skill_contract;
 
 COMPONENT TICK_GENERATOR
-  INTERFACE
-    INPUT PORT from_bt : {none, disabled, running, failed, succeeded};
-    OUTPUT PORT tick: {no, enable};
+ INTERFACE
+  INPUT PORT from_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT tick: {no, enable};
   CONTRACT tick_contract
     assume: true;
-    guarantee: (always in the future (((from_bt=none) -> (tick=no)) and ((from_bt != none) -> (tick=enable))));
+    guarantee: always in the future ((from_bt = none -> tick = no) and (from_bt != none -> tick = enable));
 
 COMPONENT BT_FSM
  INTERFACE
