@@ -2,7 +2,7 @@
 -- ===============================================================================
 MODULE main
     VAR
-        TICK_GENERATOR_inst : TICK_GENERATOR;
+        TICK_GENERATOR_inst : TICK_GENERATOR(BT_FSM_inst.output);
         BT_FSM_inst : BT_FSM(TICK_GENERATOR_inst.tick,GO_TO_KITCHEN_inst.to_bt, FIND_BOTTLE_inst.to_bt, FETCH_BOTTLE_inst.to_bt, ASK_FOR_HELP_inst.to_bt);
 	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(BT_FSM_inst.to_Go_to_kitchen, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
 	FIND_BOTTLE_inst : FIND_BOTTLE(BT_FSM_inst.to_Find_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
