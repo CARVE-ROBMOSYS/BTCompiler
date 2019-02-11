@@ -2,22 +2,24 @@
 -- ===============================================================================
 MODULE main
     VAR
-        TICK_GENERATOR_inst : TICK_GENERATOR(BT_FSM_inst.output);
-        BT_FSM_inst : BT_FSM(TICK_GENERATOR_inst.tick,GO_TO_KITCHEN_inst.to_bt, FIND_BOTTLE_inst.to_bt, FETCH_BOTTLE_inst.to_bt, ASK_FOR_HELP_inst.to_bt);
-	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(BT_FSM_inst.to_Go_to_kitchen, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
-	FIND_BOTTLE_inst : FIND_BOTTLE(BT_FSM_inst.to_Find_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
-	FETCH_BOTTLE_inst : FETCH_BOTTLE(BT_FSM_inst.to_Fetch_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_fetched);
-	ASK_FOR_HELP_inst : ASK_FOR_HELP(BT_FSM_inst.to_Ask_for_help, ROBOT_AND_ENVIRONMENT_inst.is_help_given);
+        TICK_GENERATOR_inst : TICK_GENERATOR(FALLBACK_NODE_inst.output);
+	FALLBACK_NODE_inst : FALLBACK_NODE(TICK_GENERATOR_inst.tick, SEQUENCE_NODE_inst_1.output, ASK_FOR_HELP_inst.to_bt);
+	SEQUENCE_NODE_inst_1 : SEQUENCE_NODE(FALLBACK_NODE_inst.to_left_bt, GO_TO_KITCHEN_inst.to_bt, SEQUENCE_NODE_inst_2.output);
+	SEQUENCE_NODE_inst_2 : SEQUENCE_NODE(SEQUENCE_NODE_inst_1.to_right_bt, FIND_BOTTLE_inst.to_bt, FETCH_BOTTLE_inst.to_bt);
+	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(SEQUENCE_NODE_inst_1.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+	FIND_BOTTLE_inst : FIND_BOTTLE(SEQUENCE_NODE_inst_2.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+	FETCH_BOTTLE_inst : FETCH_BOTTLE(SEQUENCE_NODE_inst_2.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_fetched);
+	ASK_FOR_HELP_inst : ASK_FOR_HELP(FALLBACK_NODE_inst.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_help_given);
 	ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(ASK_FOR_HELP_inst.req_Ask_for_help, FETCH_BOTTLE_inst.req_Fetch_bottle,
                                                            FIND_BOTTLE_inst.req_Find_bottle, GO_TO_KITCHEN_inst.req_Go_to_kitchen);
 
 
-        LTLSPEC G F (BT_FSM_inst.output = succeeded);
-     --LTLSPEC F FETCH_BOTTLE_inst.req_Fetch_bottle ->  ( ! FETCH_BOTTLE_inst.req_Fetch_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & !FETCH_BOTTLE_inst.req_Fetch_bottle));
+
+        LTLSPEC G F (FALLBACK_NODE_inst.output = succeeded);
+        --LTLSPEC F FETCH_BOTTLE_inst.req_Fetch_bottle ->  ( ! FETCH_BOTTLE_inst.req_Fetch_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & ! FETCH_BOTTLE_inst.req_Fetch_bottle));
         --LTLSPEC (F (FALLBACK_NODE_inst.output = succeeded) -> ( FALLBACK_NODE_inst.output != succeeded U ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
           --         FETCH_BOTTLE_inst.to_bt=succeeded) &  FALLBACK_NODE_inst.output != succeeded))) |
           --      (F (FALLBACK_NODE_inst.output = succeeded) ->  (FALLBACK_NODE_inst.output != succeeded U (ASK_FOR_HELP_inst.to_bt=succeeded & FALLBACK_NODE_inst.output != succeeded) ));
-      
 
 -- ===============================================================================
 --                               End of module
@@ -33,31 +35,9 @@ MODULE TICK_GENERATOR(from_bt)
 
       next(tick) :=
       	case
-        	from_bt = none : no;
+                from_bt = none : no;
         	TRUE : enable;
       	esac;
-
-
--- ===============================================================================
---                               End of module
--- ===============================================================================
-
-
--- ===============================================================================
-MODULE BT_FSM(visit,from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help)
-    VAR
-	FALLBACK_NODE_inst : FALLBACK_NODE(visit, SEQUENCE_NODE_inst_1.output, from_Ask_for_help);
-	SEQUENCE_NODE_inst_1 : SEQUENCE_NODE(FALLBACK_NODE_inst.to_left_bt, from_Go_to_kitchen, SEQUENCE_NODE_inst_2.output);
-	SEQUENCE_NODE_inst_2 : SEQUENCE_NODE(SEQUENCE_NODE_inst_1.to_right_bt, from_Find_bottle, from_Fetch_bottle);
- 
-    DEFINE
-	output            := FALLBACK_NODE_inst.output;
-	to_Go_to_kitchen  := SEQUENCE_NODE_inst_1.to_left_bt;
-	to_Find_bottle    := SEQUENCE_NODE_inst_2.to_left_bt;
-        to_Fetch_bottle   := SEQUENCE_NODE_inst_2.to_right_bt;
-        to_Ask_for_help   := FALLBACK_NODE_inst.to_right_bt;
-
-
 
 
 -- ===============================================================================
@@ -231,8 +211,8 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = in_kitchen & from_bt = enable) : running;
-	    (state = in_kitchen & from_bt = no) : succeeded;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : succeeded;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failed;
 	    (state = in_kitchen & from_bt = disable) : disabled;
 	    (state = disabled_away & from_bt = disable) : disabled;
 	    (state = disabled_away & from_bt = enable) : running;
@@ -266,8 +246,8 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 	    (state = failing & from_bt = no) : failing;
 	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
     	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
-	    (state = in_kitchen & from_bt = enable) : going;
-    	    (state = in_kitchen & from_bt = no) : in_kitchen;	
+    	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : in_kitchen;	
+	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failing;
 	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
 	    (state = disabled_away & from_bt = disable) : disabled_away;
 	    (state = disabled_away & from_bt = enable) : going;
@@ -304,8 +284,8 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = near & from_bt = enable) : running;
-	    (state = near & from_bt = no) : succeeded;
+	    (state = near & (from_bt = no | from_bt = enable) & is_bottle_found != failed) : succeeded;
+	    (state = near & (from_bt = no | from_bt = enable) & is_bottle_found = failed) : failed;
 	    (state = near & from_bt = disable) : disabled;
 	    (state = disabled_far & from_bt = disable) : disabled;
 	    (state = disabled_far & from_bt = enable) : running;
@@ -339,8 +319,8 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
 	    (state = failing & from_bt = no) : failing;
 	    (state = failing & from_bt = disable & is_bottle_found != succeeded): disabled_far;
     	    (state = failing & from_bt = disable & is_bottle_found = succeeded): disabled_near;
-	    (state = near & from_bt = enable) : finding;
-    	    (state = near & from_bt = no) : near;	
+    	    (state = near &  (from_bt = no | from_bt = enable) & is_bottle_found != failed) : near;	
+	    (state = near &  (from_bt = no | from_bt = enable) & is_bottle_found = failed) : failing;
 	    (state = near & from_bt = disable) : disabled_near;
 	    (state = disabled_far & from_bt = disable) : disabled_far;
 	    (state = disabled_far & from_bt = enable) : finding;
@@ -349,6 +329,7 @@ MODULE FIND_BOTTLE(from_bt, is_bottle_found)
     	    (state = disabled_near & from_bt = enable) : finding;
 	    TRUE: far;
 	  esac;
+
 
 
 -- ===============================================================================
@@ -378,8 +359,8 @@ MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = grasped & from_bt = enable) : running;
-	    (state = grasped & from_bt = no) : succeeded;
+	    (state = grasped & (from_bt = no | from_bt = enable) & is_bottle_fetched != failed) : succeeded;
+	    (state = grasped & (from_bt = no | from_bt = enable) & is_bottle_fetched = failed) : failed;
 	    (state = grasped & from_bt = disable) : disabled;
 	    (state = disabled_not_grasped & from_bt = disable) : disabled;
 	    (state = disabled_not_grasped & from_bt = enable) : running;
@@ -413,8 +394,8 @@ MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
 	    (state = failing & from_bt = no) : failing;
 	    (state = failing & from_bt = disable & is_bottle_fetched != succeeded): disabled_not_grasped;
     	    (state = failing & from_bt = disable & is_bottle_fetched = succeeded): disabled_grasped;
-	    (state = grasped & from_bt = enable) : fetching;
-    	    (state = grasped & from_bt = no) : grasped;	
+    	    (state = grasped &  (from_bt = no | from_bt = enable) & is_bottle_fetched != failed) : grasped;	
+	    (state = grasped &  (from_bt = no | from_bt = enable) & is_bottle_fetched = failed) : failing;
 	    (state = grasped & from_bt = disable) : disabled_grasped;
 	    (state = disabled_not_grasped & from_bt = disable) : disabled_not_grasped;
 	    (state = disabled_not_grasped & from_bt = enable) : fetching;
@@ -454,8 +435,8 @@ MODULE ASK_FOR_HELP(from_bt, is_help_given)
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = asked & from_bt = enable) : running;
-	    (state = asked & from_bt = no) : succeeded;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given != failed) : succeeded;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given = failed) : failed;
 	    (state = asked & from_bt = disable) : disabled;
 	    (state = disabled_not_asked & from_bt = disable) : disabled;
 	    (state = disabled_not_asked & from_bt = enable) : running;
@@ -489,8 +470,8 @@ MODULE ASK_FOR_HELP(from_bt, is_help_given)
 	    (state = failing & from_bt = no) : failing;
 	    (state = failing & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
     	    (state = failing & from_bt = disable & is_help_given = succeeded): disabled_asked;
-	    (state = asked & from_bt = enable) : asking;
-    	    (state = asked & from_bt = no) : asked;	
+    	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given != failed) : asked;	
+	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given = failed) : failing;
 	    (state = asked & from_bt = disable) : disabled_asked;
 	    (state = disabled_not_asked & from_bt = disable) : disabled_not_asked;
 	    (state = disabled_not_asked & from_bt = enable) : asking;
