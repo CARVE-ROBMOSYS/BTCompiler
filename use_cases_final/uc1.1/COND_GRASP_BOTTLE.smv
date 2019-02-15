@@ -29,10 +29,10 @@ MODULE COND_GRASP_BOTTLE(from_bt, is_bottle_grasped)
 	  case
 	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
 	    (state = idle & (from_bt = disable)) : disabled;
-	    (state = idle & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
 	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
 	    (state = done & (from_bt = disable)) : disabled;
-	    (state = not_done & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
 	    (state = not_done & (from_bt = disable)) : disabled;
 	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
 	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : failed;
@@ -43,10 +43,10 @@ MODULE COND_GRASP_BOTTLE(from_bt, is_bottle_grasped)
   	next(state) :=
 	  case
 	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
-	    (state = idle & (from_bt = enable & is_bottle_grasped = failed)) : not_done;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
 	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
 	    (state = done & (from_bt = disable)) : disabled;
-	    (state = not_done & (from_bt = enable & is_bottle_grasped = failed)) : not_done;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
 	    (state = not_done & (from_bt = disable)) : disabled;
 	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
 	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : not_done;

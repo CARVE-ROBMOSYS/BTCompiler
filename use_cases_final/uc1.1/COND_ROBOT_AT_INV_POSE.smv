@@ -1,0 +1,59 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        COND_ROBOT_AT_INV_POSE_inst : COND_ROBOT_AT_INV_POSE(from_bt, is_robot_at_inv_pose);
+    VAR
+        from_bt : {disable, enable, no};
+        is_robot_at_inv_pose : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := COND_ROBOT_AT_INV_POSE_inst.to_bt;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COND_ROBOT_AT_INV_POSE(from_bt, is_robot_at_inv_pose)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : failed;
+	    (state = done & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : not_done;
+	    (state = done & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

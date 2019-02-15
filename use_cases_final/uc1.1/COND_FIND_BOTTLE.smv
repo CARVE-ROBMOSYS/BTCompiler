@@ -29,10 +29,10 @@ MODULE COND_FIND_BOTTLE(from_bt, is_bottle_found)
 	  case
 	    (state = idle & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
 	    (state = idle & (from_bt = disable)) : disabled;
-	    (state = idle & (from_bt = enable & is_bottle_found = failed)) : failed;
+	    (state = idle & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : failed;
 	    (state = done & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
 	    (state = done & (from_bt = disable)) : disabled;
-	    (state = not_done & (from_bt = enable & is_bottle_found = failed)) : failed;
+	    (state = not_done & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : failed;
 	    (state = not_done & (from_bt = disable)) : disabled;
 	    (state = disabled & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
 	    (state = disabled & (from_bt = enable & is_bottle_found = failed)) : failed;
@@ -43,10 +43,10 @@ MODULE COND_FIND_BOTTLE(from_bt, is_bottle_found)
   	next(state) :=
 	  case
 	    (state = idle & (from_bt = enable & is_bottle_found = succeeded)) : done;
-	    (state = idle & (from_bt = enable & is_bottle_found = failed)) : not_done;
+	    (state = idle & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : not_done;
 	    (state = done & (from_bt = enable & is_bottle_found = succeeded)) : done;
 	    (state = done & (from_bt = disable)) : disabled;
-	    (state = not_done & (from_bt = enable & is_bottle_found = failed)) : not_done;
+	    (state = not_done & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : not_done;
 	    (state = not_done & (from_bt = disable)) : disabled;
 	    (state = disabled & (from_bt = enable & is_bottle_found = succeeded)) : done;
 	    (state = disabled & (from_bt = enable & is_bottle_found = failed)) : not_done;

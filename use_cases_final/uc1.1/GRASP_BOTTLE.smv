@@ -1,0 +1,91 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        GRASP_BOTTLE_inst : GRASP_BOTTLE(from_bt, is_bottle_grasped);
+    VAR
+        from_bt : {disable, enable, no};
+        is_bottle_grasped : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := GRASP_BOTTLE_inst.to_bt;
+        req_Grasp_bottle := GRASP_BOTTLE_inst.req_Grasp_bottle;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GRASP_BOTTLE(from_bt, is_bottle_grasped)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Grasp_bottle : boolean;
+	state : {not_grasped, fetching, failing, grasped, disabled_not_grasped, disabled_grasped};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Grasp_bottle) := FALSE;
+	init(state) := not_grasped;
+
+	next(to_bt) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : running;
+	    (state = not_grasped & from_bt = disable) : disabled;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : running;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = fetching & from_bt = disable): disabled;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = grasped & (from_bt = no)) : succeeded;
+	    (state = grasped & from_bt = enable) : running;
+	    (state = grasped & from_bt = disable) : disabled;
+	    (state = disabled_not_grasped & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_not_grasped & from_bt = enable) : running;
+	    (state = disabled_grasped & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_grasped & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Grasp_bottle) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : TRUE;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_grasped & from_bt = enable) : TRUE;
+	    (state = grasped & from_bt = enable): TRUE;
+	    (state = disabled_grasped & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : fetching;
+	    (state = not_grasped & from_bt = disable) : disabled_not_grasped;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : fetching;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = succeeded)) : grasped;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = failed)) : failing;
+	    (state = fetching & from_bt = disable & is_bottle_grasped != succeeded): disabled_not_grasped;
+    	    (state = fetching & from_bt = disable & is_bottle_grasped = succeeded): disabled_grasped;
+	    (state = failing & from_bt = enable) : fetching;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_grasped != succeeded): disabled_not_grasped;
+    	    (state = failing & from_bt = disable & is_bottle_grasped = succeeded): disabled_grasped;
+    	    (state = grasped &  (from_bt = no)) : grasped;
+	    (state = grasped & from_bt = enable) : fetching;
+	    (state = grasped & from_bt = disable) : disabled_grasped;
+	    (state = disabled_not_grasped & (from_bt = disable | from_bt = no)) : disabled_not_grasped;
+	    (state = disabled_not_grasped & from_bt = enable) : fetching;
+	    (state = disabled_grasped & (from_bt = disable | from_bt = no)) : disabled_grasped;
+    	    (state = disabled_grasped & from_bt = enable) : fetching;
+	    TRUE: not_grasped;
+	  esac;
+
+
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

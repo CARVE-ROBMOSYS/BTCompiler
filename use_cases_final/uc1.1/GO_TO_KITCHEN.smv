@@ -33,13 +33,13 @@ MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
 	    (state = away & from_bt = enable) : running;
 	    (state = away & from_bt = disable) : disabled;
 	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_kitchen = none))) : running;
-	    (state = going & (from_bt = enable  & is_robot_in_kitchen = succeeded) : succeeded;
-	    (state = going & (from_bt = disable): disabled;
-	    (state = going & (from_bt = enable  & is_robot_in_kitchen = failed) : failed;
+	    (state = going & (from_bt = enable  & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = going & (from_bt = disable)): disabled;
+	    (state = going & (from_bt = enable  & is_robot_in_kitchen = failed)) : failed;
 	    (state = failing & from_bt = enable) : running;
 	    (state = failing & from_bt = no) : failed;
 	    (state = failing & from_bt = disable): disabled;
-	    (state = in_kitchen & (from_bt = no) : succeeded;
+	    (state = in_kitchen & (from_bt = no)) : succeeded;
 	    (state = in_kitchen & (from_bt = enable)) : running;
 	    (state = in_kitchen & from_bt = disable) : disabled;
 	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled;
