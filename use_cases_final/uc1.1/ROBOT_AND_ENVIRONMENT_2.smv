@@ -31,17 +31,17 @@ MODULE main
 
 -- ===============================================================================
 MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Grasp_bottle, req_Find_bottle, req_Go_to_kitchen, req_Compute_inv_pose,
-                                                           req_Go_to_inv_pose, req_Locate_bottle, req_Inv_pose_not_valid);
+                                                           req_Go_to_inv_pose, req_Locate_bottle, req_Inv_pose_not_valid)
     VAR
         is_help_given : {none, failed, succeeded};
-        is_bottle_fetched : {none, failed, succeeded};
+        is_bottle_grasped : {none, failed, succeeded};
         is_bottle_found : {none, failed, succeeded};
         is_robot_in_kitchen : {none, failed, succeeded};
 	is_inv_pose_valid : {none, failed, succeeded};
 	is_inv_pose_computed : {none, failed, succeeded};
 	is_robot_at_inv_pose : {none, failed, succeeded};
 	is_bottle_located : {none, failed, succeeded};
-	state : {stand_by, in_kitchen, bottle_found, bottle_grasped, pose_computed, gone_to_pose, set_inv_pose_not_valid
+	state : {stand_by, in_kitchen, bottle_found, bottle_located, bottle_grasped, pose_computed, gone_to_pose, set_inv_pose_not_valid,
 	         help_stand_by, help_kitchen, help_found, help_grasped, help_pose_computed, help_gone_to_pose, help_located, help_pose_not_valid,
 		 failed_kitchen, failed_find, failed_grasped, failed_go_to_pose, failed_located};
 	

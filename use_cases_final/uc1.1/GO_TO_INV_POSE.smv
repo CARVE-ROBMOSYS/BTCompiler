@@ -1,0 +1,88 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        GO_TO_INV_POSE_inst : GO_TO_INV_POSE(from_bt, is_robot_at_inv_pose);
+    VAR
+        from_bt : {disable, enable, no};
+        is_robot_at_inv_pose : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := GO_TO_INV_POSEinst.to_bt;
+        req_Go_to_inv_pose := GO_TO_KITCHEN_inst.req_Go_to_inv_pose;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_INV_POSE(from_bt, is_robot_at_inv_pose)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_inv_pose : boolean;
+	state : {away, going, failing, at_inv_pose, disabled_away, disabled_at_inv_pose};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_inv_pose) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : running;
+	    (state = going & (from_bt = enable  & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = going & (from_bt = disable)): disabled;
+	    (state = going & (from_bt = enable  & is_robot_at_inv_pose = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = at_inv_pose & (from_bt = no)) : succeeded;
+	    (state = at_inv_pose & (from_bt = enable)) : running;
+	    (state = at_inv_pose & from_bt = disable) : disabled;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_at_inv_pose & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_at_inv_pose & from_bt = enable) : running;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Go_to_inv_pose) :=
+	  case
+	    (state = away & from_bt = enable) : TRUE;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_away & from_bt = enable) : TRUE;
+	    (state = at_inv_pose & from_bt = enable): TRUE;
+	    (state = disabled_at_inv_pose & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : going;
+	    (state = going & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : at_inv_pose;
+	    (state = going & (from_bt = enable & is_robot_at_inv_pose = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_at_inv_pose != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_at_inv_pose = succeeded): disabled_at_inv_pose;
+	    (state = failing & from_bt = enable) : going;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_robot_at_inv_pose != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_at_inv_pose = succeeded): disabled_at_inv_pose;
+    	    (state = at_inv_pose &  (from_bt = no)) : at_inv_pose;	
+	    (state = at_inv_pose &  (from_bt = enable)) : going;
+	    (state = at_inv_pose & from_bt = disable) : disabled_at_inv_pose;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_at_inv_pose & (from_bt = disable | from_bt = no)) : disabled_at_inv_pose;
+    	    (state = disabled_at_inv_pose & from_bt = enable) : going;
+	    TRUE: away;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

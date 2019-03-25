@@ -1,0 +1,89 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        LOCATE_BOTTLE_inst : LOCATE_BOTTLE(from_bt, is_bottle_located);
+    VAR
+        from_bt : {disable, enable, no};
+        is_bottle_located : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := LOCATE_BOTTLE_inst.to_bt;
+        req_Locate_bottle := LOCATE_BOTTLE_inst.req_Locate_bottle;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE LOCATE_BOTTLE(from_bt, is_bottle_located)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Locate_bottle : boolean;
+	state : {undetected, locating, failing, locate, disabled_undetected, disabled_locate};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Locate_bottle) := FALSE;
+	init(state) := undetected;
+
+	next(to_bt) :=
+	  case
+	    (state = undetected & from_bt = enable) : running;
+	    (state = undetected & from_bt = disable) : disabled;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : running;
+	    (state = locating & (from_bt = enable & is_bottle_located = succeeded)) : succeeded;
+	    (state = locating & from_bt = disable): disabled;
+	    (state = locating & (from_bt = enable & is_bottle_located = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = locate & from_bt = enable) : running;
+	    (state = locate & from_bt = no) : succeeded;
+	    (state = locate & from_bt = disable) : disabled;
+	    (state = disabled_undetected & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_undetected & from_bt = enable) : running;
+	    (state = disabled_locate & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_locate & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Locate_bottle) :=
+	  case
+	    (state = undetected & from_bt = enable) : TRUE;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_undetected & from_bt = enable) : TRUE;
+	    (state = locate & from_bt = enable): TRUE;
+	    (state = disabled_locate & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = undetected & from_bt = enable) : locating;
+	    (state = undetected & from_bt = disable) : disabled_undetected;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : locating;
+	    (state = locating & (from_bt = enable & is_bottle_located = succeeded)) : locate;
+	    (state = locating & (from_bt = enable & is_bottle_located = failed)) : failing;
+	    (state = locating & from_bt = disable & is_bottle_located != succeeded): disabled_undetected;
+    	    (state = locating & from_bt = disable & is_bottle_located = succeeded): disabled_locate;
+	    (state = failing & from_bt = enable) : locating;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_located != succeeded): disabled_undetected;
+    	    (state = failing & from_bt = disable & is_bottle_located = succeeded): disabled_locate;
+	    (state = locate & from_bt = enable) : locating;
+    	    (state = locate & from_bt = no) : locate;	
+	    (state = locate & from_bt = disable) : disabled_locate;
+	    (state = disabled_undetected & (from_bt = disable | from_bt = no)) : disabled_undetected;
+	    (state = disabled_undetected & from_bt = enable) : locating;
+	    (state = disabled_locate & (from_bt = disable | from_bt = no)) : disabled_locate;
+    	    (state = disabled_locate & from_bt = enable) : locating;
+	    TRUE: undetected;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

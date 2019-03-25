@@ -9,7 +9,7 @@ MODULE main
 
     DEFINE
         to_bt := SET_INV_POSE_NOT_VALID_inst.to_bt;
-        req_inv_pose_not_valid := FIND_BOTTLE_inst.req_inv_pose_not_valid;
+        req_Inv_pose_not_valid := FIND_BOTTLE_inst.req_Inv_pose_not_valid;
 
 
 -- ===============================================================================
@@ -20,12 +20,12 @@ MODULE main
 MODULE SET_INV_POSE_NOT_VALID(from_bt, is_inv_pose_valid)
     VAR
         to_bt : {none, disabled, running, failed, succeeded};
-        req_inv_pose_not_valid : boolean;
+        req_Inv_pose_not_valid : boolean;
 	state : {idle, computing, set_invalid, disabled_idle, disabled_set_invalid};	
 
     ASSIGN
 	init(to_bt) := none;
-	init(req_inv_pose_not_valid) := FALSE;
+	init(req_Inv_pose_not_valid) := FALSE;
 	init(state) := idle;
 
 	next(to_bt) :=
@@ -45,7 +45,7 @@ MODULE SET_INV_POSE_NOT_VALID(from_bt, is_inv_pose_valid)
 	    TRUE: none;
 	  esac;
 
-	next(req_inv_pose_not_valid) :=
+	next(req_Inv_pose_not_valid) :=
 	  case
 	    (state = idle & from_bt = enable) : TRUE;
 	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_valid = none))) : TRUE;
