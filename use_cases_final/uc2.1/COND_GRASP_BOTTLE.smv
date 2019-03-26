@@ -1,0 +1,59 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        COND_GRASP_BOTTLE_inst : COND_GRASP_BOTTLE(from_bt, is_bottle_grasped);
+    VAR
+        from_bt : {disable, enable, no};
+        is_bottle_grasped : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := COND_GRASP_BOTTLE_inst.to_bt;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COND_GRASP_BOTTLE(from_bt, is_bottle_grasped)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
+	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
+	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

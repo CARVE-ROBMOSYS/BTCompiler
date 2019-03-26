@@ -1,0 +1,59 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        COND_INV_POSE_COMPUTED_inst : COND_INV_POSE_COMPUTED(from_bt, is_inv_pose_computed);
+    VAR
+        from_bt : {disable, enable, no};
+        is_inv_pose_computed : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := COND_INV_POSE_COMPUTED_inst.to_bt;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COND_INV_POSE_COMPUTED(from_bt, is_inv_pose_computed)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : failed;
+	    (state = done & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : not_done;
+	    (state = done & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

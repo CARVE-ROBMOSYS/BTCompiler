@@ -1,0 +1,1262 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        TICK_GENERATOR_inst : TICK_GENERATOR(FALLBACK_NODE_inst_1.output);
+	FALLBACK_NODE_inst_1: FALLBACK_NODE(TICK_GENERATOR_inst.tick, SEQUENCE_NODE_inst_1.output, ASK_FOR_HELP_inst.to_bt);
+	SEQUENCE_NODE_inst_1 : SEQUENCE_NODE(FALLBACK_NODE_inst_1.to_left_bt, FALLBACK_NODE_inst_2.output, SEQUENCE_NODE_inst_2.output);
+	SEQUENCE_NODE_inst_2 : SEQUENCE_NODE(SEQUENCE_NODE_inst_1.to_right_bt, FALLBACK_NODE_inst_3.output, FALLBACK_NODE_inst_4.output);
+
+	SEQUENCE_NODE_inst_3 : SEQUENCE_NODE(FALLBACK_NODE_inst_5.to_left_bt, FALLBACK_NODE_inst_7.output, SEQUENCE_NODE_inst_4.output);
+	SEQUENCE_NODE_inst_4 : SEQUENCE_NODE(SEQUENCE_NODE_inst_3.to_right_bt, FALLBACK_NODE_inst_8.output, SEQUENCE_NODE_inst_5.output);
+	SEQUENCE_NODE_inst_5 : SEQUENCE_NODE(SEQUENCE_NODE_inst_4.to_right_bt, FALLBACK_NODE_inst_9.output, GRASP_BOTTLE_inst.to_bt);
+	SEQUENCE_NODE_inst_6 : SEQUENCE_NODE(FALLBACK_NODE_inst_7.to_left_bt, COND_INV_POSE_COMPUTED_inst.to_bt, COND_INV_POSE_VALID_inst.to_bt);
+
+	FALLBACK_NODE_inst_2 : FALLBACK_NODE(SEQUENCE_NODE_inst_1.to_left_bt, COND_GO_TO_KITCHEN_inst.to_bt, GO_TO_KITCHEN_inst.to_bt);
+	FALLBACK_NODE_inst_3 : FALLBACK_NODE(SEQUENCE_NODE_inst_2.to_left_bt, COND_FIND_BOTTLE_inst.to_bt, FIND_BOTTLE_inst.to_bt);
+	FALLBACK_NODE_inst_4 : FALLBACK_NODE(SEQUENCE_NODE_inst_2.to_right_bt, COND_GRASP_BOTTLE_inst.to_bt, GRASP_BOTTLE_inst.to_bt);
+
+	FALLBACK_NODE_inst_5 : FALLBACK_NODE(FALLBACK_NODE_inst_4.to_right_bt, SEQUENCE_NODE_inst_3.output, SET_INV_POSE_NOT_VALID_inst.to_bt);
+	FALLBACK_NODE_inst_7 : FALLBACK_NODE(SEQUENCE_NODE_inst_3.to_left_bt, SEQUENCE_NODE_inst_6.output, GRASP_BOTTLE_inst.to_bt);
+	FALLBACK_NODE_inst_8 : FALLBACK_NODE(SEQUENCE_NODE_inst_4.to_left_bt, COND_ROBOT_AT_INV_POSE_inst.to_bt, GO_TO_INV_POSE_inst.to_bt);
+	FALLBACK_NODE_inst_9 : FALLBACK_NODE(SEQUENCE_NODE_inst_5.to_left_bt, COND_LOCATE_BOTTLE_inst.to_bt, LOCATE_BOTTLE_inst.to_bt);
+
+	COND_GO_TO_KITCHEN_inst : COND_GO_TO_KITCHEN(FALLBACK_NODE_inst_2.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(FALLBACK_NODE_inst_2.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+
+	COND_FIND_BOTTLE_inst : COND_FIND_BOTTLE(FALLBACK_NODE_inst_3.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+	FIND_BOTTLE_inst : FIND_BOTTLE(FALLBACK_NODE_inst_3.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+
+	COND_GRASP_BOTTLE_inst : COND_GRASP_BOTTLE(FALLBACK_NODE_inst_4.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
+	GRASP_BOTTLE_inst : GRASP_BOTTLE(FALLBACK_NODE_inst_4.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
+
+	ASK_FOR_HELP_inst : ASK_FOR_HELP(FALLBACK_NODE_inst_1.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_help_given);
+
+
+	SET_INV_POSE_NOT_VALID_inst : SET_INV_POSE_NOT_VALID(FALLBACK_NODE_inst_5.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
+	COND_INV_POSE_COMPUTED_inst : COND_INV_POSE_COMPUTED(SEQUENCE_NODE_inst_6.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
+	COND_INV_POSE_VALID_inst : COND_INV_POSE_VALID(SEQUENCE_NODE_inst_6.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
+	COND_ROBOT_AT_INV_POSE_inst : COND_ROBOT_AT_INV_POSE(FALLBACK_NODE_inst_8.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
+	COND_LOCATE_BOTTLE_inst : COND_LOCATE_BOTTLE(FALLBACK_NODE_inst_9.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
+	
+	COMPUTE_INV_POSE_inst : COMPUTE_INV_POSE(FALLBACK_NODE_inst_7.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
+	GO_TO_INV_POSE_inst : GO_TO_INV_POSE(FALLBACK_NODE_inst_8.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
+	LOCATE_BOTTLE_inst : LOCATE_BOTTLE(FALLBACK_NODE_inst_9.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
+
+	ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(ASK_FOR_HELP_inst.req_Ask_for_help, GRASP_BOTTLE_inst.req_Grasp_bottle,
+                                                           FIND_BOTTLE_inst.req_Find_bottle, GO_TO_KITCHEN_inst.req_Go_to_kitchen,
+                                                           COMPUTE_INV_POSE_inst.req_Compute_inv_pose, GO_TO_INV_POSE_inst.req_Go_to_inv_pose, 
+                                                           LOCATE_BOTTLE_inst.req_Locate_bottle, SET_INV_POSE_NOT_VALID_inst.req_Inv_pose_not_valid);
+
+        --LTLSPEC  G F (FALLBACK_NODE_inst_1.output = succeeded);
+        --LTLSPEC F GRASP_BOTTLE_inst.req_Grasp_bottle ->  ( ! GRASP_BOTTLE_inst.req_Grasp_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & ! GRASP_BOTTLE_inst.req_Grasp_bottle));
+        LTLSPEC (F (FALLBACK_NODE_inst_1.output = succeeded) -> ( FALLBACK_NODE_inst_1.output != succeeded U ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
+                   GRASP_BOTTLE_inst.to_bt=succeeded) &  FALLBACK_NODE_inst_1.output != succeeded))) |
+                (F (FALLBACK_NODE_inst_1.output = succeeded) ->  (FALLBACK_NODE_inst_1.output != succeeded U (ASK_FOR_HELP_inst.to_bt=succeeded & FALLBACK_NODE_inst_1.output != succeeded) ));
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE TICK_GENERATOR(from_bt)
+    VAR
+        tick : {no, enable};
+
+    ASSIGN
+      init(tick) := enable;
+
+      next(tick) :=
+      	case
+                from_bt = none : no;
+        	TRUE : enable;
+      	esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
+    VAR
+        to_left_bt : {no, enable, disable};
+        to_right_bt : {no, enable, disable};
+        output : {none, disabled, running, failed, succeeded};
+	cached_left : {succeeded, failed, running, disabled, none};
+	state : {initial, enabling_left, enabling_right, return_left, return_right,
+	         disabling_left, disabling_right};
+
+    ASSIGN
+	init(to_left_bt)  := no;
+	init(to_right_bt) := no;
+	init(output)      := none;
+	init(cached_left) := none;
+	init(state)       := initial;
+
+	next(to_left_bt) :=
+	  case
+	    (state = initial & visit = enable) : enable;
+	    (state = initial & visit = disable) : disable;
+	    (state = enabling_left & from_left_bt = none) : enable;
+	    (state = disabling_left & from_left_bt != disabled) : disable;
+	    TRUE : no;
+	  esac;
+
+	next(to_right_bt) :=
+	  case
+	    (state = enabling_left & from_left_bt = failed) : enable;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disable;
+	    (state = enabling_right & from_right_bt = none): enable;
+	    (state = disabling_right & from_right_bt != disabled): disable;
+	    TRUE : no;
+	  esac;
+
+	next(output) :=
+	  case
+	    (state = enabling_right & from_right_bt != none) : from_right_bt;
+	    (state = disabling_right & from_right_bt = disabled) : cached_left;
+	    TRUE : none;
+	  esac;
+
+	next(cached_left) :=
+	  case
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : from_left_bt;
+	    (state = disabling_left & from_left_bt = disabled) : from_left_bt;
+	    (state = disabling_right & from_right_bt != disabled) : cached_left;
+	    TRUE : none; 
+	  esac;
+
+	next(state) :=
+	  case
+	    (state = initial & visit = enable) : enabling_left;
+	    (state = initial & visit = disable) : disabling_left;
+	    (state = enabling_left & from_left_bt = failed) : enabling_right;
+	    (state = enabling_left & from_left_bt = none) : enabling_left;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disabling_right;
+	    (state = enabling_right & from_right_bt = none) : enabling_right;
+	    (state = enabling_right & from_right_bt != none) : return_right;
+	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
+	    (state = disabling_right & from_right_bt = disabled) : return_left;
+	    (state = disabling_left & from_left_bt != disabled) : disabling_left;
+	    (state = disabling_left & from_left_bt = disabled) : disabling_right;
+	    TRUE : initial;
+	  esac;
+
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
+    VAR
+        to_left_bt : {no, enable, disable};
+        to_right_bt : {no, enable, disable};
+        output : {none, disabled, running, failed, succeeded};
+	cached_left : {succeeded, failed, running, disabled, none};
+	state : {initial, enabling_left, enabling_right, return_left, return_right,
+	         disabling_left, disabling_right};
+
+    ASSIGN
+	init(to_left_bt)  := no;
+	init(to_right_bt) := no;
+	init(output)      := none;
+	init(cached_left) := none;
+	init(state)       := initial;
+
+	next(to_left_bt) :=
+	  case
+	    (state = initial & visit = enable) : enable;
+	    (state = initial & visit = disable) : disable;
+	    (state = enabling_left & from_left_bt = none) : enable;
+	    (state = disabling_left & from_left_bt != disabled) : disable;
+	    TRUE : no;
+	  esac;
+
+	next(to_right_bt) :=
+	  case
+	    (state = enabling_left & from_left_bt = succeeded) : enable;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disable;
+	    (state = enabling_right & from_right_bt = none): enable;
+	    (state = disabling_right & from_right_bt != disabled): disable;
+	    TRUE : no;
+	  esac;
+
+	next(output) :=
+	  case
+	    (state = enabling_right & from_right_bt != none) : from_right_bt;
+	    (state = disabling_right & from_right_bt = disabled) : cached_left;
+	    TRUE : none;
+	  esac;
+
+	next(cached_left) :=
+	  case
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : from_left_bt;
+	    (state = disabling_left & from_left_bt = disabled) : from_left_bt;
+	    (state = disabling_right & from_right_bt != disabled) : cached_left;
+	    TRUE : none; 
+	  esac;
+
+	next(state) :=
+	  case
+	    (state = initial & visit = enable) : enabling_left;
+	    (state = initial & visit = disable) : disabling_left;
+	    (state = enabling_left & from_left_bt = succeeded) : enabling_right;
+	    (state = enabling_left & from_left_bt = none) : enabling_left;
+	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disabling_right;
+	    (state = enabling_right & from_right_bt = none) : enabling_right;
+	    (state = enabling_right & from_right_bt != none) : return_right;
+	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
+	    (state = disabling_right & from_right_bt = disabled) : return_left;
+	    (state = disabling_left & from_left_bt != disabled) : disabling_left;
+	    (state = disabling_left & from_left_bt = disabled) : disabling_right;
+	    TRUE : initial;
+	  esac;
+
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_kitchen : boolean;
+	state : {away, going, failing, in_kitchen, disabled_away, disabled_in_kitchen};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_kitchen) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_kitchen = none))) : running;
+	    (state = going & (from_bt = enable  & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = going & (from_bt = disable)): disabled;
+	    (state = going & (from_bt = enable  & is_robot_in_kitchen = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = in_kitchen & (from_bt = no)) : succeeded;
+	    (state = in_kitchen & (from_bt = enable)) : running;
+	    (state = in_kitchen & from_bt = disable) : disabled;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_in_kitchen & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_in_kitchen & from_bt = enable) : running;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Go_to_kitchen) :=
+	  case
+	    (state = away & from_bt = enable) : TRUE;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_kitchen = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_away & from_bt = enable) : TRUE;
+	    (state = in_kitchen & from_bt = enable): TRUE;
+	    (state = disabled_in_kitchen & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_kitchen = none))) : going;
+	    (state = going & (from_bt = enable & is_robot_in_kitchen = succeeded)) : in_kitchen;
+	    (state = going & (from_bt = enable & is_robot_in_kitchen = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+	    (state = failing & from_bt = enable) : going;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+    	    (state = in_kitchen &  (from_bt = no)) : in_kitchen;	
+	    (state = in_kitchen &  (from_bt = enable)) : going;
+	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_in_kitchen & (from_bt = disable | from_bt = no)) : disabled_in_kitchen;
+    	    (state = disabled_in_kitchen & from_bt = enable) : going;
+	    TRUE: away;
+	  esac;
+
+MODULE COND_GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_robot_in_kitchen = failed | is_robot_in_kitchen = none))) : failed;
+	    (state = done & (from_bt = enable & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_in_kitchen = failed | is_robot_in_kitchen = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_robot_in_kitchen = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_in_kitchen = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_robot_in_kitchen = failed | is_robot_in_kitchen = none))) : not_done;
+	    (state = done & (from_bt = enable & is_robot_in_kitchen = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_in_kitchen = failed | is_robot_in_kitchen = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_in_kitchen = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_robot_in_kitchen = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FIND_BOTTLE(from_bt, is_bottle_found)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Find_bottle : boolean;
+	state : {far, finding, failing, near, disabled_far, disabled_near};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Find_bottle) := FALSE;
+	init(state) := far;
+
+	next(to_bt) :=
+	  case
+	    (state = far & from_bt = enable) : running;
+	    (state = far & from_bt = disable) : disabled;
+	    (state = finding & (from_bt = no | (from_bt = enable & is_bottle_found = none))) : running;
+	    (state = finding & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
+	    (state = finding & from_bt = disable): disabled;
+	    (state = finding & (from_bt = enable & is_bottle_found = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = near & from_bt = enable) : running;
+	    (state = near & from_bt = no) : succeeded;
+	    (state = near & from_bt = disable) : disabled;
+	    (state = disabled_far & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_far & from_bt = enable) : running;
+	    (state = disabled_near & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_near & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Find_bottle) :=
+	  case
+	    (state = far & from_bt = enable) : TRUE;
+	    (state = finding & (from_bt = no | (from_bt = enable & is_bottle_found = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_far & from_bt = enable) : TRUE;
+	    (state = near & from_bt = enable): TRUE;
+	    (state = disabled_near & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = far & from_bt = enable) : finding;
+	    (state = far & from_bt = disable) : disabled_far;
+	    (state = finding & (from_bt = no | (from_bt = enable & is_bottle_found = none))) : finding;
+	    (state = finding & (from_bt = enable & is_bottle_found = succeeded)) : near;
+	    (state = finding & (from_bt = enable & is_bottle_found = failed)) : failing;
+	    (state = finding & from_bt = disable & is_bottle_found != succeeded): disabled_far;
+    	    (state = finding & from_bt = disable & is_bottle_found = succeeded): disabled_near;
+	    (state = failing & from_bt = enable) : finding;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_found != succeeded): disabled_far;
+    	    (state = failing & from_bt = disable & is_bottle_found = succeeded): disabled_near;
+	    (state = near & from_bt = enable) : finding;
+    	    (state = near & from_bt = no) : near;	
+	    (state = near & from_bt = disable) : disabled_near;
+	    (state = disabled_far & (from_bt = disable | from_bt = no)) : disabled_far;
+	    (state = disabled_far & from_bt = enable) : finding;
+	    (state = disabled_near & (from_bt = disable | from_bt = no)) : disabled_near;
+    	    (state = disabled_near & from_bt = enable) : finding;
+	    TRUE: far;
+	  esac;
+
+MODULE COND_FIND_BOTTLE(from_bt, is_bottle_found)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : failed;
+	    (state = done & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_found = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_bottle_found = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_found = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : not_done;
+	    (state = done & (from_bt = enable & is_bottle_found = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_found = failed | is_bottle_found = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_found = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_bottle_found = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GRASP_BOTTLE(from_bt, is_bottle_grasped)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Grasp_bottle : boolean;
+	state : {not_grasped, fetching, failing, grasped, disabled_not_grasped, disabled_grasped};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Grasp_bottle) := FALSE;
+	init(state) := not_grasped;
+
+	next(to_bt) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : running;
+	    (state = not_grasped & from_bt = disable) : disabled;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : running;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = fetching & from_bt = disable): disabled;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = grasped & (from_bt = no)) : succeeded;
+	    (state = grasped & from_bt = enable) : running;
+	    (state = grasped & from_bt = disable) : disabled;
+	    (state = disabled_not_grasped & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_not_grasped & from_bt = enable) : running;
+	    (state = disabled_grasped & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_grasped & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Grasp_bottle) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : TRUE;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_grasped & from_bt = enable) : TRUE;
+	    (state = grasped & from_bt = enable): TRUE;
+	    (state = disabled_grasped & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : fetching;
+	    (state = not_grasped & from_bt = disable) : disabled_not_grasped;
+	    (state = fetching & (from_bt = no | (from_bt = enable & is_bottle_grasped = none))) : fetching;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = succeeded)) : grasped;
+	    (state = fetching & (from_bt = enable & is_bottle_grasped = failed)) : failing;
+	    (state = fetching & from_bt = disable & is_bottle_grasped != succeeded): disabled_not_grasped;
+    	    (state = fetching & from_bt = disable & is_bottle_grasped = succeeded): disabled_grasped;
+	    (state = failing & from_bt = enable) : fetching;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_grasped != succeeded): disabled_not_grasped;
+    	    (state = failing & from_bt = disable & is_bottle_grasped = succeeded): disabled_grasped;
+    	    (state = grasped &  (from_bt = no)) : grasped;
+	    (state = grasped & from_bt = enable) : fetching;
+	    (state = grasped & from_bt = disable) : disabled_grasped;
+	    (state = disabled_not_grasped & (from_bt = disable | from_bt = no)) : disabled_not_grasped;
+	    (state = disabled_not_grasped & from_bt = enable) : fetching;
+	    (state = disabled_grasped & (from_bt = disable | from_bt = no)) : disabled_grasped;
+    	    (state = disabled_grasped & from_bt = enable) : fetching;
+	    TRUE: not_grasped;
+	  esac;
+
+
+MODULE COND_GRASP_BOTTLE(from_bt, is_bottle_grasped)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
+	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
+	    (state = done & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_grasped = failed | is_bottle_grasped = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_bottle_grasped = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ASK_FOR_HELP(from_bt, is_help_given)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Ask_for_help : boolean;
+	state : {not_asked, asking, failing, asked, disabled_not_asked, disabled_asked};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Ask_for_help) := FALSE;
+	init(state) := not_asked;
+
+	next(to_bt) :=
+	  case
+	    (state = not_asked & from_bt = enable) : running;
+	    (state = not_asked & from_bt = disable) : disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : running;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : succeeded;
+	    (state = asking & from_bt = disable): disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given != failed) : succeeded;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given = failed) : failed;
+	    (state = asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = disable) : disabled;
+	    (state = disabled_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Ask_for_help) :=
+	  case
+	    (state = not_asked & from_bt = enable) : TRUE;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_asked & from_bt = enable) : TRUE;
+	    (state = asked & from_bt = enable): TRUE;
+	    (state = disabled_asked & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_asked & from_bt = enable) : asking;
+	    (state = not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : asking;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failing;
+	    (state = asking & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = asking & from_bt = disable & is_help_given = succeeded): disabled_asked;
+	    (state = failing & from_bt = enable) : asking;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = failing & from_bt = disable & is_help_given = succeeded): disabled_asked;
+    	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given != failed) : asked;	
+	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given = failed) : failing;
+	    (state = asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = disabled_not_asked & from_bt = enable) : asking;
+	    (state = disabled_asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_asked & from_bt = no) : asked;
+    	    (state = disabled_asked & from_bt = enable) : asking;
+	    TRUE: not_asked;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Grasp_bottle, req_Find_bottle, req_Go_to_kitchen, req_Compute_inv_pose,
+                                                           req_Go_to_inv_pose, req_Locate_bottle, req_Inv_pose_not_valid)
+    VAR
+        is_help_given : {none, failed, succeeded};
+        is_bottle_grasped : {none, failed, succeeded};
+        is_bottle_found : {none, failed, succeeded};
+        is_robot_in_kitchen : {none, failed, succeeded};
+	is_inv_pose_valid : {none, failed, succeeded};
+	is_inv_pose_computed : {none, failed, succeeded};
+	is_robot_at_inv_pose : {none, failed, succeeded};
+	is_bottle_located : {none, failed, succeeded};
+	state : {stand_by, in_kitchen, bottle_found, bottle_located, bottle_grasped, pose_computed, gone_to_pose, set_inv_pose_not_valid,
+	         help_stand_by, help_kitchen, help_found, help_grasped, help_pose_computed, help_gone_to_pose, help_located, help_pose_not_valid,
+		 failed_kitchen, failed_find, failed_grasped, failed_go_to_pose, failed_located};
+	
+    INVAR
+      (state = in_kitchen -> is_robot_in_kitchen = succeeded) &
+      (state = failed_kitchen -> is_robot_in_kitchen = failed) &
+      (state = bottle_found -> is_bottle_found = succeeded) &
+      (state = failed_find -> is_bottle_found = failed) &
+      (state = bottle_grasped -> is_bottle_grasped = succeeded) &
+      (state = failed_grasped -> is_bottle_grasped = failed) &
+      (state = gone_to_pose -> is_robot_at_inv_pose = succeeded) &
+      (state = failed_go_to_pose -> is_robot_at_inv_pose = failed) &
+      (state = bottle_located -> is_bottle_located = succeeded) &
+      (state = failed_located -> is_bottle_located = failed);
+
+    ASSIGN
+      init(is_robot_in_kitchen) := none;
+      init(is_bottle_found) := none;
+      init(is_bottle_grasped) := none;
+      init(is_help_given) := none;
+      init(is_inv_pose_valid) := none;
+      init(is_inv_pose_computed) := none;
+      init(is_robot_at_inv_pose) := none;
+      init(is_bottle_located) := none;
+      init(state) := stand_by;
+
+      next(is_robot_in_kitchen) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {succeeded, failed};
+	  (state = stand_by & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = stand_by & req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Go_to_kitchen & !req_Ask_for_help) : failed;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Ask_for_help) : none;
+	  (state = help_stand_by) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_found) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = in_kitchen & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = in_kitchen & req_Ask_for_help) : none;
+	  (state = failed_find & req_Find_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = failed_find & req_Ask_for_help) : none;
+	  (state = help_kitchen) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_inv_pose_valid) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = bottle_found & req_Ask_for_help) : none;	  
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : failed;
+	  (state = set_inv_pose_not_valid) : failed;
+	  (state = help_pose_not_valid) : failed;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_inv_pose_computed) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = bottle_found & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_robot_at_inv_pose) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found) : none;
+	  (state = help_pose_computed) : none;
+	  (state = pose_computed & req_Go_to_inv_pose & !req_Ask_for_help) : {succeeded, failed};
+	  (state = pose_computed & !req_Go_to_inv_pose & !req_Ask_for_help) : none;
+	  (state = pose_computed & req_Ask_for_help) : none;
+	  (state = failed_go_to_pose & req_Go_to_inv_pose & !req_Ask_for_help) : failed;
+	  (state = failed_go_to_pose & !req_Go_to_inv_pose & !req_Ask_for_help) : none;
+	  (state = failed_go_to_pose & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_located) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found) : none;
+	  (state = pose_computed) : none;
+	  (state = help_pose_computed) : none;
+	  (state = pose_computed) : none;
+	  (state = failed_go_to_pose) : none;
+	  (state = gone_to_pose & req_Locate_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = gone_to_pose & !req_Locate_bottle & !req_Ask_for_help) : none;
+	  (state = gone_to_pose & req_Ask_for_help) : none;
+	  (state = failed_located & req_Locate_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_located & !req_Locate_bottle & !req_Ask_for_help) : none;
+	  (state = failed_located & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_grasped) :=
+        case
+	  (state = bottle_located & req_Grasp_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = failed_grasped & !req_Inv_pose_not_valid & req_Grasp_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : failed;
+	  (state = bottle_grasped) : succeeded;
+	  (state = help_grasped) : succeeded;
+	  (state = set_inv_pose_not_valid) : failed;
+	  (state = help_pose_not_valid) : failed;
+	  TRUE : none;
+	esac;
+
+      next(is_help_given) :=
+        case
+	  req_Ask_for_help : succeeded;	  
+	  TRUE : none;
+	esac;
+
+      next(state) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {in_kitchen, failed_kitchen};
+	  (state = stand_by & req_Ask_for_help) : help_stand_by;
+	  (state = help_stand_by & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & req_Ask_for_help) : help_stand_by;
+
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {bottle_found, failed_find};
+	  (state = in_kitchen & req_Ask_for_help) : help_kitchen;
+  	  (state = help_kitchen & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & req_Ask_for_help) : help_kitchen;
+
+	  (state = bottle_found & req_Ask_for_help) : help_found;
+	  (state = bottle_found & req_Compute_inv_pose & !req_Ask_for_help) : pose_computed;
+
+	  (state = pose_computed & req_Go_to_inv_pose & !req_Ask_for_help) : {gone_to_pose, failed_go_to_pose};
+	  (state = pose_computed & req_Ask_for_help) : help_pose_computed;
+	  (state = help_pose_computed & !req_Ask_for_help) : pose_computed;
+	  (state = failed_go_to_pose & !req_Go_to_inv_pose & !req_Ask_for_help) : pose_computed;
+
+	  (state = gone_to_pose & req_Locate_bottle & !req_Ask_for_help) : {bottle_located, failed_located};
+	  (state = gone_to_pose & req_Ask_for_help) : help_gone_to_pose;
+	  (state = help_gone_to_pose & !req_Ask_for_help) : gone_to_pose;
+	  (state = failed_located & !req_Locate_bottle & !req_Ask_for_help) : gone_to_pose;
+
+	  (state = bottle_located & req_Grasp_bottle & !req_Ask_for_help) : {bottle_grasped, failed_grasped};
+	  (state = bottle_located & req_Ask_for_help) : help_located;
+    	  (state = help_located & !req_Ask_for_help) : bottle_located;	
+	  (state = failed_grasped & !req_Inv_pose_not_valid & !req_Grasp_bottle & !req_Ask_for_help) : bottle_found;
+	  (state = failed_grasped & req_Ask_for_help) : help_located;
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : set_inv_pose_not_valid;
+
+	  (state = set_inv_pose_not_valid & req_Ask_for_help) : help_pose_not_valid;
+	  (state = help_pose_not_valid & !req_Ask_for_help) : set_inv_pose_not_valid;
+
+	  (state = bottle_grasped & req_Ask_for_help) : help_grasped;
+    	  (state = help_grasped & !req_Ask_for_help) : bottle_grasped;
+	  
+	  TRUE : state;
+	esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+MODULE SET_INV_POSE_NOT_VALID(from_bt, is_inv_pose_valid)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Inv_pose_not_valid : boolean;
+	state : {idle, computing, set_invalid, disabled_idle, disabled_set_invalid};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Inv_pose_not_valid) := FALSE;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & from_bt = enable) : running;
+	    (state = idle & from_bt = disable) : disabled;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_valid = none))) : running;
+	    (state = computing & (from_bt = enable & is_inv_pose_valid = failed)) : succeeded;
+	    (state = computing & from_bt = disable): disabled;
+	    (state = set_invalid & from_bt = enable) : running;
+	    (state = set_invalid & from_bt = no) : succeeded;
+	    (state = set_invalid & from_bt = disable) : disabled;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_idle & from_bt = enable) : running;
+	    (state = disabled_set_invalid & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_set_invalid & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Inv_pose_not_valid) :=
+	  case
+	    (state = idle & from_bt = enable) : TRUE;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_valid = none))) : TRUE;
+	    (state = disabled_idle & from_bt = enable) : TRUE;
+	    (state = set_invalid & from_bt = enable): TRUE;
+	    (state = disabled_set_invalid & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & from_bt = enable) : computing;
+	    (state = idle & from_bt = disable) : disabled_idle;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_valid = none))) : computing;
+	    (state = computing & (from_bt = enable & is_inv_pose_valid = failed)) : set_invalid;
+	    (state = computing & from_bt = disable & is_inv_pose_valid != failed): disabled_idle;
+    	    (state = computing & from_bt = disable & is_inv_pose_valid = failed): disabled_set_invalid;
+	    (state = set_invalid & from_bt = enable) : computing;
+    	    (state = set_invalid & from_bt = no) : set_invalid;	
+	    (state = set_invalid & from_bt = disable) : disabled_set_invalid;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled_idle;
+	    (state = disabled_idle & from_bt = enable) : computing;
+	    (state = disabled_set_invalid & (from_bt = disable | from_bt = no)) : disabled_set_invalid;
+    	    (state = disabled_set_invalid & from_bt = enable) : computing;
+	    TRUE: idle;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+-- ===============================================================================
+MODULE COND_INV_POSE_COMPUTED(from_bt, is_inv_pose_computed)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : failed;
+	    (state = done & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : not_done;
+	    (state = done & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_computed = failed | is_inv_pose_computed = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_inv_pose_computed = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+-- ===============================================================================
+MODULE COND_INV_POSE_VALID(from_bt, is_inv_pose_valid)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_valid = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_inv_pose_valid = failed | is_inv_pose_valid = none))) : failed;
+	    (state = done & (from_bt = enable & is_inv_pose_valid = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_valid = failed | is_inv_pose_valid = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_valid = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_inv_pose_valid = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_inv_pose_valid = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_inv_pose_valid = failed | is_inv_pose_valid = none))) : not_done;
+	    (state = done & (from_bt = enable & is_inv_pose_valid = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_inv_pose_valid = failed | is_inv_pose_valid = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_inv_pose_valid = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_inv_pose_valid = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COND_ROBOT_AT_INV_POSE(from_bt, is_robot_at_inv_pose)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : failed;
+	    (state = done & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : not_done;
+	    (state = done & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_robot_at_inv_pose = failed | is_robot_at_inv_pose = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_robot_at_inv_pose = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COND_LOCATE_BOTTLE(from_bt, is_bottle_located)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+	state : {idle, done, not_done, disabled};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_located = succeeded)) : succeeded;
+	    (state = idle & (from_bt = disable)) : disabled;
+	    (state = idle & (from_bt = enable & (is_bottle_located = failed | is_bottle_located = none))) : failed;
+	    (state = done & (from_bt = enable & is_bottle_located = succeeded)) : succeeded;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_located = failed | is_bottle_located = none))) : failed;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_located = succeeded)) : succeeded;
+	    (state = disabled & (from_bt = enable & is_bottle_located = failed)) : failed;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: none;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & (from_bt = enable & is_bottle_located = succeeded)) : done;
+	    (state = idle & (from_bt = enable & (is_bottle_located = failed | is_bottle_located = none))) : not_done;
+	    (state = done & (from_bt = enable & is_bottle_located = succeeded)) : done;
+	    (state = done & (from_bt = disable)) : disabled;
+	    (state = not_done & (from_bt = enable & (is_bottle_located = failed | is_bottle_located = none))) : not_done;
+	    (state = not_done & (from_bt = disable)) : disabled;
+	    (state = disabled & (from_bt = enable & is_bottle_located = succeeded)) : done;
+	    (state = disabled & (from_bt = enable & is_bottle_located = failed)) : not_done;
+	    (state = disabled & (from_bt = disable)) : disabled;
+	    TRUE: idle;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_INV_POSE(from_bt, is_robot_at_inv_pose)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_inv_pose : boolean;
+	state : {away, going, failing, at_inv_pose, disabled_away, disabled_at_inv_pose};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_inv_pose) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : running;
+	    (state = going & (from_bt = enable  & is_robot_at_inv_pose = succeeded)) : succeeded;
+	    (state = going & (from_bt = disable)): disabled;
+	    (state = going & (from_bt = enable  & is_robot_at_inv_pose = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = at_inv_pose & (from_bt = no)) : succeeded;
+	    (state = at_inv_pose & (from_bt = enable)) : running;
+	    (state = at_inv_pose & from_bt = disable) : disabled;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_at_inv_pose & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_at_inv_pose & from_bt = enable) : running;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Go_to_inv_pose) :=
+	  case
+	    (state = away & from_bt = enable) : TRUE;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_away & from_bt = enable) : TRUE;
+	    (state = at_inv_pose & from_bt = enable): TRUE;
+	    (state = disabled_at_inv_pose & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_at_inv_pose = none))) : going;
+	    (state = going & (from_bt = enable & is_robot_at_inv_pose = succeeded)) : at_inv_pose;
+	    (state = going & (from_bt = enable & is_robot_at_inv_pose = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_at_inv_pose != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_at_inv_pose = succeeded): disabled_at_inv_pose;
+	    (state = failing & from_bt = enable) : going;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_robot_at_inv_pose != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_at_inv_pose = succeeded): disabled_at_inv_pose;
+    	    (state = at_inv_pose &  (from_bt = no)) : at_inv_pose;	
+	    (state = at_inv_pose &  (from_bt = enable)) : going;
+	    (state = at_inv_pose & from_bt = disable) : disabled_at_inv_pose;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_at_inv_pose & (from_bt = disable | from_bt = no)) : disabled_at_inv_pose;
+    	    (state = disabled_at_inv_pose & from_bt = enable) : going;
+	    TRUE: away;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE LOCATE_BOTTLE(from_bt, is_bottle_located)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Locate_bottle : boolean;
+	state : {undetected, locating, failing, locate, disabled_undetected, disabled_locate};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Locate_bottle) := FALSE;
+	init(state) := undetected;
+
+	next(to_bt) :=
+	  case
+	    (state = undetected & from_bt = enable) : running;
+	    (state = undetected & from_bt = disable) : disabled;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : running;
+	    (state = locating & (from_bt = enable & is_bottle_located = succeeded)) : succeeded;
+	    (state = locating & from_bt = disable): disabled;
+	    (state = locating & (from_bt = enable & is_bottle_located = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = locate & from_bt = enable) : running;
+	    (state = locate & from_bt = no) : succeeded;
+	    (state = locate & from_bt = disable) : disabled;
+	    (state = disabled_undetected & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_undetected & from_bt = enable) : running;
+	    (state = disabled_locate & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_locate & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Locate_bottle) :=
+	  case
+	    (state = undetected & from_bt = enable) : TRUE;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_undetected & from_bt = enable) : TRUE;
+	    (state = locate & from_bt = enable): TRUE;
+	    (state = disabled_locate & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = undetected & from_bt = enable) : locating;
+	    (state = undetected & from_bt = disable) : disabled_undetected;
+	    (state = locating & (from_bt = no | (from_bt = enable & is_bottle_located = none))) : locating;
+	    (state = locating & (from_bt = enable & is_bottle_located = succeeded)) : locate;
+	    (state = locating & (from_bt = enable & is_bottle_located = failed)) : failing;
+	    (state = locating & from_bt = disable & is_bottle_located != succeeded): disabled_undetected;
+    	    (state = locating & from_bt = disable & is_bottle_located = succeeded): disabled_locate;
+	    (state = failing & from_bt = enable) : locating;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_located != succeeded): disabled_undetected;
+    	    (state = failing & from_bt = disable & is_bottle_located = succeeded): disabled_locate;
+	    (state = locate & from_bt = enable) : locating;
+    	    (state = locate & from_bt = no) : locate;	
+	    (state = locate & from_bt = disable) : disabled_locate;
+	    (state = disabled_undetected & (from_bt = disable | from_bt = no)) : disabled_undetected;
+	    (state = disabled_undetected & from_bt = enable) : locating;
+	    (state = disabled_locate & (from_bt = disable | from_bt = no)) : disabled_locate;
+    	    (state = disabled_locate & from_bt = enable) : locating;
+	    TRUE: undetected;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COMPUTE_INV_POSE(from_bt, is_inv_pose_computed)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Compute_inv_pose : boolean;
+	state : {idle, computing, compute, disabled_idle, disabled_compute};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Compute_inv_pose) := FALSE;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & from_bt = enable) : running;
+	    (state = idle & from_bt = disable) : disabled;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : running;
+	    (state = computing & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = computing & from_bt = disable): disabled;
+	    (state = compute & from_bt = enable) : running;
+	    (state = compute & from_bt = no) : succeeded;
+	    (state = compute & from_bt = disable) : disabled;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_idle & from_bt = enable) : running;
+	    (state = disabled_compute & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_compute & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Compute_inv_pose) :=
+	  case
+	    (state = idle & from_bt = enable) : TRUE;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : TRUE;
+	    (state = disabled_idle & from_bt = enable) : TRUE;
+	    (state = compute & from_bt = enable): TRUE;
+	    (state = disabled_compute & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & from_bt = enable) : computing;
+	    (state = idle & from_bt = disable) : disabled_idle;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : computing;
+	    (state = computing & (from_bt = enable & is_inv_pose_computed = succeeded)) : compute;
+	    (state = computing & from_bt = disable & is_inv_pose_computed != succeeded): disabled_idle;
+    	    (state = computing & from_bt = disable & is_inv_pose_computed = succeeded): disabled_compute;
+	    (state = compute & from_bt = enable) : computing;
+    	    (state = compute & from_bt = no) : compute;	
+	    (state = compute & from_bt = disable) : disabled_compute;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled_idle;
+	    (state = disabled_idle & from_bt = enable) : computing;
+	    (state = disabled_compute & (from_bt = disable | from_bt = no)) : disabled_compute;
+    	    (state = disabled_compute & from_bt = enable) : computing;
+	    TRUE: idle;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+

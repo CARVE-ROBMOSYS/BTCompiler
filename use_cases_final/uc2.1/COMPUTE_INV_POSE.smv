@@ -1,0 +1,79 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        COMPUTE_INV_POSE_inst : COMPUTE_INV_POSE(from_bt, is_inv_pose_computed);
+    VAR
+        from_bt : {disable, enable, no};
+        is_inv_pose_computed : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := COMPUTE_INV_POSE_inst.to_bt;
+        req_Compute_inv_pose := FIND_BOTTLE_inst.req_Compute_inv_pose;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE COMPUTE_INV_POSE(from_bt, is_inv_pose_computed)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Compute_inv_pose : boolean;
+	state : {idle, computing, compute, disabled_idle, disabled_compute};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Compute_inv_pose) := FALSE;
+	init(state) := idle;
+
+	next(to_bt) :=
+	  case
+	    (state = idle & from_bt = enable) : running;
+	    (state = idle & from_bt = disable) : disabled;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : running;
+	    (state = computing & (from_bt = enable & is_inv_pose_computed = succeeded)) : succeeded;
+	    (state = computing & from_bt = disable): disabled;
+	    (state = compute & from_bt = enable) : running;
+	    (state = compute & from_bt = no) : succeeded;
+	    (state = compute & from_bt = disable) : disabled;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_idle & from_bt = enable) : running;
+	    (state = disabled_compute & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_compute & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Compute_inv_pose) :=
+	  case
+	    (state = idle & from_bt = enable) : TRUE;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : TRUE;
+	    (state = disabled_idle & from_bt = enable) : TRUE;
+	    (state = compute & from_bt = enable): TRUE;
+	    (state = disabled_compute & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = idle & from_bt = enable) : computing;
+	    (state = idle & from_bt = disable) : disabled_idle;
+	    (state = computing & (from_bt = no | (from_bt = enable & is_inv_pose_computed = none))) : computing;
+	    (state = computing & (from_bt = enable & is_inv_pose_computed = succeeded)) : compute;
+	    (state = computing & from_bt = disable & is_inv_pose_computed != succeeded): disabled_idle;
+    	    (state = computing & from_bt = disable & is_inv_pose_computed = succeeded): disabled_compute;
+	    (state = compute & from_bt = enable) : computing;
+    	    (state = compute & from_bt = no) : compute;	
+	    (state = compute & from_bt = disable) : disabled_compute;
+	    (state = disabled_idle & (from_bt = disable | from_bt = no)) : disabled_idle;
+	    (state = disabled_idle & from_bt = enable) : computing;
+	    (state = disabled_compute & (from_bt = disable | from_bt = no)) : disabled_compute;
+    	    (state = disabled_compute & from_bt = enable) : computing;
+	    TRUE: idle;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

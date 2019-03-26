@@ -1,0 +1,88 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        GO_TO_ROOM_inst : GO_TO_ROOM(from_bt, is_robot_in_room);
+    VAR
+        from_bt : {disable, enable, no};
+        is_robot_in_room : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := GO_TO_ROOM_inst.to_bt;
+        req_Go_to_room := GO_TO_ROOM_inst.req_Go_to_room;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_ROOM(from_bt, is_robot_in_room)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_room : boolean;
+	state : {away, going, failing, in_room, disabled_away, disabled_in_room};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_room) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_room = none))) : running;
+	    (state = going & (from_bt = enable  & is_robot_in_room = succeeded)) : succeeded;
+	    (state = going & (from_bt = disable)): disabled;
+	    (state = going & (from_bt = enable  & is_robot_in_room = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = in_room & (from_bt = no)) : succeeded;
+	    (state = in_room & (from_bt = enable)) : running;
+	    (state = in_room & from_bt = disable) : disabled;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_in_room & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_in_room & from_bt = enable) : running;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Go_to_room) :=
+	  case
+	    (state = away & from_bt = enable) : TRUE;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_room = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_away & from_bt = enable) : TRUE;
+	    (state = in_room & from_bt = enable): TRUE;
+	    (state = disabled_in_room & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & (from_bt = no | (from_bt = enable & is_robot_in_room = none))) : going;
+	    (state = going & (from_bt = enable & is_robot_in_room = succeeded)) : in_room;
+	    (state = going & (from_bt = enable & is_robot_in_room = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_in_room != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_in_room = succeeded): disabled_in_room;
+	    (state = failing & from_bt = enable) : going;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_robot_in_room != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_in_room = succeeded): disabled_in_room;
+    	    (state = in_room &  (from_bt = no)) : in_room;	
+	    (state = in_room &  (from_bt = enable)) : going;
+	    (state = in_room & from_bt = disable) : disabled_in_room;
+	    (state = disabled_away & (from_bt = disable | from_bt = no)) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_in_room & (from_bt = disable | from_bt = no)) : disabled_in_room;
+    	    (state = disabled_in_room & from_bt = enable) : going;
+	    TRUE: away;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

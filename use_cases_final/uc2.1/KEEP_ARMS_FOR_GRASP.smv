@@ -1,0 +1,91 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        KEEP_ARMS_FOR_GRASP_inst : KEEP_ARMS_FOR_GRASP(from_bt, is_arms_kept_up);
+    VAR
+        from_bt : {disable, enable, no};
+        is_arms_kept_up : {none, failed, succeeded};
+
+    DEFINE
+        to_bt := KEEP_ARMS_FOR_GRASP_inst.to_bt;
+        req_Keep_arms_for_grasp := KEEP_ARMS_FOR_GRASP_inst.req_Keep_arms_for_grasp;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE KEEP_ARMS_FOR_GRASP(from_bt, is_arms_kept_up)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Keep_arms_for_grasp : boolean;
+	state : {waiting, moving, failing, keep_up, disabled_waiting, disabled_keep_up};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Keep_arms_for_grasp) := FALSE;
+	init(state) := waiting;
+
+	next(to_bt) :=
+	  case
+	    (state = waiting & from_bt = enable) : running;
+	    (state = waiting & from_bt = disable) : disabled;
+	    (state = moving & (from_bt = no | (from_bt = enable & is_arms_kept_up = none))) : running;
+	    (state = moving & (from_bt = enable & is_arms_kept_up = succeeded)) : succeeded;
+	    (state = moving & from_bt = disable): disabled;
+	    (state = moving & (from_bt = enable & is_arms_kept_up = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = keep_up & (from_bt = no)) : succeeded;
+	    (state = keep_up & from_bt = enable) : running;
+	    (state = keep_up & from_bt = disable) : disabled;
+	    (state = disabled_waiting & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_waiting & from_bt = enable) : running;
+	    (state = disabled_keep_up & (from_bt = disable | from_bt = no)) : disabled;
+	    (state = disabled_keep_up & from_bt = enable) : running;
+	    TRUE: none;
+	  esac;
+
+	next(req_Keep_arms_for_grasp) :=
+	  case
+	    (state = waiting & from_bt = enable) : TRUE;
+	    (state = moving & (from_bt = no | (from_bt = enable & is_arms_kept_up = none))) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_waiting & from_bt = enable) : TRUE;
+	    (state = keep_up & from_bt = enable): TRUE;
+	    (state = disabled_keep_up & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = waiting & from_bt = enable) : moving;
+	    (state = waiting & from_bt = disable) : disabled_waiting;
+	    (state = moving & (from_bt = no | (from_bt = enable & is_arms_kept_up = none))) : moving;
+	    (state = moving & (from_bt = enable & is_arms_kept_up = succeeded)) : keep_up;
+	    (state = moving & (from_bt = enable & is_arms_kept_up = failed)) : failing;
+	    (state = moving & from_bt = disable & is_arms_kept_up != succeeded): disabled_waiting;
+    	    (state = moving & from_bt = disable & is_arms_kept_up = succeeded): disabled_keep_up;
+	    (state = failing & from_bt = enable) : moving;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_arms_kept_up != succeeded): disabled_waiting;
+    	    (state = failing & from_bt = disable & is_arms_kept_up = succeeded): disabled_keep_up;
+    	    (state = keep_up &  (from_bt = no)) : keep_up;
+	    (state = keep_up & from_bt = enable) : moving;
+	    (state = keep_up & from_bt = disable) : disabled_keep_up;
+	    (state = disabled_waiting & (from_bt = disable | from_bt = no)) : disabled_waiting;
+	    (state = disabled_waiting & from_bt = enable) : moving;
+	    (state = disabled_keep_up & (from_bt = disable | from_bt = no)) : disabled_keep_up;
+    	    (state = disabled_keep_up & from_bt = enable) : moving;
+	    TRUE: waiting;
+	  esac;
+
+
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
