@@ -1,0 +1,54 @@
+<root>
+<BehaviorTree ID="bt0008">
+
+  <Fallback name="Main">
+  
+     <Sequence name="Autonomus">
+         <Fallback name="GoToKitchen">
+           <Condition ID="RobotInKitchen" />
+           <Action ID="GoToKitchen" />
+         </Fallback>
+
+         <Fallback name="BottleFound">
+           <Condition ID="BottleFound" />
+           <Action ID="FindBottle" />
+         </Fallback>
+
+      
+  	    <Fallback name="Fetch">
+    	    <Condition ID="BottleGrasped" />
+	        <Sequence name="Grasp">
+				<Fallback name="InvPoseCompute">
+	    	        <Sequence name="SeqInvPose">
+	        	      <Condition ID="InvPoseComputed" />
+	            	  <Condition ID="InvPoseValid" />
+		            </Sequence>
+	    	        <Action ID="ComputeInvPose" />
+	        	</Fallback>
+
+		        <Fallback name="GoInvPose">
+					<Condition ID="RobotAtInvPose" />
+	               	<Sequence name="prepare">
+		            	<Action ID="KeepArmsForGrasp" />  <!-- alza le braccia in preparazione al grasp -->
+		                <Action ID="GoToInvPose" />
+	              	</Sequence>
+	          	</Fallback>
+         
+		         <Fallback name="Locate">
+		            <Condition ID="BottleLocated" />
+    	              <Action ID="LocateBottle" />
+		          </Fallback>
+         
+          <Action ID="GraspBottle" />
+        </Sequence> <!-- seq1 -->
+
+        <Action ID="SetInvPoseInvaild" />
+        <Action ID="KeepRunning" />
+      </Fallback>  <!-- name="Bottle"-->
+
+       </Sequence> <!-- autonomus -->
+        <Action ID="AskForHelp" />
+    </Fallback>  <!-- Main -->
+ </BehaviorTree>
+</root>
+

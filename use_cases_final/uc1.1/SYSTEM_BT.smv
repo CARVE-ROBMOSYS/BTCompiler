@@ -2,57 +2,45 @@
 -- ===============================================================================
 MODULE main
     VAR
-        TICK_GENERATOR_inst : TICK_GENERATOR(FALLBACK_NODE_inst_1.output);
-	FALLBACK_NODE_inst_1: FALLBACK_NODE(TICK_GENERATOR_inst.tick, SEQUENCE_NODE_inst_1.output, ASK_FOR_HELP_inst.to_bt);
-	SEQUENCE_NODE_inst_1 : SEQUENCE_NODE(FALLBACK_NODE_inst_1.to_left_bt, FALLBACK_NODE_inst_2.output, SEQUENCE_NODE_inst_2.output);
-	SEQUENCE_NODE_inst_2 : SEQUENCE_NODE(SEQUENCE_NODE_inst_1.to_right_bt, FALLBACK_NODE_inst_3.output, FALLBACK_NODE_inst_4.output);
-
-	SEQUENCE_NODE_inst_3 : SEQUENCE_NODE(FALLBACK_NODE_inst_5.to_left_bt, FALLBACK_NODE_inst_7.output, SEQUENCE_NODE_inst_4.output);
-	SEQUENCE_NODE_inst_4 : SEQUENCE_NODE(SEQUENCE_NODE_inst_3.to_right_bt, FALLBACK_NODE_inst_8.output, SEQUENCE_NODE_inst_5.output);
-	SEQUENCE_NODE_inst_5 : SEQUENCE_NODE(SEQUENCE_NODE_inst_4.to_right_bt, FALLBACK_NODE_inst_9.output, GRASP_BOTTLE_inst.to_bt);
-	SEQUENCE_NODE_inst_6 : SEQUENCE_NODE(FALLBACK_NODE_inst_7.to_left_bt, COND_INV_POSE_COMPUTED_inst.to_bt, COND_INV_POSE_VALID_inst.to_bt);
-
-	FALLBACK_NODE_inst_2 : FALLBACK_NODE(SEQUENCE_NODE_inst_1.to_left_bt, COND_GO_TO_KITCHEN_inst.to_bt, GO_TO_KITCHEN_inst.to_bt);
-	FALLBACK_NODE_inst_3 : FALLBACK_NODE(SEQUENCE_NODE_inst_2.to_left_bt, COND_FIND_BOTTLE_inst.to_bt, FIND_BOTTLE_inst.to_bt);
-	FALLBACK_NODE_inst_4 : FALLBACK_NODE(SEQUENCE_NODE_inst_2.to_right_bt, COND_GRASP_BOTTLE_inst.to_bt, GRASP_BOTTLE_inst.to_bt);
-
-	FALLBACK_NODE_inst_5 : FALLBACK_NODE(FALLBACK_NODE_inst_4.to_right_bt, SEQUENCE_NODE_inst_3.output, SET_INV_POSE_NOT_VALID_inst.to_bt);
-	FALLBACK_NODE_inst_7 : FALLBACK_NODE(SEQUENCE_NODE_inst_3.to_left_bt, SEQUENCE_NODE_inst_6.output, GRASP_BOTTLE_inst.to_bt);
-	FALLBACK_NODE_inst_8 : FALLBACK_NODE(SEQUENCE_NODE_inst_4.to_left_bt, COND_ROBOT_AT_INV_POSE_inst.to_bt, GO_TO_INV_POSE_inst.to_bt);
-	FALLBACK_NODE_inst_9 : FALLBACK_NODE(SEQUENCE_NODE_inst_5.to_left_bt, COND_LOCATE_BOTTLE_inst.to_bt, LOCATE_BOTTLE_inst.to_bt);
-
-	COND_GO_TO_KITCHEN_inst : COND_GO_TO_KITCHEN(FALLBACK_NODE_inst_2.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
-	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(FALLBACK_NODE_inst_2.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
-
-	COND_FIND_BOTTLE_inst : COND_FIND_BOTTLE(FALLBACK_NODE_inst_3.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
-	FIND_BOTTLE_inst : FIND_BOTTLE(FALLBACK_NODE_inst_3.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
-
-	COND_GRASP_BOTTLE_inst : COND_GRASP_BOTTLE(FALLBACK_NODE_inst_4.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
-	GRASP_BOTTLE_inst : GRASP_BOTTLE(FALLBACK_NODE_inst_4.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
-
-	ASK_FOR_HELP_inst : ASK_FOR_HELP(FALLBACK_NODE_inst_1.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_help_given);
+        TICK_GENERATOR_inst : TICK_GENERATOR(BT_FSM_inst.output);
+	BT_FSM_inst : BT_FSM(TICK_GENERATOR_inst.tick, COND_GO_TO_KITCHEN_inst.to_bt, GO_TO_KITCHEN_inst.to_bt, COND_FIND_BOTTLE_inst.to_bt, FIND_BOTTLE_inst.to_bt, COND_GRASP_BOTTLE_inst.to_bt,
+                           COND_INV_POSE_COMPUTED_inst.to_bt, COND_INV_POSE_VALID_inst.to_bt, COMPUTE_INV_POSE_inst.to_bt, COND_ROBOT_AT_INV_POSE_inst.to_bt, GO_TO_INV_POSE_inst.to_bt,
+                           COND_LOCATE_BOTTLE_inst.to_bt, LOCATE_BOTTLE_inst.to_bt, COND_GRASP_BOTTLE_inst.to_bt, SET_INV_POSE_NOT_VALID_inst.to_bt,
+	                     ASK_FOR_HELP_inst.to_bt);
 
 
-	SET_INV_POSE_NOT_VALID_inst : SET_INV_POSE_NOT_VALID(FALLBACK_NODE_inst_5.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
-	COND_INV_POSE_COMPUTED_inst : COND_INV_POSE_COMPUTED(SEQUENCE_NODE_inst_6.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
-	COND_INV_POSE_VALID_inst : COND_INV_POSE_VALID(SEQUENCE_NODE_inst_6.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
-	COND_ROBOT_AT_INV_POSE_inst : COND_ROBOT_AT_INV_POSE(FALLBACK_NODE_inst_8.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
-	COND_LOCATE_BOTTLE_inst : COND_LOCATE_BOTTLE(FALLBACK_NODE_inst_9.to_left_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
+	COND_GO_TO_KITCHEN_inst : COND_GO_TO_KITCHEN(BT_FSM_inst.to_Robot_in_kitchen, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(BT_FSM_inst.to_Go_to_kitchen, ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+
+	COND_FIND_BOTTLE_inst : COND_FIND_BOTTLE(BT_FSM_inst.to_Bottle_found, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+	FIND_BOTTLE_inst : FIND_BOTTLE(BT_FSM_inst.to_Find_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+
+	COND_GRASP_BOTTLE_inst : COND_GRASP_BOTTLE(BT_FSM_inst.to_Bottle_grasped, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
+	GRASP_BOTTLE_inst : GRASP_BOTTLE(BT_FSM_inst.to_Grasp_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped);
+
+	ASK_FOR_HELP_inst : ASK_FOR_HELP(BT_FSM_inst.to_Ask_for_help, ROBOT_AND_ENVIRONMENT_inst.is_help_given);
+
+
+	SET_INV_POSE_NOT_VALID_inst : SET_INV_POSE_NOT_VALID(BT_FSM_inst.to_Set_inv_pose_not_valid, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
+	COND_INV_POSE_COMPUTED_inst : COND_INV_POSE_COMPUTED(BT_FSM_inst.to_Inv_pose_computed, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
+	COND_INV_POSE_VALID_inst : COND_INV_POSE_VALID(BT_FSM_inst.to_Inv_pose_valid, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid);
+	COND_ROBOT_AT_INV_POSE_inst : COND_ROBOT_AT_INV_POSE(BT_FSM_inst.to_Robot_at_inv_pose, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
+	COND_LOCATE_BOTTLE_inst : COND_LOCATE_BOTTLE(BT_FSM_inst.to_Bottle_located_with_confidence_x, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
 	
-	COMPUTE_INV_POSE_inst : COMPUTE_INV_POSE(FALLBACK_NODE_inst_7.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
-	GO_TO_INV_POSE_inst : GO_TO_INV_POSE(FALLBACK_NODE_inst_8.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
-	LOCATE_BOTTLE_inst : LOCATE_BOTTLE(FALLBACK_NODE_inst_9.to_right_bt, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
+	COMPUTE_INV_POSE_inst : COMPUTE_INV_POSE(BT_FSM_inst.to_Compute_inv_pose, ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed);
+	GO_TO_INV_POSE_inst : GO_TO_INV_POSE(BT_FSM_inst.to_Go_to_inv_pose, ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose);
+	LOCATE_BOTTLE_inst : LOCATE_BOTTLE(BT_FSM_inst.to_Locate_bottle, ROBOT_AND_ENVIRONMENT_inst.is_bottle_located);
 
 	ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(ASK_FOR_HELP_inst.req_Ask_for_help, GRASP_BOTTLE_inst.req_Grasp_bottle,
                                                            FIND_BOTTLE_inst.req_Find_bottle, GO_TO_KITCHEN_inst.req_Go_to_kitchen,
                                                            COMPUTE_INV_POSE_inst.req_Compute_inv_pose, GO_TO_INV_POSE_inst.req_Go_to_inv_pose, 
                                                            LOCATE_BOTTLE_inst.req_Locate_bottle, SET_INV_POSE_NOT_VALID_inst.req_Inv_pose_not_valid);
 
-        --LTLSPEC  G F (FALLBACK_NODE_inst_1.output = succeeded);
+        --LTLSPEC  G F (BT_FSM_inst.output = succeeded);
         --LTLSPEC F GRASP_BOTTLE_inst.req_Grasp_bottle ->  ( ! GRASP_BOTTLE_inst.req_Grasp_bottle U (ROBOT_AND_ENVIRONMENT_inst.is_bottle_found = succeeded  & ! GRASP_BOTTLE_inst.req_Grasp_bottle));
-        LTLSPEC (F (FALLBACK_NODE_inst_1.output = succeeded) -> ( FALLBACK_NODE_inst_1.output != succeeded U ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
-                   GRASP_BOTTLE_inst.to_bt=succeeded) &  FALLBACK_NODE_inst_1.output != succeeded))) |
-                (F (FALLBACK_NODE_inst_1.output = succeeded) ->  (FALLBACK_NODE_inst_1.output != succeeded U (ASK_FOR_HELP_inst.to_bt=succeeded & FALLBACK_NODE_inst_1.output != succeeded) ));
+        LTLSPEC (F (BT_FSM_inst.output = succeeded) -> ( BT_FSM_inst.output != succeeded U ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
+                   GRASP_BOTTLE_inst.to_bt=succeeded) &  BT_FSM_inst.output != succeeded))) |
+                (F (BT_FSM_inst.output = succeeded) ->  (BT_FSM_inst.output != succeeded U (ASK_FOR_HELP_inst.to_bt=succeeded & BT_FSM_inst.output != succeeded) ));
 
 -- ===============================================================================
 --                               End of module
@@ -79,141 +67,146 @@ MODULE TICK_GENERATOR(from_bt)
 
 -- ===============================================================================
 MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
-    VAR
-        to_left_bt : {no, enable, disable};
-        to_right_bt : {no, enable, disable};
-        output : {none, disabled, running, failed, succeeded};
-	cached_left : {succeeded, failed, running, disabled, none};
-	state : {initial, enabling_left, enabling_right, return_left, return_right,
-	         disabling_left, disabling_right};
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = failed : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disable;
+state = enabling_right & from_right_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = failed : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
 
-    ASSIGN
-	init(to_left_bt)  := no;
-	init(to_right_bt) := no;
-	init(output)      := none;
-	init(cached_left) := none;
-	init(state)       := initial;
-
-	next(to_left_bt) :=
-	  case
-	    (state = initial & visit = enable) : enable;
-	    (state = initial & visit = disable) : disable;
-	    (state = enabling_left & from_left_bt = none) : enable;
-	    (state = disabling_left & from_left_bt != disabled) : disable;
-	    TRUE : no;
-	  esac;
-
-	next(to_right_bt) :=
-	  case
-	    (state = enabling_left & from_left_bt = failed) : enable;
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disable;
-	    (state = enabling_right & from_right_bt = none): enable;
-	    (state = disabling_right & from_right_bt != disabled): disable;
-	    TRUE : no;
-	  esac;
-
-	next(output) :=
-	  case
-	    (state = enabling_right & from_right_bt != none) : from_right_bt;
-	    (state = disabling_right & from_right_bt = disabled) : cached_left;
-	    TRUE : none;
-	  esac;
-
-	next(cached_left) :=
-	  case
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : from_left_bt;
-	    (state = disabling_left & from_left_bt = disabled) : from_left_bt;
-	    (state = disabling_right & from_right_bt != disabled) : cached_left;
-	    TRUE : none; 
-	  esac;
-
-	next(state) :=
-	  case
-	    (state = initial & visit = enable) : enabling_left;
-	    (state = initial & visit = disable) : disabling_left;
-	    (state = enabling_left & from_left_bt = failed) : enabling_right;
-	    (state = enabling_left & from_left_bt = none) : enabling_left;
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = succeeded)) : disabling_right;
-	    (state = enabling_right & from_right_bt = none) : enabling_right;
-	    (state = enabling_right & from_right_bt != none) : return_right;
-	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
-	    (state = disabling_right & from_right_bt = disabled) : return_left;
-	    (state = disabling_left & from_left_bt != disabled) : disabling_left;
-	    (state = disabling_left & from_left_bt = disabled) : disabling_right;
-	    TRUE : initial;
-	  esac;
-
-
-
--- ===============================================================================
---                               End of module
--- ===============================================================================
-
--- ===============================================================================
 MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
-    VAR
-        to_left_bt : {no, enable, disable};
-        to_right_bt : {no, enable, disable};
-        output : {none, disabled, running, failed, succeeded};
-	cached_left : {succeeded, failed, running, disabled, none};
-	state : {initial, enabling_left, enabling_right, return_left, return_right,
-	         disabling_left, disabling_right};
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = succeeded : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disable;
+state = enabling_right & from_left_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = succeeded : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
 
-    ASSIGN
-	init(to_left_bt)  := no;
-	init(to_right_bt) := no;
-	init(output)      := none;
-	init(cached_left) := none;
-	init(state)       := initial;
+MODULE BT_FSM(visit, from_Robot_in_kitchen, from_Go_to_kitchen, from_Bottle_found, from_Find_bottle, from_Bottle_grasped, from_Inv_pose_computed, from_Inv_pose_valid, from_Compute_inv_pose, from_Robot_at_inv_pose, from_Go_to_inv_pose, from_Bottle_located_with_confidence_x, from_Locate_bottle, from_Grasp_bottle, from_Set_inv_pose_not_valid, from_Ask_for_help)
+VAR
+FB1 : FALLBACK_NODE(visit, S1.output, from_Ask_for_help);
+S1 : SEQUENCE_NODE(FB1.to_left_bt, FB2.output, S2.output);
+FB2 : FALLBACK_NODE(S1.to_left_bt, from_Robot_in_kitchen, from_Go_to_kitchen);
+S2 : SEQUENCE_NODE(S1.to_right_bt, FB3.output, FB4.output);
+FB3 : FALLBACK_NODE(S2.to_left_bt, from_Bottle_found, from_Find_bottle);
+FB4 : FALLBACK_NODE(S2.to_right_bt, from_Bottle_grasped, FB5.output);
+FB5 : FALLBACK_NODE(FB4.to_right_bt, S3.output, from_Set_inv_pose_not_valid);
+S3 : SEQUENCE_NODE(FB5.to_left_bt, FB7.output, S4.output);
+FB7 : FALLBACK_NODE(S3.to_left_bt, S6.output, from_Compute_inv_pose);
+S6 : SEQUENCE_NODE(FB7.to_left_bt, from_Inv_pose_computed, from_Inv_pose_valid);
+S4 : SEQUENCE_NODE(S3.to_right_bt, FB8.output, S5.output);
+FB8 : FALLBACK_NODE(S4.to_left_bt, from_Robot_at_inv_pose, from_Go_to_inv_pose);
+S5 : SEQUENCE_NODE(S4.to_right_bt, FB9.output, from_Grasp_bottle);
+FB9 : FALLBACK_NODE(S5.to_left_bt, from_Bottle_located_with_confidence_x, from_Locate_bottle);
+DEFINE
+to_Ask_for_help := FB1.to_right_bt;
+to_Set_inv_pose_not_valid := FB5.to_right_bt;
+to_Grasp_bottle := S5.to_right_bt;
+to_Locate_bottle := FB9.to_right_bt;
+to_Bottle_located_with_confidence_x := FB9.to_left_bt;
+to_Go_to_inv_pose := FB8.to_right_bt;
+to_Robot_at_inv_pose := FB8.to_left_bt;
+to_Compute_inv_pose := FB7.to_right_bt;
+to_Inv_pose_valid := S6.to_right_bt;
+to_Inv_pose_computed := S6.to_left_bt;
+to_Bottle_grasped := FB4.to_left_bt;
+to_Find_bottle := FB3.to_right_bt;
+to_Bottle_found := FB3.to_left_bt;
+to_Go_to_kitchen := FB2.to_right_bt;
+to_Robot_in_kitchen := FB2.to_left_bt;
+output := FB1.output;
 
-	next(to_left_bt) :=
-	  case
-	    (state = initial & visit = enable) : enable;
-	    (state = initial & visit = disable) : disable;
-	    (state = enabling_left & from_left_bt = none) : enable;
-	    (state = disabling_left & from_left_bt != disabled) : disable;
-	    TRUE : no;
-	  esac;
 
-	next(to_right_bt) :=
-	  case
-	    (state = enabling_left & from_left_bt = succeeded) : enable;
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disable;
-	    (state = enabling_right & from_right_bt = none): enable;
-	    (state = disabling_right & from_right_bt != disabled): disable;
-	    TRUE : no;
-	  esac;
-
-	next(output) :=
-	  case
-	    (state = enabling_right & from_right_bt != none) : from_right_bt;
-	    (state = disabling_right & from_right_bt = disabled) : cached_left;
-	    TRUE : none;
-	  esac;
-
-	next(cached_left) :=
-	  case
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : from_left_bt;
-	    (state = disabling_left & from_left_bt = disabled) : from_left_bt;
-	    (state = disabling_right & from_right_bt != disabled) : cached_left;
-	    TRUE : none; 
-	  esac;
-
-	next(state) :=
-	  case
-	    (state = initial & visit = enable) : enabling_left;
-	    (state = initial & visit = disable) : disabling_left;
-	    (state = enabling_left & from_left_bt = succeeded) : enabling_right;
-	    (state = enabling_left & from_left_bt = none) : enabling_left;
-	    (state = enabling_left & (from_left_bt = running | from_left_bt = failed)) : disabling_right;
-	    (state = enabling_right & from_right_bt = none) : enabling_right;
-	    (state = enabling_right & from_right_bt != none) : return_right;
-	    (state = disabling_right & from_right_bt != disabled) : disabling_right;
-	    (state = disabling_right & from_right_bt = disabled) : return_left;
-	    (state = disabling_left & from_left_bt != disabled) : disabling_left;
-	    (state = disabling_left & from_left_bt = disabled) : disabling_right;
-	    TRUE : initial;
-	  esac;
 
 
 

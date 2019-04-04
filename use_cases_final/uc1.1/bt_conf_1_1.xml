@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root>
+
+  <System
+      ID="uc1"
+      assume="true"
+      guarantee="(always in the future (output = succeeded)) and 
+		 (in the future Grasp_bottle_req_Grasp_bottle ->  (!Grasp_bottle_req_Grasp_bottle until (Robot_env_is_bottle_found = succeeded  and !Grasp_bottle_req_Grasp_bottle))) and
+		 ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen_to_bt = succeeded and
+		                                                                   Find_bottle_to_bt = succeeded and
+									           Grasp_bottle_to_bt = succeeded) and  output != succeeded)) or
+ 	          (in the future output = succeeded -> (output != succeeded until (Ask_for_help_to_bt = succeeded and output != succeeded))))">
+
+	<Export name="req_Grasp_bottle" from="Grasp_bottle"/>
+	<Export name="is_bottle_found" from="Robot_env"/>
+	<Export name="to_bt" from="Go_to_kitchen"/>
+	<Export name="to_bt" from="Find_bottle"/>
+	<Export name="to_bt" from="Grasp_bottle"/>
+	<Export name="to_bt" from="Ask_for_help"/>
+	
+   </System>
+
+  <SkillList>
+    <Action
+        ID="Go_to_kitchen"
+        assume="true"
+        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
+   	           (always (from_bt = disable -> in the future to_bt = disabled)) and
+		   (always (from_bt = enable -> in the future req_Go_to_kitchen)) and
+		   (always (from_bt != enable -> never req_Go_to_kitchen)) and
+		   ((always from_bt = no) -> (always to_bt = none)) and
+		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+        />
+    <Condition
+        ID="Robot_in_kitchen"
+        assume="true"
+        guarantee="true"      
+        /> 
+    <Action
+        ID="Find_bottle"
+        assume="true"
+        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
+   	           (always (from_bt = disable -> in the future to_bt = disabled)) and
+		   (always (from_bt = enable -> in the future req_Find_bottle)) and
+		   (always (from_bt != enable -> never req_Find_bottle)) and	
+		   ((always from_bt = no) -> (always to_bt = none)) and
+      		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+        />
+    <Condition
+        ID="Bottle_found"
+        assume="true"
+        guarantee="true"      
+        /> 
+    <Action
+        ID="Grasp_bottle"
+        assume="true"
+        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
+   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
+		   (always (from_bt = enable -> in the future req_Grasp_bottle)) and
+		   (always (from_bt != enable -> never req_Grasp_bottle)) and	
+		   ((always from_bt = no) -> (always to_bt = none)) and
+      		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+        />
+    <Condition
+        ID="Bottle_grasped"
+        assume="true"
+        guarantee="true"      
+        /> 
+    <Action
+        ID="Ask_for_help"
+        assume="true"
+        guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
+   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
+		   (always (from_bt = enable -> in the future req_Ask_for_help)) and
+		   (always (from_bt != enable -> never req_Ask_for_help)) and	
+		   ((always from_bt = no) -> (always to_bt = none)) and
+      		   (always (from_bt != enable -> always (to_bt != succeeded)))"      
+        />
+        
+    <Action
+        ID="Compute_inv_pose"
+        assume="true"
+        guarantee="true"      
+        />
+     <Condition
+        ID="Inv_pose_computed"
+        assume="true"
+        guarantee="true"      
+        />  
+    <Condition
+        ID="Inv_pose_valid"
+        assume="true"
+        guarantee="true"      
+        />       
+    <Action
+        ID="Go_to_inv_pose"
+        assume="true"
+        guarantee="true"      
+        />
+    <Condition
+        ID="Robot_at_inv_pose"
+        assume="true"
+        guarantee="true"      
+        />         
+    <Action
+        ID="Keep_running"
+        assume="true"
+        guarantee="true"      
+        />
+        
+    <Action
+        ID="Locate_bottle"
+        assume="true"
+        guarantee="true"      
+        />
+    <Condition
+        ID="Bottle_located_with_confidence_x"
+        assume="true"
+        guarantee="true"      
+        />  
+    <Action
+        ID="Set_inv_pose_not_valid"
+        assume="true"
+        guarantee="true"      
+        />
+        
+              
+  </SkillList>
+
+  <Environment
+      ID = "Robot_env"
+      assume="always ((req_Go_to_kitchen or req_Find_bottle or req_Grasp_bottle) -> !req_Ask_for_help)"
+      guarantee="(always ((is_robot_in_kitchen != succeeded until req_Go_to_kitchen) or !req_Go_to_kitchen)) and
+                 (always ((is_bottle_found != succeeded until req_Find_bottle) or !req_Find_bottle)) and
+		 (always ((is_bottle_grasped != succeeded until req_Grasp_bottle) or !req_Grasp_bottle)) and
+		 (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and
+   		 (always (is_robot_in_kitchen = succeeded and req_Find_bottle and is_bottle_found != failed) -> in the future is_bottle_found = succeeded) and
+ 		 (always (is_bottle_found = succeeded and req_Grasp_bottle and is_bottle_grasped != failed) -> in the future is_bottle_grasped = succeeded) and
+		 (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and
+		 (always (is_robot_in_kitchen = succeeded -> always is_robot_in_kitchen = succeeded)) and
+		 (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded)) and
+		 (always (is_bottle_grasped = succeeded -> always is_bottle_grasped = succeeded))">
+
+    <OutSignal name="is_robot_in_kitchen">
+      <Destination ID="Go_to_kitchen"/>
+    </OutSignal>
+    <OutSignal name="is_robot_in_kitchen">
+      <Destination ID="Robot_in_kitchen"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_found">
+      <Destination ID="Find_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_found">
+      <Destination ID="Bottle_found"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_grasped">
+      <Destination ID="Grasp_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_grasped">
+      <Destination ID="Bottle_grasped"/>
+    </OutSignal>
+    <OutSignal name="is_help_given">
+      <Destination ID="Ask_for_help"/>
+    </OutSignal>
+    <OutSignal name="is_inv_pose_computed">
+      <Destination ID="Compute_inv_pose"/>
+    </OutSignal>
+    <OutSignal name="is_inv_pose_computed">
+      <Destination ID="Inv_pose_computed"/>
+    </OutSignal>
+    <OutSignal name="is_robot_at_inv_pose">
+      <Destination ID="Go_to_inv_pose"/>
+    </OutSignal>
+    <OutSignal name="is_robot_at_inv_pose">
+      <Destination ID="Robot_at_inv_pose"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_located">
+      <Destination ID="Locate_bottle"/>
+    </OutSignal>
+    <OutSignal name="is_bottle_located">
+      <Destination ID="Bottle_located_with_confidence_x"/>
+    </OutSignal>
+    <OutSignal name="is_inv_pose_valid">
+      <Destination ID="Set_inv_pose_not_valid"/>
+    </OutSignal>
+    <OutSignal name="is_inv_pose_valid">
+      <Destination ID="Inv_pose_valid"/>
+    </OutSignal>            
+    <InSignal name="req_Go_to_kitchen">
+      <Source ID="Go_to_kitchen"/>
+    </InSignal>
+    <InSignal name="req_Find_bottle">
+      <Source ID="Find_bottle"/>
+    </InSignal>
+    <InSignal name="req_Grasp_bottle">
+      <Source ID="Grasp_bottle"/>
+    </InSignal>
+    <InSignal name="req_Ask_for_help">
+      <Source ID="Ask_for_help"/>
+    </InSignal>  
+    <InSignal name="req_Compute_inv_pose">
+      <Source ID="Compute_inv_pose"/>
+    </InSignal> 
+    <InSignal name="req_Go_to_inv_pose">
+      <Source ID="Go_to_inv_pose"/>
+    </InSignal> 
+    <InSignal name="req_Locate_bottle">
+      <Source ID="Locate_bottle"/>
+    </InSignal> 
+    <InSignal name="req_Inv_pose_not_valid">
+      <Source ID="Set_inv_pose_not_valid"/>
+    </InSignal> 
+    
+  </Environment>
+
+</root>
+
+

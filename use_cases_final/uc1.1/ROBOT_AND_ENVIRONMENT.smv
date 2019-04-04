@@ -2,18 +2,27 @@
 -- ===============================================================================
 MODULE main
     VAR
-        ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle, req_Go_to_kitchen);
+        ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Grasp_bottle, req_Find_bottle, req_Go_to_kitchen, req_Compute_inv_pose,
+                                                           req_Go_to_inv_pose, req_Locate_bottle, req_Inv_pose_not_valid);
     VAR
         req_Ask_for_help : boolean;
         req_Fetch_bottle : boolean;
         req_Find_bottle : boolean;
         req_Go_to_kitchen : boolean;
+	req_Compute_inv_pose : boolean;
+	req_Go_to_inv_pose : boolean;
+	req_Locate_bottle : boolean;
+	req_Inv_pose_not_valid : boolean;
 
     DEFINE
         is_help_given := ROBOT_AND_ENVIRONMENT_inst.is_help_given;
-        is_bottle_fetched := ROBOT_AND_ENVIRONMENT_inst.is_bottle_fetched;
+        is_bottle_grasped := ROBOT_AND_ENVIRONMENT_inst.is_bottle_grasped;
         is_bottle_found := ROBOT_AND_ENVIRONMENT_inst.is_bottle_found;
         is_robot_in_kitchen := ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen;
+	is_inv_pose_valid := ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_valid;
+	is_inv_pose_computed := ROBOT_AND_ENVIRONMENT_inst.is_inv_pose_computed;
+	is_robot_at_inv_pose := ROBOT_AND_ENVIRONMENT_inst.is_robot_at_inv_pose;
+	is_bottle_located := ROBOT_AND_ENVIRONMENT_inst.is_bottle_located;
 
 
 -- ===============================================================================
@@ -21,29 +30,42 @@ MODULE main
 -- ===============================================================================
 
 -- ===============================================================================
-MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle, req_Go_to_kitchen)
+MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Grasp_bottle, req_Find_bottle, req_Go_to_kitchen, req_Compute_inv_pose,
+                                                           req_Go_to_inv_pose, req_Locate_bottle, req_Inv_pose_not_valid)
     VAR
         is_help_given : {none, failed, succeeded};
-        is_bottle_fetched : {none, failed, succeeded};
+        is_bottle_grasped : {none, failed, succeeded};
         is_bottle_found : {none, failed, succeeded};
         is_robot_in_kitchen : {none, failed, succeeded};
-	state : {stand_by, in_kitchen, bottle_found, bottle_fetched,
-	         help_stand_by, help_kitchen, help_found, help_fetched,
-		 failed_kitchen, failed_find, failed_fetch};
+	is_inv_pose_valid : {none, failed, succeeded};
+	is_inv_pose_computed : {none, failed, succeeded};
+	is_robot_at_inv_pose : {none, failed, succeeded};
+	is_bottle_located : {none, failed, succeeded};
+	state : {stand_by, in_kitchen, bottle_found, bottle_located, bottle_grasped, pose_computed, gone_to_pose, set_inv_pose_not_valid,
+	         help_stand_by, help_kitchen, help_found, help_grasped, help_pose_computed, help_gone_to_pose, help_located, help_pose_not_valid,
+		 failed_kitchen, failed_find, failed_grasped, failed_go_to_pose, failed_located};
 	
     INVAR
       (state = in_kitchen -> is_robot_in_kitchen = succeeded) &
       (state = failed_kitchen -> is_robot_in_kitchen = failed) &
       (state = bottle_found -> is_bottle_found = succeeded) &
       (state = failed_find -> is_bottle_found = failed) &
-      (state = bottle_fetched -> is_bottle_fetched = succeeded) &
-      (state = failed_fetch -> is_bottle_fetched = failed);
+      (state = bottle_grasped -> is_bottle_grasped = succeeded) &
+      (state = failed_grasped -> is_bottle_grasped = failed) &
+      (state = gone_to_pose -> is_robot_at_inv_pose = succeeded) &
+      (state = failed_go_to_pose -> is_robot_at_inv_pose = failed) &
+      (state = bottle_located -> is_bottle_located = succeeded) &
+      (state = failed_located -> is_bottle_located = failed);
 
     ASSIGN
       init(is_robot_in_kitchen) := none;
       init(is_bottle_found) := none;
-      init(is_bottle_fetched) := none;
+      init(is_bottle_grasped) := none;
       init(is_help_given) := none;
+      init(is_inv_pose_valid) := none;
+      init(is_inv_pose_computed) := none;
+      init(is_robot_at_inv_pose) := none;
+      init(is_bottle_located) := none;
       init(state) := stand_by;
 
       next(is_robot_in_kitchen) :=
@@ -73,12 +95,85 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
 	  TRUE : succeeded;
 	esac;
 
-      next(is_bottle_fetched) :=
+      next(is_inv_pose_valid) :=
         case
-	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {succeeded, failed};
-	  (state = failed_fetch & req_Fetch_bottle & !req_Ask_for_help) : failed;
-	  (state = bottle_fetched) : succeeded;
-	  (state = help_fetched) : succeeded;
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = bottle_found & req_Ask_for_help) : none;	  
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : failed;
+	  (state = set_inv_pose_not_valid) : failed;
+	  (state = help_pose_not_valid) : failed;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_inv_pose_computed) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = bottle_found & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_robot_at_inv_pose) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found) : none;
+	  (state = help_pose_computed) : none;
+	  (state = pose_computed & req_Go_to_inv_pose & !req_Ask_for_help) : {succeeded, failed};
+	  (state = pose_computed & !req_Go_to_inv_pose & !req_Ask_for_help) : none;
+	  (state = pose_computed & req_Ask_for_help) : none;
+	  (state = failed_go_to_pose & req_Go_to_inv_pose & !req_Ask_for_help) : failed;
+	  (state = failed_go_to_pose & !req_Go_to_inv_pose & !req_Ask_for_help) : none;
+	  (state = failed_go_to_pose & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_located) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = help_kitchen) : none;
+	  (state = in_kitchen) : none;
+	  (state = help_found) : none;
+	  (state = bottle_found) : none;
+	  (state = pose_computed) : none;
+	  (state = help_pose_computed) : none;
+	  (state = pose_computed) : none;
+	  (state = failed_go_to_pose) : none;
+	  (state = gone_to_pose & req_Locate_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = gone_to_pose & !req_Locate_bottle & !req_Ask_for_help) : none;
+	  (state = gone_to_pose & req_Ask_for_help) : none;
+	  (state = failed_located & req_Locate_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_located & !req_Locate_bottle & !req_Ask_for_help) : none;
+	  (state = failed_located & req_Ask_for_help) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_grasped) :=
+        case
+	  (state = bottle_located & req_Grasp_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = failed_grasped & !req_Inv_pose_not_valid & req_Grasp_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : failed;
+	  (state = bottle_grasped) : succeeded;
+	  (state = help_grasped) : succeeded;
+	  (state = set_inv_pose_not_valid) : failed;
+	  (state = help_pose_not_valid) : failed;
 	  TRUE : none;
 	esac;
 
@@ -102,14 +197,31 @@ MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle
 	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : in_kitchen;
 	  (state = failed_find & req_Ask_for_help) : help_kitchen;
 
-	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {bottle_fetched, failed_fetch};
 	  (state = bottle_found & req_Ask_for_help) : help_found;
-    	  (state = help_found & !req_Ask_for_help) : bottle_found;	
-	  (state = failed_fetch & !req_Fetch_bottle & !req_Ask_for_help) : bottle_found;
-	  (state = failed_fetch & req_Ask_for_help) : help_found;
+	  (state = bottle_found & req_Compute_inv_pose & !req_Ask_for_help) : pose_computed;
 
-	  (state = failed_find & req_Ask_for_help) : help_fetched;
-    	  (state = help_fetched & !req_Ask_for_help) : bottle_fetched;
+	  (state = pose_computed & req_Go_to_inv_pose & !req_Ask_for_help) : {gone_to_pose, failed_go_to_pose};
+	  (state = pose_computed & req_Ask_for_help) : help_pose_computed;
+	  (state = help_pose_computed & !req_Ask_for_help) : pose_computed;
+	  (state = failed_go_to_pose & !req_Go_to_inv_pose & !req_Ask_for_help) : pose_computed;
+
+	  (state = gone_to_pose & req_Locate_bottle & !req_Ask_for_help) : {bottle_located, failed_located};
+	  (state = gone_to_pose & req_Ask_for_help) : help_gone_to_pose;
+	  (state = help_gone_to_pose & !req_Ask_for_help) : gone_to_pose;
+	  (state = failed_located & !req_Locate_bottle & !req_Ask_for_help) : gone_to_pose;
+
+	  (state = bottle_located & req_Grasp_bottle & !req_Ask_for_help) : {bottle_grasped, failed_grasped};
+	  (state = bottle_located & req_Ask_for_help) : help_located;
+    	  (state = help_located & !req_Ask_for_help) : bottle_located;	
+	  (state = failed_grasped & !req_Inv_pose_not_valid & !req_Grasp_bottle & !req_Ask_for_help) : bottle_found;
+	  (state = failed_grasped & req_Ask_for_help) : help_located;
+	  (state = failed_grasped & req_Inv_pose_not_valid & !req_Ask_for_help) : set_inv_pose_not_valid;
+
+	  (state = set_inv_pose_not_valid & req_Ask_for_help) : help_pose_not_valid;
+	  (state = help_pose_not_valid & !req_Ask_for_help) : set_inv_pose_not_valid;
+
+	  (state = bottle_grasped & req_Ask_for_help) : help_grasped;
+    	  (state = help_grasped & !req_Ask_for_help) : bottle_grasped;
 	  
 	  TRUE : state;
 	esac;

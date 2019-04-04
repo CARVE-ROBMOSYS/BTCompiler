@@ -1,0 +1,333 @@
+@requires discrete-time
+COMPONENT uc1 system
+ INTERFACE
+  OUTPUT PORT output: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Ask_for_help_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Grasp_bottle_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Find_bottle_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Go_to_kitchen_to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT Robot_env_is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT Grasp_bottle_req_Grasp_bottle: boolean;
+  CONTRACT mission
+    assume: true;
+    guarantee: (always in the future (output = succeeded)) and (in the future Grasp_bottle_req_Grasp_bottle -> (!Grasp_bottle_req_Grasp_bottle until (Robot_env_is_bottle_found = succeeded and !Grasp_bottle_req_Grasp_bottle))) and ((in the future output = succeeded -> (output != succeeded until (Go_to_kitchen_to_bt = succeeded and Find_bottle_to_bt = succeeded and Grasp_bottle_to_bt = succeeded) and output != succeeded)) or (in the future output = succeeded -> (output != succeeded until (Ask_for_help_to_bt = succeeded and output != succeeded))));
+
+ REFINEMENT
+  SUB Tick_generator: TICK_GENERATOR;
+  SUB Bt_fsm: BT_FSM;
+  SUB Robot_env: ROBOT_AND_ENVIRONMENT;
+  SUB Robot_in_kitchen: ROBOT_IN_KITCHEN;
+  SUB Go_to_kitchen: GO_TO_KITCHEN;
+  SUB Bottle_found: BOTTLE_FOUND;
+  SUB Find_bottle: FIND_BOTTLE;
+  SUB Bottle_grasped: BOTTLE_GRASPED;
+  SUB Inv_pose_computed: INV_POSE_COMPUTED;
+  SUB Inv_pose_valid: INV_POSE_VALID;
+  SUB Compute_inv_pose: COMPUTE_INV_POSE;
+  SUB Robot_at_inv_pose: ROBOT_AT_INV_POSE;
+  SUB Go_to_inv_pose: GO_TO_INV_POSE;
+  SUB Bottle_located_with_confidence_x: BOTTLE_LOCATED_WITH_CONFIDENCE_X;
+  SUB Locate_bottle: LOCATE_BOTTLE;
+  SUB Grasp_bottle: GRASP_BOTTLE;
+  SUB Set_inv_pose_not_valid: SET_INV_POSE_NOT_VALID;
+  SUB Ask_for_help: ASK_FOR_HELP;
+  
+  CONNECTION Bt_fsm.visit := Tick_generator.tick;
+  CONNECTION Tick_generator.from_bt := Bt_fsm.output;
+
+  CONNECTION Bt_fsm.from_Robot_in_kitchen := Robot_in_kitchen.to_bt;
+  CONNECTION Robot_in_kitchen.from_bt := Bt_fsm.to_Robot_in_kitchen;
+  CONNECTION Robot_in_kitchen.is_robot_in_kitchen := Robot_env.is_robot_in_kitchen;
+
+  CONNECTION Bt_fsm.from_Go_to_kitchen := Go_to_kitchen.to_bt;
+  CONNECTION Go_to_kitchen.from_bt := Bt_fsm.to_Go_to_kitchen;
+  CONNECTION Robot_env.req_Go_to_kitchen := Go_to_kitchen.req_Go_to_kitchen;
+  CONNECTION Go_to_kitchen.is_robot_in_kitchen := Robot_env.is_robot_in_kitchen;
+
+  CONNECTION Bt_fsm.from_Bottle_found := Bottle_found.to_bt;
+  CONNECTION Bottle_found.from_bt := Bt_fsm.to_Bottle_found;
+  CONNECTION Bottle_found.is_bottle_found := Robot_env.is_bottle_found;
+
+  CONNECTION Bt_fsm.from_Find_bottle := Find_bottle.to_bt;
+  CONNECTION Find_bottle.from_bt := Bt_fsm.to_Find_bottle;
+  CONNECTION Robot_env.req_Find_bottle := Find_bottle.req_Find_bottle;
+  CONNECTION Find_bottle.is_bottle_found := Robot_env.is_bottle_found;
+
+  CONNECTION Bt_fsm.from_Bottle_grasped := Bottle_grasped.to_bt;
+  CONNECTION Bottle_grasped.from_bt := Bt_fsm.to_Bottle_grasped;
+  CONNECTION Bottle_grasped.is_bottle_grasped := Robot_env.is_bottle_grasped;
+
+  CONNECTION Bt_fsm.from_Inv_pose_computed := Inv_pose_computed.to_bt;
+  CONNECTION Inv_pose_computed.from_bt := Bt_fsm.to_Inv_pose_computed;
+  CONNECTION Inv_pose_computed.is_inv_pose_computed := Robot_env.is_inv_pose_computed;
+
+  CONNECTION Bt_fsm.from_Inv_pose_valid := Inv_pose_valid.to_bt;
+  CONNECTION Inv_pose_valid.from_bt := Bt_fsm.to_Inv_pose_valid;
+  CONNECTION Inv_pose_valid.is_inv_pose_valid := Robot_env.is_inv_pose_valid;
+
+  CONNECTION Bt_fsm.from_Compute_inv_pose := Compute_inv_pose.to_bt;
+  CONNECTION Compute_inv_pose.from_bt := Bt_fsm.to_Compute_inv_pose;
+  CONNECTION Robot_env.req_Compute_inv_pose := Compute_inv_pose.req_Compute_inv_pose;
+  CONNECTION Compute_inv_pose.is_inv_pose_computed := Robot_env.is_inv_pose_computed;
+
+  CONNECTION Bt_fsm.from_Robot_at_inv_pose := Robot_at_inv_pose.to_bt;
+  CONNECTION Robot_at_inv_pose.from_bt := Bt_fsm.to_Robot_at_inv_pose;
+  CONNECTION Robot_at_inv_pose.is_robot_at_inv_pose := Robot_env.is_robot_at_inv_pose;
+
+  CONNECTION Bt_fsm.from_Go_to_inv_pose := Go_to_inv_pose.to_bt;
+  CONNECTION Go_to_inv_pose.from_bt := Bt_fsm.to_Go_to_inv_pose;
+  CONNECTION Robot_env.req_Go_to_inv_pose := Go_to_inv_pose.req_Go_to_inv_pose;
+  CONNECTION Go_to_inv_pose.is_robot_at_inv_pose := Robot_env.is_robot_at_inv_pose;
+
+  CONNECTION Bt_fsm.from_Bottle_located_with_confidence_x := Bottle_located_with_confidence_x.to_bt;
+  CONNECTION Bottle_located_with_confidence_x.from_bt := Bt_fsm.to_Bottle_located_with_confidence_x;
+  CONNECTION Bottle_located_with_confidence_x.is_bottle_located := Robot_env.is_bottle_located;
+
+  CONNECTION Bt_fsm.from_Locate_bottle := Locate_bottle.to_bt;
+  CONNECTION Locate_bottle.from_bt := Bt_fsm.to_Locate_bottle;
+  CONNECTION Robot_env.req_Locate_bottle := Locate_bottle.req_Locate_bottle;
+  CONNECTION Locate_bottle.is_bottle_located := Robot_env.is_bottle_located;
+
+  CONNECTION Bt_fsm.from_Grasp_bottle := Grasp_bottle.to_bt;
+  CONNECTION Grasp_bottle.from_bt := Bt_fsm.to_Grasp_bottle;
+  CONNECTION Robot_env.req_Grasp_bottle := Grasp_bottle.req_Grasp_bottle;
+  CONNECTION Grasp_bottle.is_bottle_grasped := Robot_env.is_bottle_grasped;
+
+  CONNECTION Bt_fsm.from_Set_inv_pose_not_valid := Set_inv_pose_not_valid.to_bt;
+  CONNECTION Set_inv_pose_not_valid.from_bt := Bt_fsm.to_Set_inv_pose_not_valid;
+  CONNECTION Robot_env.req_Inv_pose_not_valid := Set_inv_pose_not_valid.req_Inv_pose_not_valid;
+  CONNECTION Set_inv_pose_not_valid.is_inv_pose_valid := Robot_env.is_inv_pose_valid;
+
+  CONNECTION Bt_fsm.from_Ask_for_help := Ask_for_help.to_bt;
+  CONNECTION Ask_for_help.from_bt := Bt_fsm.to_Ask_for_help;
+  CONNECTION Robot_env.req_Ask_for_help := Ask_for_help.req_Ask_for_help;
+  CONNECTION Ask_for_help.is_help_given := Robot_env.is_help_given;
+
+  CONNECTION Ask_for_help_to_bt := Ask_for_help.to_bt;
+  CONNECTION Grasp_bottle_to_bt := Grasp_bottle.to_bt;
+  CONNECTION Find_bottle_to_bt := Find_bottle.to_bt;
+  CONNECTION Go_to_kitchen_to_bt := Go_to_kitchen.to_bt;
+  CONNECTION Robot_env_is_bottle_found := Robot_env.is_bottle_found;
+  CONNECTION Grasp_bottle_req_Grasp_bottle := Grasp_bottle.req_Grasp_bottle;
+  CONNECTION output := Bt_fsm.output;
+
+  CONTRACT mission REFINEDBY Tick_generator.tick_contract, Bt_fsm.bt_fsm_contract, Robot_env.env_contract, Robot_in_kitchen.skill_contract, Go_to_kitchen.skill_contract, Bottle_found.skill_contract, Find_bottle.skill_contract, Bottle_grasped.skill_contract, Inv_pose_computed.skill_contract, Inv_pose_valid.skill_contract, Compute_inv_pose.skill_contract, Robot_at_inv_pose.skill_contract, Go_to_inv_pose.skill_contract, Bottle_located_with_confidence_x.skill_contract, Locate_bottle.skill_contract, Grasp_bottle.skill_contract, Set_inv_pose_not_valid.skill_contract, Ask_for_help.skill_contract;
+  
+COMPONENT TICK_GENERATOR
+ INTERFACE
+  INPUT PORT from_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT tick: {no, enable};
+  CONTRACT tick_contract
+    assume: true;
+    guarantee: always in the future ((from_bt = none -> tick = no) and (from_bt != none -> tick = enable));
+
+COMPONENT BT_FSM
+ INTERFACE
+  INPUT PORT from_Robot_in_kitchen: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Robot_in_kitchen: {no, enable, disable};
+  INPUT PORT from_Go_to_kitchen: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Go_to_kitchen: {no, enable, disable};
+  INPUT PORT from_Bottle_found: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Bottle_found: {no, enable, disable};
+  INPUT PORT from_Find_bottle: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Find_bottle: {no, enable, disable};
+  INPUT PORT from_Bottle_grasped: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Bottle_grasped: {no, enable, disable};
+  INPUT PORT from_Inv_pose_computed: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Inv_pose_computed: {no, enable, disable};
+  INPUT PORT from_Inv_pose_valid: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Inv_pose_valid: {no, enable, disable};
+  INPUT PORT from_Compute_inv_pose: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Compute_inv_pose: {no, enable, disable};
+  INPUT PORT from_Robot_at_inv_pose: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Robot_at_inv_pose: {no, enable, disable};
+  INPUT PORT from_Go_to_inv_pose: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Go_to_inv_pose: {no, enable, disable};
+  INPUT PORT from_Bottle_located_with_confidence_x: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Bottle_located_with_confidence_x: {no, enable, disable};
+  INPUT PORT from_Locate_bottle: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Locate_bottle: {no, enable, disable};
+  INPUT PORT from_Grasp_bottle: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Grasp_bottle: {no, enable, disable};
+  INPUT PORT from_Set_inv_pose_not_valid: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Set_inv_pose_not_valid: {no, enable, disable};
+  INPUT PORT from_Ask_for_help: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT to_Ask_for_help: {no, enable, disable};
+  INPUT PORT visit: {no, enable};
+  OUTPUT PORT output: {none, disabled, running, failed, succeeded};
+  CONTRACT bt_fsm_contract
+    assume: true;
+    guarantee: true;
+
+COMPONENT ROBOT_AND_ENVIRONMENT
+ INTERFACE
+  INPUT PORT req_Inv_pose_not_valid: boolean;
+  INPUT PORT req_Locate_bottle: boolean;
+  INPUT PORT req_Go_to_inv_pose: boolean;
+  INPUT PORT req_Compute_inv_pose: boolean;
+  INPUT PORT req_Ask_for_help: boolean;
+  INPUT PORT req_Grasp_bottle: boolean;
+  INPUT PORT req_Find_bottle: boolean;
+  INPUT PORT req_Go_to_kitchen: boolean;
+  OUTPUT PORT is_inv_pose_valid: {none, failed, succeeded};
+  OUTPUT PORT is_inv_pose_valid: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_located: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_located: {none, failed, succeeded};
+  OUTPUT PORT is_robot_at_inv_pose: {none, failed, succeeded};
+  OUTPUT PORT is_robot_at_inv_pose: {none, failed, succeeded};
+  OUTPUT PORT is_inv_pose_computed: {none, failed, succeeded};
+  OUTPUT PORT is_inv_pose_computed: {none, failed, succeeded};
+  OUTPUT PORT is_help_given: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_grasped: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_grasped: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
+  OUTPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
+  
+  CONTRACT env_contract
+   assume: always ((req_Go_to_kitchen or req_Find_bottle or req_Grasp_bottle) -> !req_Ask_for_help);
+   guarantee: (always ((is_robot_in_kitchen != succeeded until req_Go_to_kitchen) or !req_Go_to_kitchen)) and (always ((is_bottle_found != succeeded until req_Find_bottle) or !req_Find_bottle)) and (always ((is_bottle_grasped != succeeded until req_Grasp_bottle) or !req_Grasp_bottle)) and (always (req_Go_to_kitchen and is_robot_in_kitchen != failed) -> in the future is_robot_in_kitchen = succeeded) and (always (is_robot_in_kitchen = succeeded and req_Find_bottle and is_bottle_found != failed) -> in the future is_bottle_found = succeeded) and (always (is_bottle_found = succeeded and req_Grasp_bottle and is_bottle_grasped != failed) -> in the future is_bottle_grasped = succeeded) and (always (req_Ask_for_help -> in the future is_help_given = succeeded)) and (always (is_robot_in_kitchen = succeeded -> always is_robot_in_kitchen = succeeded)) and (always (is_bottle_found = succeeded -> always is_bottle_found = succeeded)) and (always (is_bottle_grasped = succeeded -> always is_bottle_grasped = succeeded));
+
+COMPONENT ROBOT_IN_KITCHEN
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT GO_TO_KITCHEN
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_robot_in_kitchen: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Go_to_kitchen: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: (always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and (always (from_bt = disable -> in the future to_bt = disabled)) and (always (from_bt = enable -> in the future req_Go_to_kitchen)) and (always (from_bt != enable -> never req_Go_to_kitchen)) and ((always from_bt = no) -> (always to_bt = none)) and (always (from_bt != enable -> always (to_bt != succeeded)));
+
+COMPONENT BOTTLE_FOUND
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT FIND_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_found: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Find_bottle: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: (always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and (always (from_bt = disable -> in the future to_bt = disabled)) and (always (from_bt = enable -> in the future req_Find_bottle)) and (always (from_bt != enable -> never req_Find_bottle)) and ((always from_bt = no) -> (always to_bt = none)) and (always (from_bt != enable -> always (to_bt != succeeded)));
+
+COMPONENT BOTTLE_GRASPED
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_grasped: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT INV_POSE_COMPUTED
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_inv_pose_computed: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT INV_POSE_VALID
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_inv_pose_valid: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT COMPUTE_INV_POSE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_inv_pose_computed: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Compute_inv_pose: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT ROBOT_AT_INV_POSE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_robot_at_inv_pose: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT GO_TO_INV_POSE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_robot_at_inv_pose: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Go_to_inv_pose: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT BOTTLE_LOCATED_WITH_CONFIDENCE_X
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_located: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT LOCATE_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_located: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Locate_bottle: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT GRASP_BOTTLE
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_bottle_grasped: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Grasp_bottle: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: (always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and (always (from_bt = disable -> in the future to_bt = disabled)) and (always (from_bt = enable -> in the future req_Grasp_bottle)) and (always (from_bt != enable -> never req_Grasp_bottle)) and ((always from_bt = no) -> (always to_bt = none)) and (always (from_bt != enable -> always (to_bt != succeeded)));
+
+COMPONENT SET_INV_POSE_NOT_VALID
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_inv_pose_valid: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Inv_pose_not_valid: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: true;
+
+COMPONENT ASK_FOR_HELP
+ INTERFACE
+  INPUT PORT from_bt: {no, enable, disable};
+  INPUT PORT is_help_given: {none, failed, succeeded};
+  OUTPUT PORT to_bt: {none, disabled, running, failed, succeeded};
+  OUTPUT PORT req_Ask_for_help: boolean;
+  CONTRACT skill_contract
+   assume: true;
+   guarantee: (always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and (always (from_bt = disable -> in the future to_bt = disabled)) and (always (from_bt = enable -> in the future req_Ask_for_help)) and (always (from_bt != enable -> never req_Ask_for_help)) and ((always from_bt = no) -> (always to_bt = none)) and (always (from_bt != enable -> always (to_bt != succeeded)));
