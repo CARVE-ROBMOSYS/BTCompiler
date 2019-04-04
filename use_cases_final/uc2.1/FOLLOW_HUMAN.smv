@@ -70,9 +70,9 @@ MODULE FOLLOW_HUMAN(from_bt, is_target_given)
 	    (state = navigate &  (from_bt = enable & is_target_given = succeeded)) : following;
 	    (state = navigate &  (from_bt = enable & (is_target_given = none | is_target_given = failed))) : ask_help;
 	    (state = navigate & from_bt = disable) : disabled_init;
-	    (state = ask_help & from_bt = no) : ask_help;
+	    (state = ask_help & (from_bt = no | (from_bt = enable & (is_target_given = none | is_target_given = failed)))) : ask_help;
 	    (state = ask_help & from_bt = disable) : disabled_init;
-	    (state = ask_help & from_bt = enable) : following;
+	    (state = ask_help &  (from_bt = enable & is_target_given = succeeded)) : following;
 	    (state = following & (from_bt = no | (from_bt = enable & is_target_given = succeeded))) : following;
 	    (state = following & (from_bt = enable & (is_target_given = none | is_target_given = failed))) : keep_tracking_human;
 	    (state = following & from_bt = disable) : disabled_init;
