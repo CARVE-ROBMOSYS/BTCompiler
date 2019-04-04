@@ -1,0 +1,133 @@
+MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = succeeded : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disable;
+state = enabling_right & from_left_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = succeeded : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
+
+MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = failed : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disable;
+state = enabling_right & from_right_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = failed : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
+
+MODULE BT_FSM(visit, from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help)
+VAR
+FB : FALLBACK_NODE(visit, S1.output, from_Ask_for_help);
+S1 : SEQUENCE_NODE(FB.to_left_bt, from_Go_to_kitchen, S2.output);
+S2 : SEQUENCE_NODE(S1.to_right_bt, from_Find_bottle, from_Fetch_bottle);
+DEFINE
+to_Ask_for_help := FB.to_right_bt;
+to_Fetch_bottle := S2.to_right_bt;
+to_Find_bottle := S2.to_left_bt;
+to_Go_to_kitchen := S1.to_left_bt;
+output := FB.output;
+
+MODULE main()
+VAR
+BT_FSM_inst : BT_FSM(visit, from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help);
+visit : { no, enable, disable };
+from_Go_to_kitchen : { none, disabled, running, failed, succeeded };
+from_Find_bottle : { none, disabled, running, failed, succeeded };
+from_Fetch_bottle : { none, disabled, running, failed, succeeded };
+from_Ask_for_help : { none, disabled, running, failed, succeeded };
+DEFINE
+output := BT_FSM_inst.output;
+to_Go_to_kitchen := BT_FSM_inst.to_Go_to_kitchen;
+to_Find_bottle := BT_FSM_inst.to_Find_bottle;
+to_Fetch_bottle := BT_FSM_inst.to_Fetch_bottle;
+to_Ask_for_help := BT_FSM_inst.to_Ask_for_help;
+

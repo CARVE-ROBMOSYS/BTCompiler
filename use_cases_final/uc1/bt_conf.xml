@@ -26,44 +26,44 @@
         ID="Go_to_kitchen"
         assume="true"
         guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
-   	           (always (from_bt = disable -> in the future to_bt = disabled)) and
-		   (always (from_bt = enable -> in the future req_Go_to_kitchen)) and
-		   (always (from_bt != enable -> never req_Go_to_kitchen)) and
-		   ((always from_bt = no) -> (always to_bt = none)) and
-		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+					(always (from_bt = disable -> in the future to_bt = disabled)) and 
+					(always (from_bt = enable -> in the future req_Go_to_kitchen)) and 
+					((always from_bt != enable) -> (never req_Go_to_kitchen)) and
+					((always from_bt = no) -> (always to_bt = none)) and 
+					((always from_bt != enable) -> (always to_bt != succeeded))"
         />
 
     <Action
         ID="Find_bottle"
         assume="true"
         guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
-   	           (always (from_bt = disable -> in the future to_bt = disabled)) and
-		   (always (from_bt = enable -> in the future req_Find_bottle)) and
-		   (always (from_bt != enable -> never req_Find_bottle)) and	
-		   ((always from_bt = no) -> (always to_bt = none)) and
-      		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+					(always (from_bt = disable -> in the future to_bt = disabled)) and
+					(always (from_bt = enable -> in the future req_Find_bottle)) and
+					((always from_bt != enable) -> (never req_Find_bottle)) and	
+					((always from_bt = no) -> (always to_bt = none)) and
+					((always from_bt != enable) -> (always to_bt != succeeded))"
         />
 
     <Action
         ID="Fetch_bottle"
         assume="true"
         guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
-   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
-		   (always (from_bt = enable -> in the future req_Fetch_bottle)) and
-		   (always (from_bt != enable -> never req_Fetch_bottle)) and	
-		   ((always from_bt = no) -> (always to_bt = none)) and
-      		   (always (from_bt != enable -> always (to_bt != succeeded)))"
+					(always (from_bt = disable -> in the future to_bt = disabled)) and
+					(always (from_bt = enable -> in the future req_Fetch_bottle)) and
+					((always from_bt != enable) -> (never req_Fetch_bottle)) and	
+					((always from_bt = no) -> (always to_bt = none)) and
+					((always from_bt != enable) -> (always to_bt != succeeded))"
         />
 
     <Action
         ID="Ask_for_help"
         assume="true"
         guarantee="(always (from_bt = enable -> in the future (to_bt != none and to_bt != disabled))) and
-   		   (always (from_bt = disable -> in the future to_bt = disabled)) and
-		   (always (from_bt = enable -> in the future req_Ask_for_help)) and
-		   (always (from_bt != enable -> never req_Ask_for_help)) and	
-		   ((always from_bt = no) -> (always to_bt = none)) and
-      		   (always (from_bt != enable -> always (to_bt != succeeded)))"      
+					(always (from_bt = disable -> in the future to_bt = disabled)) and
+					(always (from_bt = enable -> in the future req_Ask_for_help)) and
+					((always from_bt != enable) -> (never req_Ask_for_help)) and	
+					((always from_bt = no) -> (always to_bt = none)) and
+					((always from_bt != enable) -> (always to_bt != succeeded))"      
         />
   </SkillList>
 
