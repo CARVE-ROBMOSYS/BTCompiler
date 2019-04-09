@@ -1,0 +1,571 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        TICK_GENERATOR_inst : TICK_GENERATOR(BT_FSM_inst.output);
+        BT_FSM_inst : BT_FSM(TICK_GENERATOR_inst.tick,GO_TO_KITCHEN_inst.to_bt, 
+                             FETCH_BOTTLE_inst.to_bt,
+                             FIND_BOTTLE_inst.to_bt, ASK_FOR_HELP_inst.to_bt);
+	GO_TO_KITCHEN_inst : GO_TO_KITCHEN(BT_FSM_inst.to_Go_to_kitchen,
+                                           ROBOT_AND_ENVIRONMENT_inst.is_robot_in_kitchen);
+	FIND_BOTTLE_inst : FIND_BOTTLE(BT_FSM_inst.to_Fetch_bottle,
+                                       ROBOT_AND_ENVIRONMENT_inst.is_bottle_found);
+	FETCH_BOTTLE_inst : FETCH_BOTTLE(BT_FSM_inst.to_Find_bottle,
+                                         ROBOT_AND_ENVIRONMENT_inst.is_bottle_fetched);
+	ASK_FOR_HELP_inst : ASK_FOR_HELP(BT_FSM_inst.to_Ask_for_help,
+                                         ROBOT_AND_ENVIRONMENT_inst.is_help_given);
+	ROBOT_AND_ENVIRONMENT_inst : ROBOT_AND_ENVIRONMENT(ASK_FOR_HELP_inst.req_Ask_for_help,
+                                                           FETCH_BOTTLE_inst.req_Fetch_bottle,
+                                                           FIND_BOTTLE_inst.req_Find_bottle,
+                                                        GO_TO_KITCHEN_inst.req_Go_to_kitchen);
+
+
+
+       LTLSPEC (F (BT_FSM_inst.output = succeeded) -> ( BT_FSM_inst.output != succeeded U
+                 ((GO_TO_KITCHEN_inst.to_bt=succeeded & FIND_BOTTLE_inst.to_bt=succeeded &  
+                   FETCH_BOTTLE_inst.to_bt=succeeded) &  BT_FSM_inst.output != succeeded))) ;
+      -- |
+      -- LTLSPEC  (F (BT_FSM_inst.output = succeeded) ->  (BT_FSM_inst.output != succeeded U
+                  (ASK_FOR_HELP_inst.to_bt=succeeded & BT_FSM_inst.output != succeeded) ));
+      
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE TICK_GENERATOR(from_bt)
+    VAR
+        tick : {no, enable};
+
+    ASSIGN
+      init(tick) := enable;
+
+      next(tick) :=
+      	case
+                from_bt = none : no;
+        	TRUE : enable;
+      	esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+
+-- ===============================================================================
+MODULE SEQUENCE_NODE(visit, from_left_bt, from_right_bt)
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = succeeded : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disable;
+state = enabling_right & from_left_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = succeeded : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = failed) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
+
+MODULE FALLBACK_NODE(visit, from_left_bt, from_right_bt)
+VAR
+to_left_bt : { no, enable, disable };
+to_right_bt : { no, enable, disable };
+output : { none, disabled, running, failed, succeeded };
+cached_left : { none, disabled, running, failed, succeeded };
+state : { initial, enabling_left, enabling_right, return_left, return_right, disabling_left, disabling_right };
+ASSIGN
+init(to_left_bt) := no;
+init(to_right_bt) := no;
+init(output) := none;
+init(cached_left) := none;
+init(state) := initial;
+next(to_left_bt) := case
+state = initial & visit = enable : enable;
+state = initial & visit = disable : disable;
+state = enabling_left & from_left_bt = none : enable;
+state = disabling_left & !(from_left_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(to_right_bt) := case
+state = enabling_left & from_left_bt = failed : enable;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disable;
+state = enabling_right & from_right_bt = none : enable;
+state = disabling_right & !(from_right_bt = disabled) : disable;
+TRUE : no;
+esac;
+next(output) := case
+state = enabling_right & !(from_right_bt = none) : from_right_bt;
+state = disabling_right & from_right_bt = disabled : cached_left;
+TRUE : none;
+esac;
+next(cached_left) := case
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : from_left_bt;
+state = disabling_left & from_left_bt = disabled : from_left_bt;
+state = disabling_right & !(from_right_bt = disabled) : cached_left;
+TRUE : none;
+esac;
+next(state) := case
+state = initial & visit = enable : enabling_left;
+state = initial & visit = disable : disabling_left;
+state = enabling_left & from_left_bt = failed : enabling_right;
+state = enabling_left & from_left_bt = none : enabling_left;
+state = enabling_left & (from_left_bt = running | from_left_bt = succeeded) : disabling_right;
+state = enabling_right & from_right_bt = none : enabling_right;
+state = enabling_right & !(from_right_bt = none) : return_right;
+state = disabling_right & !(from_right_bt = disabled) : disabling_right;
+state = disabling_right & from_right_bt = disabled : return_left;
+state = disabling_left & !(from_left_bt = disabled) : disabling_left;
+state = disabling_left & from_left_bt = disabled : disabling_right;
+TRUE : initial;
+esac;
+
+MODULE BT_FSM(visit, from_Go_to_kitchen, from_Find_bottle, from_Fetch_bottle, from_Ask_for_help)
+VAR
+FB : FALLBACK_NODE(visit, S1.output, from_Ask_for_help);
+S1 : SEQUENCE_NODE(FB.to_left_bt, from_Go_to_kitchen, S2.output);
+S2 : SEQUENCE_NODE(S1.to_right_bt, from_Find_bottle, from_Fetch_bottle);
+DEFINE
+to_Ask_for_help := FB.to_right_bt;
+to_Fetch_bottle := S2.to_right_bt;
+to_Find_bottle := S2.to_left_bt;
+to_Go_to_kitchen := S1.to_left_bt;
+output := FB.output;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE GO_TO_KITCHEN(from_bt, is_robot_in_kitchen)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Go_to_kitchen : boolean;
+	state : {away, going, failing, in_kitchen, disabled_away, disabled_in_kitchen};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Go_to_kitchen) := FALSE;
+	init(state) := away;
+
+	next(to_bt) :=
+	  case
+	    (state = away & from_bt = enable) : running;
+	    (state = away & from_bt = disable) : disabled;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : running;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : succeeded;
+	    (state = going & from_bt = disable): disabled;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : succeeded;
+	    (state = in_kitchen & (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failed;
+	    (state = in_kitchen & from_bt = disable) : disabled;
+	    (state = disabled_away & from_bt = disable) : disabled;
+	    (state = disabled_away & from_bt = enable) : running;
+	    (state = disabled_in_kitchen & from_bt = disable) : disabled;
+	    (state = disabled_in_kitchen & from_bt = enable) : running;
+	    (state = disabled_in_kitchen & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Go_to_kitchen) :=
+	  case
+	    (state = away & from_bt = enable) : TRUE;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_away & from_bt = enable) : TRUE;
+	    (state = in_kitchen & from_bt = enable): TRUE;
+	    (state = disabled_in_kitchen & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = away & from_bt = enable) : going;
+	    (state = away & from_bt = disable) : disabled_away;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = none)) : going;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = succeeded)) : in_kitchen;
+	    (state = going & ((from_bt = enable | from_bt = no) & is_robot_in_kitchen = failed)) : failing;
+	    (state = going & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = going & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+	    (state = failing & from_bt = enable) : going;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_robot_in_kitchen != succeeded): disabled_away;
+    	    (state = failing & from_bt = disable & is_robot_in_kitchen = succeeded): disabled_in_kitchen;
+    	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen != failed) : in_kitchen;	
+	    (state = in_kitchen &  (from_bt = no | from_bt = enable) & is_robot_in_kitchen = failed) : failing;
+	    (state = in_kitchen & from_bt = disable) : disabled_in_kitchen;
+	    (state = disabled_away & from_bt = disable) : disabled_away;
+	    (state = disabled_away & from_bt = enable) : going;
+	    (state = disabled_in_kitchen & from_bt = disable) : disabled_in_kitchen;
+	    (state = disabled_in_kitchen & from_bt = no) : in_kitchen;
+    	    (state = disabled_in_kitchen & from_bt = enable) : going;
+	    TRUE: away;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FIND_BOTTLE(from_bt, is_bottle_found)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Find_bottle : boolean;
+	state : {far, finding, failing, near, disabled_far, disabled_near};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Find_bottle) := FALSE;
+	init(state) := far;
+
+	next(to_bt) :=
+	  case
+	    (state = far & from_bt = enable) : running;
+	    (state = far & from_bt = disable) : disabled;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : running;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : succeeded;
+	    (state = finding & from_bt = disable): disabled;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = near & (from_bt = no | from_bt = enable) & is_bottle_found != failed) : succeeded;
+	    (state = near & (from_bt = no | from_bt = enable) & is_bottle_found = failed) : failed;
+	    (state = near & from_bt = disable) : disabled;
+	    (state = disabled_far & from_bt = disable) : disabled;
+	    (state = disabled_far & from_bt = enable) : running;
+	    (state = disabled_near & from_bt = disable) : disabled;
+	    (state = disabled_near & from_bt = enable) : running;
+	    (state = disabled_near & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Find_bottle) :=
+	  case
+	    (state = far & from_bt = enable) : TRUE;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_far & from_bt = enable) : TRUE;
+	    (state = near & from_bt = enable): TRUE;
+	    (state = disabled_near & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = far & from_bt = enable) : finding;
+	    (state = far & from_bt = disable) : disabled_far;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = none)) : finding;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = succeeded)) : near;
+	    (state = finding & ((from_bt = enable | from_bt = no) & is_bottle_found = failed)) : failing;
+	    (state = finding & from_bt = disable & is_bottle_found != succeeded): disabled_far;
+    	    (state = finding & from_bt = disable & is_bottle_found = succeeded): disabled_near;
+	    (state = failing & from_bt = enable) : finding;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_found != succeeded): disabled_far;
+    	    (state = failing & from_bt = disable & is_bottle_found = succeeded): disabled_near;
+    	    (state = near &  (from_bt = no | from_bt = enable) & is_bottle_found != failed) : near;	
+	    (state = near &  (from_bt = no | from_bt = enable) & is_bottle_found = failed) : failing;
+	    (state = near & from_bt = disable) : disabled_near;
+	    (state = disabled_far & from_bt = disable) : disabled_far;
+	    (state = disabled_far & from_bt = enable) : finding;
+	    (state = disabled_near & from_bt = disable) : disabled_near;
+	    (state = disabled_near & from_bt = no) : near;
+    	    (state = disabled_near & from_bt = enable) : finding;
+	    TRUE: far;
+	  esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE FETCH_BOTTLE(from_bt, is_bottle_fetched)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Fetch_bottle : boolean;
+	state : {not_grasped, fetching, failing, grasped, disabled_not_grasped, disabled_grasped};
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Fetch_bottle) := FALSE;
+	init(state) := not_grasped;
+
+	next(to_bt) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : running;
+	    (state = not_grasped & from_bt = disable) : disabled;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : running;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = succeeded)) : succeeded;
+	    (state = fetching & from_bt = disable): disabled;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = grasped & (from_bt = no | from_bt = enable) & is_bottle_fetched != failed) : succeeded;
+	    (state = grasped & (from_bt = no | from_bt = enable) & is_bottle_fetched = failed) : failed;
+	    (state = grasped & from_bt = disable) : disabled;
+	    (state = disabled_not_grasped & from_bt = disable) : disabled;
+	    (state = disabled_not_grasped & from_bt = enable) : running;
+	    (state = disabled_grasped & from_bt = disable) : disabled;
+	    (state = disabled_grasped & from_bt = enable) : running;
+	    (state = disabled_grasped & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Fetch_bottle) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : TRUE;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_grasped & from_bt = enable) : TRUE;
+	    (state = grasped & from_bt = enable): TRUE;
+	    (state = disabled_grasped & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_grasped & from_bt = enable) : fetching;
+	    (state = not_grasped & from_bt = disable) : disabled_not_grasped;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = none)) : fetching;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = succeeded)) : grasped;
+	    (state = fetching & ((from_bt = enable | from_bt = no) & is_bottle_fetched = failed)) : failing;
+	    (state = fetching & from_bt = disable & is_bottle_fetched != succeeded): disabled_not_grasped;
+    	    (state = fetching & from_bt = disable & is_bottle_fetched = succeeded): disabled_grasped;
+	    (state = failing & from_bt = enable) : fetching;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_bottle_fetched != succeeded): disabled_not_grasped;
+    	    (state = failing & from_bt = disable & is_bottle_fetched = succeeded): disabled_grasped;
+    	    (state = grasped &  (from_bt = no | from_bt = enable) & is_bottle_fetched != failed) : grasped;	
+	    (state = grasped &  (from_bt = no | from_bt = enable) & is_bottle_fetched = failed) : failing;
+	    (state = grasped & from_bt = disable) : disabled_grasped;
+	    (state = disabled_not_grasped & from_bt = disable) : disabled_not_grasped;
+	    (state = disabled_not_grasped & from_bt = enable) : fetching;
+	    (state = disabled_grasped & from_bt = disable) : disabled_grasped;
+	    (state = disabled_grasped & from_bt = no) : grasped;
+    	    (state = disabled_grasped & from_bt = enable) : fetching;
+	    TRUE: not_grasped;
+	  esac;
+
+
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ASK_FOR_HELP(from_bt, is_help_given)
+    VAR
+        to_bt : {none, disabled, running, failed, succeeded};
+        req_Ask_for_help : boolean;
+	state : {not_asked, asking, failing, asked, disabled_not_asked, disabled_asked};	
+
+    ASSIGN
+	init(to_bt) := none;
+	init(req_Ask_for_help) := FALSE;
+	init(state) := not_asked;
+
+	next(to_bt) :=
+	  case
+	    (state = not_asked & from_bt = enable) : running;
+	    (state = not_asked & from_bt = disable) : disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : running;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : succeeded;
+	    (state = asking & from_bt = disable): disabled;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failed;
+	    (state = failing & from_bt = enable) : running;
+	    (state = failing & from_bt = no) : failed;
+	    (state = failing & from_bt = disable): disabled;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given != failed) : succeeded;
+	    (state = asked & (from_bt = no | from_bt = enable) & is_help_given = failed) : failed;
+	    (state = asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = disable) : disabled;
+	    (state = disabled_not_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = disable) : disabled;
+	    (state = disabled_asked & from_bt = enable) : running;
+	    (state = disabled_asked & from_bt = no) : succeeded;	
+	    TRUE: none;
+	  esac;
+
+	next(req_Ask_for_help) :=
+	  case
+	    (state = not_asked & from_bt = enable) : TRUE;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : TRUE;
+	    (state = failing & from_bt = enable) : TRUE;
+	    (state = disabled_not_asked & from_bt = enable) : TRUE;
+	    (state = asked & from_bt = enable): TRUE;
+	    (state = disabled_asked & from_bt = enable) : TRUE;
+	    TRUE: FALSE;
+	  esac;
+
+  	next(state) :=
+	  case
+	    (state = not_asked & from_bt = enable) : asking;
+	    (state = not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = none)) : asking;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = succeeded)) : asked;
+	    (state = asking & ((from_bt = enable | from_bt = no) & is_help_given = failed)) : failing;
+	    (state = asking & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = asking & from_bt = disable & is_help_given = succeeded): disabled_asked;
+	    (state = failing & from_bt = enable) : asking;
+	    (state = failing & from_bt = no) : failing;
+	    (state = failing & from_bt = disable & is_help_given != succeeded): disabled_not_asked;
+    	    (state = failing & from_bt = disable & is_help_given = succeeded): disabled_asked;
+    	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given != failed) : asked;	
+	    (state = asked &  (from_bt = no | from_bt = enable) & is_help_given = failed) : failing;
+	    (state = asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_not_asked & from_bt = disable) : disabled_not_asked;
+	    (state = disabled_not_asked & from_bt = enable) : asking;
+	    (state = disabled_asked & from_bt = disable) : disabled_asked;
+	    (state = disabled_asked & from_bt = no) : asked;
+    	    (state = disabled_asked & from_bt = enable) : asking;
+	    TRUE: not_asked;
+	  esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ROBOT_AND_ENVIRONMENT(req_Ask_for_help, req_Fetch_bottle, req_Find_bottle, req_Go_to_kitchen)
+    VAR
+        is_help_given : {none, failed, succeeded};
+        is_bottle_fetched : {none, failed, succeeded};
+        is_bottle_found : {none, failed, succeeded};
+        is_robot_in_kitchen : {none, failed, succeeded};
+	state : {stand_by, in_kitchen, bottle_found, bottle_fetched,
+	         help_stand_by, help_kitchen, help_found, help_fetched,
+		 failed_kitchen, failed_find, failed_fetch};
+	
+    INVAR
+      (state = in_kitchen -> is_robot_in_kitchen = succeeded) &
+      (state = failed_kitchen -> is_robot_in_kitchen = failed) &
+      (state = bottle_found -> is_bottle_found = succeeded) &
+      (state = failed_find -> is_bottle_found = failed) &
+      (state = bottle_fetched -> is_bottle_fetched = succeeded) &
+      (state = failed_fetch -> is_bottle_fetched = failed);
+
+    ASSIGN
+      init(is_robot_in_kitchen) := none;
+      init(is_bottle_found) := none;
+      init(is_bottle_fetched) := none;
+      init(is_help_given) := none;
+      init(state) := stand_by;
+
+      next(is_robot_in_kitchen) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {succeeded, failed};
+	  (state = stand_by & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = stand_by & req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Go_to_kitchen & !req_Ask_for_help) : failed;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : none;
+	  (state = failed_kitchen & req_Ask_for_help) : none;
+	  (state = help_stand_by) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_found) :=
+        case
+	  (state = stand_by) : none;
+	  (state = failed_kitchen) : none;
+	  (state = help_stand_by) : none;
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = in_kitchen & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = in_kitchen & req_Ask_for_help) : none;
+	  (state = failed_find & req_Find_bottle & !req_Ask_for_help) : failed;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : none;
+	  (state = failed_find & req_Ask_for_help) : none;
+	  (state = help_kitchen) : none;
+	  TRUE : succeeded;
+	esac;
+
+      next(is_bottle_fetched) :=
+        case
+	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {succeeded, failed};
+	  (state = failed_fetch & req_Fetch_bottle & !req_Ask_for_help) : failed;
+	  (state = bottle_fetched) : succeeded;
+	  (state = help_fetched) : succeeded;
+	  TRUE : none;
+	esac;
+
+      next(is_help_given) :=
+        case
+	  req_Ask_for_help : succeeded;	  
+	  TRUE : none;
+	esac;
+
+      next(state) :=
+        case
+	  (state = stand_by & req_Go_to_kitchen & !req_Ask_for_help) : {in_kitchen, failed_kitchen};
+	  (state = stand_by & req_Ask_for_help) : help_stand_by;
+	  (state = help_stand_by & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & !req_Go_to_kitchen & !req_Ask_for_help) : stand_by;
+	  (state = failed_kitchen & req_Ask_for_help) : help_stand_by;
+
+	  (state = in_kitchen & req_Find_bottle & !req_Ask_for_help) : {bottle_found, failed_find};
+	  (state = in_kitchen & req_Ask_for_help) : help_kitchen;
+  	  (state = help_kitchen & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & !req_Find_bottle & !req_Ask_for_help) : in_kitchen;
+	  (state = failed_find & req_Ask_for_help) : help_kitchen;
+
+	  (state = bottle_found & req_Fetch_bottle & !req_Ask_for_help) : {bottle_fetched, failed_fetch};
+	  (state = bottle_found & req_Ask_for_help) : help_found;
+    	  (state = help_found & !req_Ask_for_help) : bottle_found;	
+	  (state = failed_fetch & !req_Fetch_bottle & !req_Ask_for_help) : bottle_found;
+	  (state = failed_fetch & req_Ask_for_help) : help_found;
+
+	  (state = failed_find & req_Ask_for_help) : help_fetched;
+    	  (state = help_fetched & !req_Ask_for_help) : bottle_fetched;
+	  
+	  TRUE : state;
+	esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
